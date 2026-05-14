@@ -1,0 +1,25 @@
+{
+  "name": "openpowers",
+  "version": "0.1.0",
+  "description": "OpenPowers CLI tool",
+  "type": "module",
+  "bin": {
+    "openpowers": "./bin/openpowers.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "chalk": "^5.5.0",
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT"
+}
