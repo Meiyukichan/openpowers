@@ -116,6 +116,8 @@ Conduct supplementary exploration of reference projects when the following condi
     }
 ]
 ```
+   - `path`: The root path of the reference project. Whether to explore depends on whether the path exists and the directory is non-empty.
+   - `description`: A detailed description of the reference project. This is very important — you must use this description to determine whether to make supplement exploration of this reference project.
 
 **Allowed file scope for exploration**: The `path` values from the elements of `project.repositories` after the filtering operations above
 

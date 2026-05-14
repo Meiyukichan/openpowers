@@ -41,15 +41,18 @@ python {script path} {current project path} project.references
 [
     {
         "type": "repository",
-        "path": "path/to/repository"
+        "path": "path/to/repository",
+        "description": "description about this repository"
     },
     {
         "type": "codebases",
-        "path": "path/to/codebases"
+        "path": "path/to/codebases",
+        "description": "description about this codebases"
     },
     {
         "type": "skill",
-        "path": "path/to/skill"
+        "path": "path/to/skill or skill name",
+        "description": "description about this skill"
     }
 ]
 ```
@@ -58,6 +61,10 @@ python {script path} {current project path} project.references
    - `repository`: Code repository. This means the reference material is a code repository, and `path` corresponds to the repository path
    - `codebases`: Codebases path. This means the reference material is a codebase, and `path` corresponds to the codebases root path
    - `skill`: Query reference materials through a skill. `path` corresponds to the skill path.
+
+**Whether an element should be explored (description)**:
+   - If an element's `description` is empty, **it should be explored by default**
+   - If `description` is not empty, you need to determine whether the exploration requirement `explore_content` is related to this `description`
 
 ### Phase 2: Understand Requirements
 
@@ -106,9 +113,9 @@ Exploration strategy (by priority):
 #### Scenario 3: `type = skill`
 
 1. Precondition check:
-   - The `path` exists and is a markdown file
+   - If `path` is a file path, it must exist and be a markdown file; if `path` is a skill name, this skill must exist.
 
-2. Call the skill document: use `path` to explore reference materials
+2. Call the skill: use `path` to explore reference materials
 
 ### Phase 4: Supplementary Exploration
 
