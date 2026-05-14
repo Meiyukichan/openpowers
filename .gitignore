@@ -1,0 +1,9 @@
+.worktrees/
+.private-journal/
+.claude/
+.vscode/
+.opencode/
+.DS_Store
+node_modules/
+inspo
+triage/

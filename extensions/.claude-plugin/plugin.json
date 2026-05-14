@@ -1,0 +1,13 @@
+{
+    "name": "openpowers",
+    "version": "1.0.0",
+    "description": "Brief plugin description",
+    "author": {
+        "name": "Author Name",
+        "email": "author@example.com",
+        "url": "https://github.com/author"
+    },
+    "homepage": "https://docs.example.com/plugin",
+    "repository": "https://github.com/author/plugin",
+    "license": "MIT"
+}

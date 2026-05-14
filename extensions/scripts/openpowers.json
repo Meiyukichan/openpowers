@@ -1,0 +1,44 @@
+{
+    "language": "chinese",
+    "providers": {
+        "enable": false,
+        "default": "deepseek",
+        "switch": {
+            "main": "mimo",
+            "explore": "minimax",
+            "plan": "glm",
+            "review": "deepseek",
+            "coding": "minimax",
+            "finalize": "deepseek"
+        }
+    },
+    "project": {
+        "sourcecode": "./",
+        "codebases": "docs/codebases",
+        "repositories": [],
+        "references": [
+            {
+                "type": "codebases",
+                "path": "docs/reference"
+            }
+        ]
+    },
+    "experimental": {
+        "codebases": false,
+        "websearch": true,
+        "context7": true,
+        "review": {
+            "propose": false,
+            "plan": false,
+            "specs": false,
+            "code": true,
+            "acceptance": true
+        },
+        "prompt": {
+            "review-code": null
+        },
+        "coverage": "70%",
+        "save-token": true,
+        "plan-factor": 1.5
+    }
+}
