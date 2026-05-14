@@ -99,7 +99,7 @@ Remind the user: "openspec installed successfully. Please close the CLI window a
 
 When multiple active changes exist, ask the user to choose which one to resume.
 
-**At this point, the final openspec change directory: `openspec/changes/<name>/` must be determined before follow phases**.
+**RED LAW: At this point, the final openspec change directory: `openspec/changes/<name>/` must be determined (or create one by yourself, do NOT ask user) before follow phases**.
 
 **RED LAW: After completing each phase, immediately start the next phase — do NOT pause and ask the user to confirm. Do not output prompts like "Phase complete, continue?"**.
 
@@ -113,8 +113,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 #### 1. Pre-Execution
 
-- Generate a UUID for the current phase
-- Print this UUID
+- At this point, the final openspec change directory: `openspec/changes/<name>/` must be determined (or create one by yourself, do NOT ask user)
 
 #### 2. Phase Execution
 
@@ -142,7 +141,7 @@ After insights from exploration are clear, notify the user that the next step wi
 Create a formal change proposal with all artifacts.
 
 ### Execution Steps
-In this phase, you must strictly and accurately follow these steps:
+In this phase, you must strictly and accurately follow these steps (do NOT dispatch a subagent in this phase: propose):
 
 #### 1. Pre-Execution
 
@@ -150,7 +149,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 #### 2. Phase Execution
 
-1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements. After brainstorm completes, automatically proceed to the next step — do NOT ask the user for confirmation (e.g., do NOT ask "Proceed to Propose?" or similar).
+1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements.
 2. Invoke Skill: openpowers-propose to create a new change proposal
 
 #### 3. Post-Execution
