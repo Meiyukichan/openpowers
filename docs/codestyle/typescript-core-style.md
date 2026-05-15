@@ -1,0 +1,41 @@
+# 代码风格
+
+框架/平台优先原则：
+
+| 代码类型 | 优先级顺序 | 原因说明 |
+|----------|------------|----------|
+| **Vue 组件** | Vue3 > TypeScript > Electron | 组件结构遵循 Vue 规范，TypeScript 补充类型，Electron 用于窗口/进程管理 |
+| **Electron 主进程** | Electron > TypeScript > Vue3 | 遵循 Electron API 和安全规范，TypeScript 提供类型支持，Vue3 不适用 |
+| **纯 TypeScript 工具** | TypeScript > 其他 | 类型安全和语言特性优先，框架无关 |
+| **共享工具函数** | TypeScript > Vue3 > Electron | 类型安全优先，可被各层调用，框架特性次之 |
+| **Electron 渲染进程** | Vue3 > TypeScript > Electron | 渲染进程用 Vue3 构建 UI，TypeScript 类型支持，Electron API 辅助 |
+
+## TypeScript
+
+- 编写 TypeScript 代码之前，必须调用 skill: typescript-standards-navigator 进行编码规范约束
+- 推荐使用 Node.js ES 模块
+- 对于 第三方库或有多个导出 的模块，使用命名空间导入
+- **对于 Node.js 内置模块，必须使用默认导入，比如 `import fs from 'fs'`**
+- 使用单引号（'）
+- 显式使用分号
+- 禁止使用console.log，通过logger输出日志
+- **TypeScript 的缩进风格必须采用 2 个空格缩进**
+
+## 文档注释和版权
+
+- 使用 TypeScript 官方推荐的 JSDoc 注释
+- 文件头部声明采用如下样式：
+  ```ts
+  /**
+   * Brief description of this file
+   * @author Meiyuki <meiyukichan@163.com>
+   * @copyright {当前年份} Meiyuki
+   */
+  ```
+- 类、main方法、`export`方法、以及确实重要的方法必须要有 JSDoc 注释，对于常量则使用行前'//'注释
+
+## 文件行数
+- 普通业务文件：300-500 行，大多数情况下的理想范围
+- 组件/类文件：200-300 行，保持职责单一，易于测试
+- 工具/配置文件：100-200 行，通常较简单，不宜过长
+- 大型模块：不超过 800 行，如必须超过，需有充分理由
