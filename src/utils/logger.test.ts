@@ -107,6 +107,13 @@ describe('src/utils/logger.ts', () => {
     expect(callArgs.format).toBe('mocked-json-format');
   });
 
+  it('should set exitOnError to false to prevent winston from calling process.exit(1)', async () => {
+    await import('./logger.js');
+
+    const callArgs = createLoggerMock.mock.calls[0][0];
+    expect(callArgs.exitOnError).toBe(false);
+  });
+
   // ---- Chunk 3: Auto-creates log directory ----
 
   it('should create log directory when it does not exist', async () => {

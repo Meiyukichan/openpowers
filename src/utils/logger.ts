@@ -31,6 +31,7 @@ function createWinstonLogger(): winston.Logger {
   try {
     ensureLogDir();
     return winston.createLogger({
+      exitOnError: false,
       level: 'info',
       format: winston.format.json(),
       transports: [
