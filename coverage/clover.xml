@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1778872444549" clover="3.2.0">
-  <project timestamp="1778872444550" name="All files">
-    <metrics statements="16" coveredstatements="16" conditionals="0" coveredconditionals="0" methods="8" coveredmethods="8" elements="24" coveredelements="24" complexity="0" loc="16" ncloc="16" packages="2" files="5" classes="5"/>
+<coverage generated="1778951387635" clover="3.2.0">
+  <project timestamp="1778951387635" name="All files">
+    <metrics statements="64" coveredstatements="63" conditionals="2" coveredconditionals="2" methods="11" coveredmethods="10" elements="77" coveredelements="75" complexity="0" loc="64" ncloc="64" packages="3" files="6" classes="6"/>
     <package name="cli">
       <metrics statements="8" coveredstatements="8" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
       <file name="index.ts" path="D:\project-code\llm\openpowers\src\cli\index.ts">
@@ -17,11 +17,50 @@
       </file>
     </package>
     <package name="commands">
-      <metrics statements="8" coveredstatements="8" conditionals="0" coveredconditionals="0" methods="8" coveredmethods="8"/>
+      <metrics statements="47" coveredstatements="46" conditionals="0" coveredconditionals="0" methods="9" coveredmethods="8"/>
       <file name="init.ts" path="D:\project-code\llm\openpowers\src\commands\init.ts">
-        <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
-        <line num="14" count="3" type="stmt"/>
-        <line num="18" count="1" type="stmt"/>
+        <metrics statements="41" coveredstatements="40" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="2"/>
+        <line num="31" count="14" type="stmt"/>
+        <line num="32" count="14" type="stmt"/>
+        <line num="33" count="14" type="stmt"/>
+        <line num="34" count="14" type="stmt"/>
+        <line num="35" count="14" type="stmt"/>
+        <line num="37" count="2" type="stmt"/>
+        <line num="38" count="2" type="stmt"/>
+        <line num="39" count="2" type="stmt"/>
+        <line num="43" count="12" type="stmt"/>
+        <line num="44" count="12" type="stmt"/>
+        <line num="45" count="12" type="stmt"/>
+        <line num="49" count="12" type="stmt"/>
+        <line num="50" count="12" type="stmt"/>
+        <line num="52" count="1" type="stmt"/>
+        <line num="53" count="1" type="stmt"/>
+        <line num="57" count="12" type="stmt"/>
+        <line num="58" count="12" type="stmt"/>
+        <line num="59" count="12" type="stmt"/>
+        <line num="63" count="12" type="stmt"/>
+        <line num="64" count="12" type="stmt"/>
+        <line num="66" count="1" type="stmt"/>
+        <line num="67" count="1" type="stmt"/>
+        <line num="71" count="12" type="stmt"/>
+        <line num="75" count="12" type="stmt"/>
+        <line num="76" count="12" type="stmt"/>
+        <line num="77" count="12" type="stmt"/>
+        <line num="81" count="12" type="stmt"/>
+        <line num="82" count="12" type="stmt"/>
+        <line num="84" count="1" type="stmt"/>
+        <line num="85" count="1" type="stmt"/>
+        <line num="86" count="1" type="stmt"/>
+        <line num="90" count="11" type="stmt"/>
+        <line num="91" count="11" type="stmt"/>
+        <line num="92" count="11" type="stmt"/>
+        <line num="96" count="11" type="stmt"/>
+        <line num="97" count="11" type="stmt"/>
+        <line num="99" count="1" type="stmt"/>
+        <line num="100" count="1" type="stmt"/>
+        <line num="101" count="1" type="stmt"/>
+        <line num="110" count="2" type="stmt"/>
+        <line num="114" count="0" type="stmt"/>
       </file>
       <file name="recover.ts" path="D:\project-code\llm\openpowers\src\commands\recover.ts">
         <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
@@ -37,6 +76,21 @@
         <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
         <line num="14" count="3" type="stmt"/>
         <line num="18" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="utils">
+      <metrics statements="9" coveredstatements="9" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+      <file name="logger.ts" path="D:\project-code\llm\openpowers\src\utils\logger.ts">
+        <metrics statements="9" coveredstatements="9" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="13" count="13" type="stmt"/>
+        <line num="14" count="13" type="stmt"/>
+        <line num="21" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="22" count="3" type="stmt"/>
+        <line num="31" count="13" type="stmt"/>
+        <line num="32" count="13" type="stmt"/>
+        <line num="33" count="13" type="stmt"/>
+        <line num="43" count="2" type="stmt"/>
+        <line num="47" count="13" type="stmt"/>
       </file>
     </package>
   </project>
