@@ -4,32 +4,303 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
 
+// Use vi.hoisted() for mocks that need to be referenced before vi.mock hoisting
+const { setReadlineAnswer, mockRlInterface } = vi.hoisted(() => {
+  let pendingAnswer = 'n';
+  const rl = {
+    question: vi.fn((_query: string, callback: (answer: string) => void) => {
+      callback(pendingAnswer);
+    }),
+    close: vi.fn(),
+  };
+  return {
+    setReadlineAnswer: (ans: string) => { pendingAnswer = ans; },
+    mockRlInterface: rl,
+  };
+});
+
+const { mockOra, mockSpinner } = vi.hoisted(() => {
+  const spinner = {
+    start: vi.fn().mockReturnThis(),
+    succeed: vi.fn().mockReturnThis(),
+    fail: vi.fn().mockReturnThis(),
+    stop: vi.fn().mockReturnThis(),
+    stopAndPersist: vi.fn().mockReturnThis(),
+  };
+  return {
+    mockSpinner: spinner,
+    mockOra: vi.fn(() => spinner),
+  };
+});
+
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('readline', () => ({
+  default: { createInterface: vi.fn(() => mockRlInterface) },
+}));
+
+vi.mock('ora', () => ({
+  default: mockOra,
+}));
+
+vi.mock('chalk', () => ({
+  default: new Proxy({}, { get: () => (s: string) => s }),
+}));
+
+vi.mock('child_process', () => ({
+  execSync: vi.fn(),
+}));
+
+vi.mock('../utils/logger.js', () => ({
+  logger: mockLogger,
+}));
+
+import { execSync } from 'child_process';
+
+// Resolve the function types
+type RunRemoveFn = () => void;
+type RegisterRemoveCmdFn = (program: Command) => void;
+
 describe('src/commands/remove.ts', () => {
-  it('should export registerRemoveCommand as a named function', async () => {
-    const { registerRemoveCommand } = await import('./remove.js');
-    expect(registerRemoveCommand).toBeDefined();
-    expect(typeof registerRemoveCommand).toBe('function');
+  let runRemove: RunRemoveFn;
+  let registerRemoveCommand: RegisterRemoveCmdFn;
+  // Default to TTY mode; individual tests can override
+  let isTTYValue = true;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    isTTYValue = true;
+    // Define isTTY on process.stdin if it doesn't exist (vitest may not have it)
+    Object.defineProperty(process.stdin, 'isTTY', {
+      get: () => isTTYValue,
+      configurable: true,
+    });
+    vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('process.exit called');
+    }) as never);
+
+    const mod = await import('./remove.js');
+    runRemove = mod.runRemove;
+    registerRemoveCommand = mod.registerRemoveCommand;
   });
 
-  it('should register remove command on the program', async () => {
-    const { registerRemoveCommand } = await import('./remove.js');
-    const program = new Command();
-    registerRemoveCommand(program);
-    const subcommands = program.commands.map((cmd) => cmd.name());
-    expect(subcommands).toContain('remove');
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('should output correct message when remove command executes', async () => {
-    const { registerRemoveCommand } = await import('./remove.js');
-    const program = new Command();
-    registerRemoveCommand(program);
+  describe('registerRemoveCommand', () => {
+    it('should export registerRemoveCommand as a named function', () => {
+      expect(registerRemoveCommand).toBeDefined();
+      expect(typeof registerRemoveCommand).toBe('function');
+    });
 
-    const logSpy = vi.spyOn(console, 'log');
-    program.parse(['node', 'test', 'remove']);
-    expect(logSpy).toHaveBeenCalledWith('openpowers 插件已卸载（mock）');
-    logSpy.mockRestore();
+    it('should register remove command on the program', () => {
+      const program = new Command();
+      registerRemoveCommand(program);
+      const subcommands = program.commands.map((cmd) => cmd.name());
+      expect(subcommands).toContain('remove');
+    });
+  });
+
+  describe('runRemove', () => {
+    describe('User confirmation prompt (TTY mode)', () => {
+      it('should prompt user and proceed with removal when answering y', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(mockRlInterface.question).toHaveBeenCalledWith(
+          expect.stringContaining('y/N'),
+          expect.any(Function)
+        );
+        expect(mockRlInterface.close).toHaveBeenCalled();
+        expect(execSync).toHaveBeenCalledTimes(2);
+      });
+
+      it('should exit without making changes when answering n', () => {
+        setReadlineAnswer('n');
+
+        expect(() => runRemove()).toThrow('process.exit called');
+        expect(execSync).not.toHaveBeenCalled();
+        expect(process.exit).toHaveBeenCalledWith(0);
+      });
+
+      it('should exit without changes when answering anything other than y', () => {
+        setReadlineAnswer('no');
+
+        expect(() => runRemove()).toThrow('process.exit called');
+        expect(execSync).not.toHaveBeenCalled();
+        expect(process.exit).toHaveBeenCalledWith(0);
+      });
+
+      it('should proceed with removal when answering Y (uppercase yes)', () => {
+        setReadlineAnswer('Y');
+
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(execSync).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('Non-TTY mode', () => {
+      it('should skip confirmation prompt and proceed automatically', () => {
+        isTTYValue = false;
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(mockRlInterface.question).not.toHaveBeenCalled();
+        expect(mockRlInterface.close).not.toHaveBeenCalled();
+        expect(execSync).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('Plugin uninstall with fault tolerance', () => {
+      it('should call execSync to uninstall plugin and show green success message', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(execSync).toHaveBeenNthCalledWith(
+          1,
+          'claude plugin uninstall openpowers-dev@openpowers-plugins-dev',
+          expect.objectContaining({ stdio: 'pipe', cwd: expect.any(String) })
+        );
+        // There should be a succeed call with a string (from chalk)
+        const succeedCalls = mockSpinner.succeed.mock.calls;
+        expect(succeedCalls.length).toBeGreaterThanOrEqual(1);
+      });
+
+      it('should skip gracefully when plugin uninstall fails', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockImplementationOnce(() => { throw new Error('not installed'); })
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        // Should continue to marketplace removal (second execSync call)
+        expect(execSync).toHaveBeenCalledTimes(2);
+        // Should log a warning
+        expect(mockLogger.warn).toHaveBeenCalled();
+        // Should not fail (no process.exit with error)
+        expect(mockSpinner.fail).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Marketplace removal with fault tolerance', () => {
+      it('should call execSync to remove marketplace and show green success message', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(execSync).toHaveBeenNthCalledWith(
+          2,
+          'claude plugin marketplace remove openpowers-plugins-dev',
+          expect.objectContaining({ stdio: 'pipe', cwd: expect.any(String) })
+        );
+      });
+
+      it('should skip gracefully when marketplace removal fails', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockImplementationOnce(() => { throw new Error('not found'); });
+
+        runRemove();
+
+        expect(execSync).toHaveBeenCalledTimes(2);
+        expect(mockLogger.warn).toHaveBeenCalled();
+        expect(mockSpinner.fail).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Summary output after completion', () => {
+      it('should display summary message after both successful steps', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        // Should have called succeed on the summary spinner
+        // Ora is called 3 times: plugin step, marketplace step, summary
+        expect(mockOra).toHaveBeenCalledTimes(3);
+        // The last succeed call should be on the summary spinner
+        expect(mockSpinner.succeed).toHaveBeenCalledTimes(3);
+      });
+
+      it('should display summary indicating skipped components when nothing found', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockImplementationOnce(() => { throw new Error('not installed'); })
+          .mockImplementationOnce(() => { throw new Error('not found'); });
+
+        runRemove();
+
+        // Both skipped, summary still shown
+        expect(mockOra).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.succeed).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.fail).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('execSync cwd option', () => {
+      it('should pass cwd parameter to every execSync call', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        const calls = vi.mocked(execSync).mock.calls;
+        expect(calls.length).toBe(2);
+        for (const call of calls) {
+          expect(call[1]).toHaveProperty('cwd');
+          expect(call[1]).toHaveProperty('stdio', 'pipe');
+        }
+      });
+    });
+
+    describe('No console.log usage', () => {
+      it('should not use console.log', () => {
+        const consoleLogSpy = vi.spyOn(console, 'log');
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+        consoleLogSpy.mockRestore();
+      });
+    });
   });
 });
