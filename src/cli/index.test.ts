@@ -18,12 +18,14 @@ describe('src/cli/index.ts', () => {
     expect(program.version()).toBe('1.0.0');
   });
 
-  it('should register all 4 subcommands (init, ui, remove, recover)', async () => {
+  it('should register all 5 subcommands (init, ui, remove, recover, change)', async () => {
     const { program } = await import('./index.js');
     const names = program.commands.map((cmd) => cmd.name());
+    expect(names.length).toBe(5);
     expect(names).toContain('init');
     expect(names).toContain('ui');
     expect(names).toContain('remove');
     expect(names).toContain('recover');
+    expect(names).toContain('change');
   });
 });

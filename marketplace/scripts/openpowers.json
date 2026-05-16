@@ -2,9 +2,8 @@
     "language": "chinese",
     "providers": {
         "enable": false,
-        "default": "deepseek",
+        "default": "mimo",
         "switch": {
-            "main": "mimo",
             "explore": "minimax",
             "plan": "glm",
             "review": "deepseek",

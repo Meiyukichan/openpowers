@@ -66,8 +66,10 @@ vi.mock('../utils/logger.js', () => ({
 
 import { execSync } from 'child_process';
 
+import type { RemoveOptions } from './remove.js';
+
 // Resolve the function types
-type RunRemoveFn = () => void;
+type RunRemoveFn = (options?: RemoveOptions) => void;
 type RegisterRemoveCmdFn = (program: Command) => void;
 
 describe('src/commands/remove.ts', () => {
@@ -103,11 +105,13 @@ describe('src/commands/remove.ts', () => {
       expect(typeof registerRemoveCommand).toBe('function');
     });
 
-    it('should register remove command on the program', () => {
+    it('should register remove command on the program with --yes option', () => {
       const program = new Command();
       registerRemoveCommand(program);
       const subcommands = program.commands.map((cmd) => cmd.name());
       expect(subcommands).toContain('remove');
+      const removeCmd = program.commands.find((cmd) => cmd.name() === 'remove');
+      expect(removeCmd?.options.map((o) => o.short)).toContain('-y');
     });
   });
 
@@ -169,6 +173,31 @@ describe('src/commands/remove.ts', () => {
 
         expect(mockRlInterface.question).not.toHaveBeenCalled();
         expect(mockRlInterface.close).not.toHaveBeenCalled();
+        expect(execSync).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('--yes flag', () => {
+      it('should skip confirmation and proceed when --yes flag is passed', () => {
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove({ yes: true });
+
+        expect(mockRlInterface.question).not.toHaveBeenCalled();
+        expect(execSync).toHaveBeenCalledTimes(2);
+      });
+
+      it('should still work with explicit yes: false', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove({ yes: false });
+
+        expect(mockRlInterface.question).toHaveBeenCalled();
         expect(execSync).toHaveBeenCalledTimes(2);
       });
     });
@@ -319,9 +348,10 @@ describe('src/commands/remove.ts', () => {
         const calls = vi.mocked(execSync).mock.calls;
         expect(calls.length).toBe(2);
         for (const call of calls) {
-          expect(call[1]).toHaveProperty('cwd');
-          expect(call[1].cwd).toBe(process.cwd());
-          expect(call[1]).toHaveProperty('stdio', 'pipe');
+          const options = call[1]!;
+          expect(options).toHaveProperty('cwd');
+          expect(options.cwd).toBe(process.cwd());
+          expect(options).toHaveProperty('stdio', 'pipe');
         }
       });
     });

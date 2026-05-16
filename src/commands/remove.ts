@@ -16,10 +16,18 @@ const PLUGIN_NAME = 'openpowers-dev@openpowers-plugins-dev';
 const MARKETPLACE_NAME = 'openpowers-plugins-dev';
 
 /**
+ * Options for the remove command.
+ */
+export interface RemoveOptions {
+  /** Skip confirmation prompt */
+  yes?: boolean;
+}
+
+/**
  * Runs the removal flow for openpowers.
  *
  * Steps:
- * 1. Prompt user for confirmation via readline (skip if non-TTY)
+ * 1. Prompt user for confirmation via readline (skipped if --yes flag or non-TTY)
  * 2. Uninstall OpenPowers plugin (error-tolerant)
  * 3. Remove OpenPowers marketplace (error-tolerant)
  * 4. Display summary
@@ -27,9 +35,12 @@ const MARKETPLACE_NAME = 'openpowers-plugins-dev';
  * Each step displays an ora spinner with chalk status indicators.
  * All operations are logged via the shared logger.
  */
-export function runRemove(): void {
-  // Step 1: Confirmation prompt (TTY only, skip in non-interactive mode)
-  if (process.stdin.isTTY) {
+export function runRemove(options: RemoveOptions = {}): void {
+  // Step 1: Confirmation prompt (skip with --yes flag or in non-interactive mode)
+  if (options.yes) {
+    logger.info('--yes flag: skipping confirmation');
+    performRemoval();
+  } else if (process.stdin.isTTY) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -133,7 +144,8 @@ export function registerRemoveCommand(program: Command): void {
   program
     .command('remove')
     .description('Uninstall openpowers plugin and marketplace')
-    .action(() => {
-      runRemove();
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action((options: RemoveOptions) => {
+      runRemove(options);
     });
 }

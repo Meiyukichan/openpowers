@@ -1,0 +1,76 @@
+{
+    "framework": "OpenPowers",
+    "version": "1.0.0",
+    "changes": [
+        {
+            "name": "remove-command",
+            "path": "openspec/changes/remove-command",
+            "description": "Implement a new 'remove' command that uninstalls the OpenPowers plugin and removes the marketplace",
+            "features": 5,
+            "todo": 4,
+            "createdAt": "2026-05-17T00:00:00Z",
+            "artifacts": [
+                {
+                    "id": "proposal",
+                    "outputPath": "openspec/changes/remove-command/proposal.md"
+                },
+                {
+                    "id": "design",
+                    "outputPath": "openspec/changes/remove-command/design.md"
+                },
+                {
+                    "id": "specs",
+                    "outputPath": "openspec/changes/remove-command/specs/**/*.md"
+                },
+                {
+                    "id": "api",
+                    "outputPath": "openspec/changes/remove-command/api.yaml"
+                },
+                {
+                    "id": "database",
+                    "outputPath": "openspec/changes/remove-command/database.md"
+                },
+                {
+                    "id": "plan",
+                    "outputPath": "openspec/changes/remove-command/plan.json"
+                }
+            ]
+        }
+    ],
+    "archive": [
+        {
+            "name": "init-command",
+            "path": "openspec/changes/init-command",
+            "description": "Initial implementation of the 'init' command that sets up the OpenPowers plugin and marketplace.",
+            "features": 5,
+            "createdAt": "2026-05-17T00:00:00Z",
+            "closedAt": "2026-05-17T00:00:00Z",
+            "artifacts": [
+                {
+                    "id": "proposal",
+                    "outputPath": "openspec/changes/init-command/proposal.md"
+                },
+                {
+                    "id": "design",
+                    "outputPath": "openspec/changes/init-command/design.md"
+                },
+                {
+                    "id": "specs",
+                    "outputPath": "openspec/changes/init-command/specs/**/*.md"
+                },
+                {
+                    "id": "api",
+                    "outputPath": "openspec/changes/init-command/api.yaml"
+                },
+                {
+                    "id": "database",
+                    "outputPath": "openspec/changes/init-command/database.md"
+                },
+                {
+                    "id": "plan",
+                    "outputPath": "openspec/changes/remove-command/plan.json"
+                }
+            ]
+        }
+    ]
+}
