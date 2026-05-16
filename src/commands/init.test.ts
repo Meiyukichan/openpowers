@@ -97,7 +97,7 @@ describe('src/commands/init.ts', () => {
 
         expect(execSync).toHaveBeenCalledWith(
           'claude --version',
-          expect.objectContaining({ stdio: 'pipe' })
+          expect.objectContaining({ stdio: 'pipe', cwd: expect.any(String) })
         );
         expect(mockSpinner.succeed).toHaveBeenCalled();
       });
@@ -266,6 +266,26 @@ describe('src/commands/init.ts', () => {
         }
 
         expect(mockSpinner.fail).toHaveBeenCalled();
+      });
+    });
+
+    describe('execSync cwd option', () => {
+      it('should pass cwd parameter to every execSync call', () => {
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runInit();
+
+        const calls = vi.mocked(execSync).mock.calls;
+        // All 5 steps call execSync once each
+        expect(calls.length).toBe(5);
+        for (const call of calls) {
+          expect(call[1]).toHaveProperty('cwd');
+        }
       });
     });
 

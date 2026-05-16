@@ -30,7 +30,7 @@ export function runInit(): void {
   // Step 1: Check claude --version
   const step1 = ora('Checking claude installation...').start();
   try {
-    execSync('claude --version', { stdio: 'pipe' });
+    execSync('claude --version', { stdio: 'pipe', cwd: process.cwd() });
     step1.succeed(chalk.green('Claude is installed'));
     logger.info('Claude --version check passed');
   } catch {
@@ -44,6 +44,7 @@ export function runInit(): void {
   try {
     execSync('claude plugin uninstall openpowers-dev@openpowers-plugins-dev', {
       stdio: 'pipe',
+      cwd: process.cwd(),
     });
     step2.succeed(chalk.green('Old plugin removed'));
     logger.info('Old plugin uninstalled successfully');
@@ -57,6 +58,7 @@ export function runInit(): void {
   try {
     execSync('claude plugin marketplace remove openpowers-plugins-dev', {
       stdio: 'pipe',
+      cwd: process.cwd(),
     });
     step3.succeed(chalk.green('Old marketplace removed'));
     logger.info('Old marketplace removed successfully');
@@ -74,6 +76,7 @@ export function runInit(): void {
   try {
     execSync(`claude plugin marketplace add ${marketplacePath}`, {
       stdio: 'pipe',
+      cwd: process.cwd(),
     });
     step4.succeed(chalk.green('Marketplace added'));
     logger.info(`Marketplace added from ${marketplacePath}`);
@@ -88,6 +91,7 @@ export function runInit(): void {
   try {
     execSync('claude plugin install openpowers-dev@openpowers-plugins-dev', {
       stdio: 'pipe',
+      cwd: process.cwd(),
     });
     step5.succeed(chalk.green('OpenPowers initialized successfully!'));
     logger.info('Plugin installed successfully');
