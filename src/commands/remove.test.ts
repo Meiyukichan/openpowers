@@ -185,7 +185,7 @@ describe('src/commands/remove.ts', () => {
         expect(execSync).toHaveBeenNthCalledWith(
           1,
           'claude plugin uninstall openpowers-dev@openpowers-plugins-dev',
-          expect.objectContaining({ stdio: 'pipe', cwd: expect.any(String) })
+          expect.objectContaining({ stdio: 'pipe', cwd: process.cwd() })
         );
         // There should be a succeed call with a string (from chalk)
         const succeedCalls = mockSpinner.succeed.mock.calls;
@@ -221,7 +221,7 @@ describe('src/commands/remove.ts', () => {
         expect(execSync).toHaveBeenNthCalledWith(
           2,
           'claude plugin marketplace remove openpowers-plugins-dev',
-          expect.objectContaining({ stdio: 'pipe', cwd: expect.any(String) })
+          expect.objectContaining({ stdio: 'pipe', cwd: process.cwd() })
         );
       });
 
@@ -267,11 +267,48 @@ describe('src/commands/remove.ts', () => {
         expect(mockOra).toHaveBeenCalledTimes(3);
         expect(mockSpinner.succeed).toHaveBeenCalledTimes(3);
         expect(mockSpinner.fail).not.toHaveBeenCalled();
+        // Verify summary message content
+        const lastSucceedCall = mockSpinner.succeed.mock.calls[2];
+        expect(lastSucceedCall[0]).toContain('Nothing to remove');
+      });
+
+      it('should display summary when plugin removed but marketplace skipped', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockImplementationOnce(() => { throw new Error('not found'); });
+
+        runRemove();
+
+        expect(mockOra).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.succeed).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.fail).not.toHaveBeenCalled();
+        // Verify summary content for mixed scenario
+        const lastSucceedCall = mockSpinner.succeed.mock.calls[2];
+        expect(lastSucceedCall[0]).toContain('plugin has been removed');
+        expect(lastSucceedCall[0]).toContain('marketplace was not found');
+      });
+
+      it('should display summary when plugin skipped but marketplace removed', () => {
+        setReadlineAnswer('y');
+        vi.mocked(execSync)
+          .mockImplementationOnce(() => { throw new Error('not installed'); })
+          .mockReturnValueOnce(Buffer.from(''));
+
+        runRemove();
+
+        expect(mockOra).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.succeed).toHaveBeenCalledTimes(3);
+        expect(mockSpinner.fail).not.toHaveBeenCalled();
+        // Verify summary content for mixed scenario
+        const lastSucceedCall = mockSpinner.succeed.mock.calls[2];
+        expect(lastSucceedCall[0]).toContain('plugin was not installed');
+        expect(lastSucceedCall[0]).toContain('marketplace has been removed');
       });
     });
 
     describe('execSync cwd option', () => {
-      it('should pass cwd parameter to every execSync call', () => {
+      it('should pass cwd parameter equal to process.cwd() for every execSync call', () => {
         setReadlineAnswer('y');
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from(''))
@@ -283,6 +320,7 @@ describe('src/commands/remove.ts', () => {
         expect(calls.length).toBe(2);
         for (const call of calls) {
           expect(call[1]).toHaveProperty('cwd');
+          expect(call[1].cwd).toBe(process.cwd());
           expect(call[1]).toHaveProperty('stdio', 'pipe');
         }
       });

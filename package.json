@@ -1,6 +1,6 @@
 {
   "name": "openpowers",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "OpenPowers CLI - plugin-based development toolkit",
   "type": "module",
   "bin": {

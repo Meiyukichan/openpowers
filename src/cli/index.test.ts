@@ -15,7 +15,7 @@ describe('src/cli/index.ts', () => {
 
   it('should have version set from package.json', async () => {
     const { program } = await import('./index.js');
-    expect(program.version()).toBe('0.1.0');
+    expect(program.version()).toBe('1.0.0');
   });
 
   it('should register all 4 subcommands (init, ui, remove, recover)', async () => {
