@@ -306,5 +306,66 @@ describe('src/commands/init.ts', () => {
         consoleLogSpy.mockRestore();
       });
     });
+
+    describe('Post-init workflow reminder', () => {
+      const reminderMessage = 'Next steps: Open Claude Code and run /openpowers:workflow to start';
+
+      it('should print workflow reminder via process.stdout.write on successful init', () => {
+        const writeSpy = vi.spyOn(process.stdout, 'write');
+
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockReturnValueOnce(Buffer.from('')); // install plugin
+
+        runInit();
+
+        expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining(reminderMessage));
+      });
+
+      it('should NOT print workflow reminder when step 1 (claude check) fails', () => {
+        const writeSpy = vi.spyOn(process.stdout, 'write');
+
+        vi.mocked(execSync).mockImplementationOnce(() => {
+          throw new Error('command not found: claude');
+        });
+
+        try {
+          runInit();
+        } catch {
+          // expected process.exit throw
+        }
+
+        // writeSpy might have been called with spinner output, but NOT with the reminder
+        const reminderCalls = vi.mocked(writeSpy).mock.calls.filter(
+          (call) => typeof call[0] === 'string' && (call[0] as string).includes(reminderMessage)
+        );
+        expect(reminderCalls).toHaveLength(0);
+      });
+
+      it('should NOT print workflow reminder when step 5 (plugin install) fails', () => {
+        const writeSpy = vi.spyOn(process.stdout, 'write');
+
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockImplementationOnce(() => { throw new Error('install failed'); }); // install fails
+
+        try {
+          runInit();
+        } catch {
+          // expected process.exit throw
+        }
+
+        const reminderCalls = vi.mocked(writeSpy).mock.calls.filter(
+          (call) => typeof call[0] === 'string' && (call[0] as string).includes(reminderMessage)
+        );
+        expect(reminderCalls).toHaveLength(0);
+      });
+    });
   });
 });

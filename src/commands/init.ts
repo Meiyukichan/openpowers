@@ -95,6 +95,7 @@ export function runInit(): void {
     });
     step5.succeed(chalk.green('OpenPowers initialized successfully!'));
     logger.info('Plugin installed successfully');
+    process.stdout.write('Next steps: Open Claude Code and run /openpowers:workflow to start\n');
   } catch (err) {
     step5.fail(chalk.red('Failed to install openpowers plugin'));
     logger.error(`Plugin install failed: ${err}`);
