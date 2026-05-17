@@ -4,8 +4,11 @@
  * @copyright 2026 Meiyuki
  */
 
+import path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
+
+type DirEntry = { name: string; isDirectory: () => boolean; isFile: () => boolean };
 
 // Hoisted mocks
 const { mockLogger } = vi.hoisted(() => ({
@@ -22,7 +25,7 @@ const { mockFs } = vi.hoisted(() => {
   const dirSet = new Set<string>();
 
   function setFile(pathStr: string, content: string) {
-    fileSystem[pathStr] = content;
+    fileSystem[pathStr.replace(/\\/g, '/')] = content;
     // Add parent dirs
     const parts = pathStr.replace(/\\/g, '/').split('/');
     for (let i = 1; i < parts.length; i++) {
@@ -61,10 +64,9 @@ const { mockFs } = vi.hoisted(() => {
       mkdirSync: vi.fn((p: string) => {
         setDir(p);
       }),
-      readdirSync: vi.fn((p: string, _options?: { withFileTypes?: boolean }) => {
-        const normalized = p.replace(/\\/g, '/');
+      readdirSync: vi.fn((_p: string, _options?: unknown) => {
         // Return empty array by default; individual tests set up dirs
-        return [];
+        return [] as Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       }),
     },
   };
@@ -87,9 +89,18 @@ type ComputeProgressFn = (planPath: string) => { features: number; todo: number 
 type RunChangeListFn = () => void;
 type RunChangeNewFn = (name: string, options: { desc: string }) => void;
 type RunChangeStatusFn = (name: string) => void;
+type RunChangeInstructionFn = (name: string, options: { proposal?: boolean; design?: boolean; specs?: boolean }) => void;
 type RegisterChangeCommandFn = (program: Command) => void;
 
 describe('src/commands/change.ts', () => {
+  // Path constants matching the source module's absolute paths
+  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
+  const CHANGES_JSON_PATH = path.join(process.cwd(), 'openpowers', 'changes.json');
+  // Normalized versions for mock FS comparisons (backslashes → forward slashes)
+  const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
+  const NORM_ARCHIVE_DIR = ARCHIVE_DIR.replace(/\\/g, '/');
+
   let formatRelativeTime: FormatRelativeTimeFn;
   let validateChangeName: ValidateChangeNameFn;
   let buildArtifacts: BuildArtifactsFn;
@@ -103,7 +114,7 @@ describe('src/commands/change.ts', () => {
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockFs.reset();
     stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     stderrWriteSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
@@ -248,32 +259,80 @@ describe('src/commands/change.ts', () => {
       buildArtifacts = mod.buildArtifacts;
     });
 
-    it('should return 6 artifacts for active change path', () => {
-      const artifacts = buildArtifacts('openspec/changes/my-feature');
-      expect(artifacts.length).toBe(6);
-      expect(artifacts[0]).toEqual({ id: 'proposal', outputPath: 'openspec/changes/my-feature/proposal.md' });
-      expect(artifacts[1]).toEqual({ id: 'design', outputPath: 'openspec/changes/my-feature/design.md' });
-      expect(artifacts[2]).toEqual({ id: 'specs', outputPath: 'openspec/changes/my-feature/specs/**/*.md' });
-      expect(artifacts[3]).toEqual({ id: 'api', outputPath: 'openspec/changes/my-feature/api.yaml' });
-      expect(artifacts[4]).toEqual({ id: 'database', outputPath: 'openspec/changes/my-feature/database.md' });
-      expect(artifacts[5]).toEqual({ id: 'plan', outputPath: 'openspec/changes/my-feature/plan.json' });
-    });
+    it('should return only artifacts whose files exist on disk', () => {
+      // Set up only some of the artifact files
+      mockFs.setFile('some/path/proposal.md', '');
+      mockFs.setDir('some/path/specs');
+      mockFs.setFile('some/path/plan.json', '');
 
-    it('should return 6 artifacts for archive change path', () => {
-      const artifacts = buildArtifacts('openspec/changes/archive/2026-05-17-old-feature');
-      expect(artifacts.length).toBe(6);
-      expect(artifacts[0]).toEqual({ id: 'proposal', outputPath: 'openspec/changes/archive/2026-05-17-old-feature/proposal.md' });
-    });
-
-    it('should have correct file extensions for each artifact type', () => {
       const artifacts = buildArtifacts('some/path');
-      const byId = Object.fromEntries(artifacts.map(a => [a.id, a.outputPath]));
-      expect(byId.proposal.endsWith('.md')).toBe(true);
-      expect(byId.design.endsWith('.md')).toBe(true);
-      expect(byId.specs).toBe('some/path/specs/**/*.md');
-      expect(byId.api.endsWith('.yaml')).toBe(true);
-      expect(byId.database.endsWith('.md')).toBe(true);
-      expect(byId.plan.endsWith('.json')).toBe(true);
+      expect(artifacts.length).toBe(3);
+      const ids = artifacts.map(a => a.id);
+      expect(ids).toContain('proposal');
+      expect(ids).toContain('specs');
+      expect(ids).toContain('plan');
+    });
+
+    it('should return empty array when no artifact files exist', () => {
+      const artifacts = buildArtifacts('some/path');
+      expect(artifacts).toEqual([]);
+    });
+
+    it('should return all 6 artifacts when all files exist', () => {
+      mockFs.setFile('some/path/proposal.md', '');
+      mockFs.setFile('some/path/design.md', '');
+      mockFs.setDir('some/path/specs');
+      mockFs.setFile('some/path/api.yaml', '');
+      mockFs.setFile('some/path/database.md', '');
+      mockFs.setFile('some/path/plan.json', '');
+
+      const artifacts = buildArtifacts('some/path');
+      expect(artifacts.length).toBe(6);
+    });
+
+    it('should return outputPath relative to cwd with forward slashes', () => {
+      mockFs.setFile('some/path/proposal.md', '');
+      const artifacts = buildArtifacts('some/path');
+      expect(artifacts[0]).toEqual({ id: 'proposal', outputPath: 'some/path/proposal.md' });
+    });
+  });
+
+  describe('toRelativePath', () => {
+    let toRelativePath: (absolutePath: string) => string;
+
+    beforeEach(async () => {
+      const mod = await import('./change.js');
+      toRelativePath = mod.toRelativePath;
+    });
+
+    it('should convert absolute path to relative path with forward slashes', () => {
+      const cwd = process.cwd();
+      const absolutePath = path.join(cwd, 'openpowers', 'changes', 'my-feature');
+      const result = toRelativePath(absolutePath);
+      expect(result).toBe('openpowers/changes/my-feature');
+    });
+
+    it('should handle nested paths correctly', () => {
+      const cwd = process.cwd();
+      const absolutePath = path.join(cwd, 'openpowers', 'changes', 'my-feature', 'proposal.md');
+      const result = toRelativePath(absolutePath);
+      expect(result).toBe('openpowers/changes/my-feature/proposal.md');
+    });
+
+    it('should convert backslashes to forward slashes', () => {
+      // Simulate a Windows-style absolute path
+      const cwd = process.cwd().replace(/\//g, '\\');
+      const absolutePath = `${cwd}\\openpowers\\changes\\my-feature`;
+      const result = toRelativePath(absolutePath);
+      expect(result).toBe('openpowers/changes/my-feature');
+      expect(result).not.toContain('\\');
+    });
+
+    it('should handle archive paths correctly', () => {
+      const cwd = process.cwd();
+      const absolutePath = path.join(cwd, 'openpowers', 'archive', '2026-05-17-old-feature');
+      const result = toRelativePath(absolutePath);
+      expect(result).toBe('openpowers/archive/2026-05-17-old-feature');
     });
   });
 
@@ -356,8 +415,8 @@ describe('src/commands/change.ts', () => {
 
     it('should load existing changes.json and fill missing fields', async () => {
       // Mock the module for a "fresh" call with an existing file
-      mockFs.setFile('openpowers/changes.json', JSON.stringify({
-        changes: [{ name: 'existing', path: 'openspec/changes/existing' }],
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
+        changes: [{ name: 'existing', path: 'openpowers/changes/existing' }],
       }));
       // Re-import to get fresh module state
       const mod = await import('./change.js');
@@ -370,7 +429,7 @@ describe('src/commands/change.ts', () => {
     });
 
     it('should preserve existing framework and version when already set', async () => {
-      mockFs.setFile('openpowers/changes.json', JSON.stringify({
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
         framework: 'CustomFW',
         version: '2.0.0',
         changes: [],
@@ -405,9 +464,9 @@ describe('src/commands/change.ts', () => {
       // We need to re-mock readdirSync after module load
       // Since the module has already been imported, we need clever mock setup
       // For now, set up directories and files before calling
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/my-feature');
-      mockFs.setFile('openspec/changes/my-feature/plan.json', JSON.stringify([
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'plan.json'), JSON.stringify([
         { id: 't1', status: 'done' },
         { id: 't2', status: 'todo' },
       ]));
@@ -415,16 +474,16 @@ describe('src/commands/change.ts', () => {
       // Override readdirSync for this test
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'my-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       const data = syncChangesJson();
@@ -434,55 +493,57 @@ describe('src/commands/change.ts', () => {
       expect(entry.features).toBe(2);
       expect(entry.todo).toBe(1);
       expect(entry.artifacts).toBeDefined();
-      expect((entry.artifacts as Array<unknown>).length).toBe(6);
+      expect((entry.artifacts as Array<unknown>).length).toBe(1);
+      expect(entry.path).toBe('openpowers/changes/my-feature');
     });
 
     it('should sync archived changes with closedAt', async () => {
       const mod = await import('./change.js');
       const { syncChangesJson } = mod;
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/archive');
-      mockFs.setDir('openspec/changes/archive/2026-05-17-old-feature');
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(ARCHIVE_DIR);
+      mockFs.setDir(path.join(ARCHIVE_DIR, '2026-05-17-old-feature'));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
+        if (normalized === NORM_ARCHIVE_DIR) {
           return [
             { name: '2026-05-17-old-feature', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       const data = syncChangesJson();
       expect(data.archive.length).toBe(1);
       expect(data.archive[0].name).toBe('old-feature');
       expect(data.archive[0].closedAt).toBeDefined();
+      expect(data.archive[0].path).toBe('openpowers/archive/2026-05-17-old-feature');
     });
 
     it('should skip dot-prefixed directories', async () => {
       const mod = await import('./change.js');
       const { syncChangesJson } = mod;
-      mockFs.setDir('openspec/changes');
+      mockFs.setDir(CHANGES_DIR);
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: '.git', isDirectory: () => true, isFile: () => false },
             { name: '.hidden', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       const data = syncChangesJson();
@@ -494,34 +555,34 @@ describe('src/commands/change.ts', () => {
       const { syncChangesJson } = mod;
 
       // Set up one active change
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/my-feature');
-      mockFs.setFile('openspec/changes/my-feature/plan.json', JSON.stringify([
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'plan.json'), JSON.stringify([
         { id: 't1', status: 'done' },
         { id: 't2', status: 'todo' },
       ]));
 
       // Set up one archived change
-      mockFs.setDir('openspec/changes/archive');
-      mockFs.setDir('openspec/changes/archive/2026-05-17-old-feature');
-      mockFs.setFile('openspec/changes/archive/2026-05-17-old-feature/plan.json', JSON.stringify([
+      mockFs.setDir(ARCHIVE_DIR);
+      mockFs.setDir(path.join(ARCHIVE_DIR, '2026-05-17-old-feature'));
+      mockFs.setFile(path.join(ARCHIVE_DIR, '2026-05-17-old-feature', 'plan.json'), JSON.stringify([
         { id: 't1', status: 'done' },
       ]));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'my-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
+        if (normalized === NORM_ARCHIVE_DIR) {
           return [
             { name: '2026-05-17-old-feature', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       const data = syncChangesJson();
@@ -529,31 +590,33 @@ describe('src/commands/change.ts', () => {
       // Both arrays should be populated
       expect(data.changes.length).toBe(1);
       expect(data.changes[0].name).toBe('my-feature');
+      expect(data.changes[0].path).toBe('openpowers/changes/my-feature');
       expect(data.archive.length).toBe(1);
       expect(data.archive[0].name).toBe('old-feature');
+      expect(data.archive[0].path).toBe('openpowers/archive/2026-05-17-old-feature');
     });
 
     it('should remove stale entries not present on filesystem', async () => {
       // First create a changes.json with a stale entry
-      mockFs.setFile('openpowers/changes.json', JSON.stringify({
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
         framework: 'openpowers',
         version: '1.0.0',
-        changes: [{ name: 'stale-change', path: 'openspec/changes/stale-change' }],
+        changes: [{ name: 'stale-change', path: 'openpowers/changes/stale-change' }],
         archive: [],
       }));
-      mockFs.setDir('openspec/changes');
+      mockFs.setDir(CHANGES_DIR);
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       const mod = await import('./change.js');
@@ -574,47 +637,47 @@ describe('src/commands/change.ts', () => {
     });
 
     it('should print "No changes found" when no change directories exist', () => {
-      mockFs.readdirSync.mockImplementation(() => [] as fs.Dirent[]);
+      mockFs.readdirSync.mockImplementation(() => [] as DirEntry[]);
 
       runChangeList();
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => c[0]);
-      expect(stdoutCalls.some((s) => String(s).includes('No changes found'))).toBe(true);
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('No changes found'))).toBe(true);
     });
 
     it('should print table header when changes exist', () => {
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/my-feature');
-      mockFs.setFile('openspec/changes/my-feature/plan.json', JSON.stringify([
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'plan.json'), JSON.stringify([
         { id: 't1', status: 'done' },
         { id: 't2', status: 'todo' },
       ]));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'my-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       runChangeList();
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => String(c[0]));
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       // Should contain header columns
-      expect(stdoutCalls.some((s) => s.includes('Name'))).toBe(true);
-      expect(stdoutCalls.some((s) => s.includes('Progress'))).toBe(true);
-      expect(stdoutCalls.some((s) => s.includes('Description'))).toBe(true);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('Name'))).toBe(true);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('Progress'))).toBe(true);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('Description'))).toBe(true);
       // Should contain change name
-      expect(stdoutCalls.some((s) => s.includes('my-feature'))).toBe(true);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('my-feature'))).toBe(true);
       // Should contain progress
-      expect(stdoutCalls.some((s) => s.includes('1/2 features'))).toBe(true);
+      expect(stdoutCalls.some((s: unknown) => String(s).includes('1/2 features'))).toBe(true);
     });
   });
 
@@ -646,10 +709,16 @@ describe('src/commands/change.ts', () => {
       const content = String(lastWrite[1]);
       expect(content).toContain('my-feature');
       expect(content).toContain('A new feature');
+      expect(content).toContain('"artifacts": []');
+      // Path should be relative to cwd with forward slashes
+      expect(content).toContain('"path": "openpowers/changes/my-feature"');
+      // Should print success message to stdout
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      expect(stdoutCalls.some((s: unknown) => String(s).includes("Change 'my-feature' created successfully"))).toBe(true);
     });
 
     it('should not error if directory already exists', () => {
-      mockFs.setDir('openspec/changes/existing-change');
+      mockFs.setDir(path.join(CHANGES_DIR, 'existing-change'));
 
       expect(() => runChangeNew('existing-change', { desc: 'Update' })).not.toThrow();
 
@@ -658,28 +727,153 @@ describe('src/commands/change.ts', () => {
       expect(writeCalls.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should append new entry even if changes.json already has same name entry', () => {
+    it('should output message and skip when change name already exists in changes.json', () => {
       // Pre-seed changes.json with an existing entry for the same name
-      mockFs.setFile('openpowers/changes.json', JSON.stringify({
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
         framework: 'openpowers',
         version: '1.0.0',
         changes: [
-          { name: 'dup-feature', path: 'openspec/changes/dup-feature', description: 'Old', createdAt: '2026-01-01T00:00:00.000Z', features: 0, todo: 0 },
+          { name: 'dup-feature', path: 'openpowers/changes/dup-feature', description: 'Old', createdAt: '2026-01-01T00:00:00.000Z', features: 0, todo: 0 },
         ],
         archive: [],
       }));
-      mockFs.setDir('openspec/changes/dup-feature');
+      mockFs.setDir(path.join(CHANGES_DIR, 'dup-feature'));
 
-      // Call runChangeNew with the same name
       runChangeNew('dup-feature', { desc: 'New duplicate' });
 
-      // Should not error; changes.json should now have 2 entries (duplicate cleaned on next sync)
-      const writeCalls = mockFs.writeFileSync.mock.calls;
-      const lastWrite = writeCalls[writeCalls.length - 1];
-      const content = JSON.parse(String(lastWrite[1]));
-      expect(content.changes.length).toBe(2);
-      expect(content.changes[0].name).toBe('dup-feature');
-      expect(content.changes[1].name).toBe('dup-feature');
+      // Should output duplicate message and not create a new entry
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      expect(stdoutCalls.some((s: unknown) => String(s).includes("already exists"))).toBe(true);
+      // Should NOT have written to changes.json since it returned early
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('computeArtifactStatus', () => {
+    let computeArtifactStatus: (changeDirPath: string) => Array<{ id: string; outputPath: string; status: string }>;
+
+    beforeEach(async () => {
+      const mod = await import('./change.js');
+      computeArtifactStatus = mod.computeArtifactStatus;
+    });
+
+    it('should return proposal=ready, design=blocked, specs=blocked when proposal.md does not exist', () => {
+      // No files set up - proposal.md doesn't exist
+      const artifacts = computeArtifactStatus('some/change');
+      // Core artifacts always appear in output
+      expect(artifacts.length).toBe(3);
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const design = artifacts.find(a => a.id === 'design');
+      const specs = artifacts.find(a => a.id === 'specs');
+      expect(proposal!.status).toBe('ready');
+      expect(proposal!.outputPath).toBe('proposal.md');
+      expect(design!.status).toBe('blocked');
+      expect(design!.outputPath).toBe('design.md');
+      expect(specs!.status).toBe('blocked');
+      expect(specs!.outputPath).toBe('specs/**/*.md');
+    });
+
+    it('should return proposal=done, design=ready, specs=blocked when only proposal.md exists', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      const artifacts = computeArtifactStatus('some/change');
+      expect(artifacts.length).toBe(3);
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const design = artifacts.find(a => a.id === 'design');
+      const specs = artifacts.find(a => a.id === 'specs');
+      expect(proposal!.status).toBe('done');
+      expect(design!.status).toBe('ready');
+      expect(specs!.status).toBe('blocked');
+    });
+
+    it('should return proposal=done, design=done, specs=ready when proposal.md and design.md exist but no specs', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/design.md', '');
+      const artifacts = computeArtifactStatus('some/change');
+      expect(artifacts.length).toBe(3);
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const design = artifacts.find(a => a.id === 'design');
+      const specs = artifacts.find(a => a.id === 'specs');
+      expect(proposal!.status).toBe('done');
+      expect(design!.status).toBe('done');
+      expect(specs!.status).toBe('ready');
+    });
+
+    it('should return all three done when proposal.md, design.md, and specs/*.md exist', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/design.md', '');
+      mockFs.setDir('some/change/specs');
+      mockFs.setFile('some/change/specs/my-spec.md', '');
+      // Override readdirSync to return .md files inside specs/
+      mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
+        const normalized = p.replace(/\\/g, '/');
+        if (normalized === 'some/change/specs') {
+          return [
+            { name: 'my-spec.md', isDirectory: () => false, isFile: () => true },
+          ] as DirEntry[];
+        }
+        return [] as DirEntry[];
+      });
+      const artifacts = computeArtifactStatus('some/change');
+      expect(artifacts.length).toBe(3);
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const design = artifacts.find(a => a.id === 'design');
+      const specs = artifacts.find(a => a.id === 'specs');
+      expect(proposal!.status).toBe('done');
+      expect(design!.status).toBe('done');
+      expect(specs!.status).toBe('done');
+    });
+
+    it('should assign done to non-core artifacts (api, database, plan) when present', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/design.md', '');
+      mockFs.setDir('some/change/specs');
+      mockFs.setFile('some/change/specs/my-spec.md', '');
+      mockFs.setFile('some/change/api.yaml', '');
+      mockFs.setFile('some/change/database.md', '');
+      mockFs.setFile('some/change/plan.json', '');
+      // Override readdirSync to return .md files inside specs/
+      mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
+        const normalized = p.replace(/\\/g, '/');
+        if (normalized === 'some/change/specs') {
+          return [
+            { name: 'my-spec.md', isDirectory: () => false, isFile: () => true },
+          ] as DirEntry[];
+        }
+        return [] as DirEntry[];
+      });
+      const artifacts = computeArtifactStatus('some/change');
+      expect(artifacts.length).toBe(6);
+      const api = artifacts.find(a => a.id === 'api');
+      const database = artifacts.find(a => a.id === 'database');
+      const plan = artifacts.find(a => a.id === 'plan');
+      expect(api!.status).toBe('done');
+      expect(database!.status).toBe('done');
+      expect(plan!.status).toBe('done');
+    });
+
+    it('should use change-relative outputPath with forward slashes', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/api.yaml', '');
+      const artifacts = computeArtifactStatus('some/change');
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const api = artifacts.find(a => a.id === 'api');
+      expect(proposal!.outputPath).toBe('proposal.md');
+      expect(api!.outputPath).toBe('api.yaml');
+    });
+
+    it('should return specs=ready when specs dir exists but has no .md files', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/design.md', '');
+      mockFs.setDir('some/change/specs');
+      // No .md files in specs dir - readdirSync returns empty
+      const artifacts = computeArtifactStatus('some/change');
+      expect(artifacts.length).toBe(3); // proposal, design, specs all exist on disk (specs dir exists)
+      const proposal = artifacts.find(a => a.id === 'proposal');
+      const design = artifacts.find(a => a.id === 'design');
+      const specs = artifacts.find(a => a.id === 'specs');
+      expect(proposal!.status).toBe('done');
+      expect(design!.status).toBe('done');
+      expect(specs!.status).toBe('ready');
     });
   });
 
@@ -689,128 +883,371 @@ describe('src/commands/change.ts', () => {
       runChangeStatus = mod.runChangeStatus;
     });
 
-    it('should output JSON for an active change', () => {
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/my-feature');
-      mockFs.setFile('openspec/changes/my-feature/plan.json', JSON.stringify([
+    it('should output JSON with artifact status for an active change', () => {
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'proposal.md'), '');
+      mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'plan.json'), JSON.stringify([
         { id: 't1', status: 'done' },
         { id: 't2', status: 'todo' },
       ]));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'my-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       runChangeStatus('my-feature');
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => String(c[0]));
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe('my-feature');
+      expect(parsed.location).toBe('changes');
       expect(parsed.isComplete).toBe(false);
       expect(parsed.artifacts).toBeDefined();
-      expect(parsed.artifacts.length).toBe(6);
+      // Core artifacts always included: proposal=done, design=ready, specs=blocked + plan=done
+      expect(parsed.artifacts.length).toBe(4);
+      const proposal = parsed.artifacts.find((a: { id: string }) => a.id === 'proposal');
+      expect(proposal.status).toBe('done');
+      expect(proposal.outputPath).toBe('proposal.md');
     });
 
-    it('should output isComplete=true when all tasks are done', () => {
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/complete-feature');
-      mockFs.setFile('openspec/changes/complete-feature/plan.json', JSON.stringify([
-        { id: 't1', status: 'done' },
-        { id: 't2', status: 'done' },
-      ]));
+    it('should output isComplete=true when all core artifacts are done', () => {
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'complete-feature'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'complete-feature', 'proposal.md'), '');
+      mockFs.setFile(path.join(CHANGES_DIR, 'complete-feature', 'design.md'), '');
+      mockFs.setDir(path.join(CHANGES_DIR, 'complete-feature', 'specs'));
+      mockFs.setFile(path.join(CHANGES_DIR, 'complete-feature', 'specs', 'my-spec.md'), '');
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'complete-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        // Return .md files for specs dir
+        const specsDirNorm = path.join(CHANGES_DIR, 'complete-feature', 'specs').replace(/\\/g, '/');
+        if (normalized === specsDirNorm) {
+          return [
+            { name: 'my-spec.md', isDirectory: () => false, isFile: () => true },
+          ] as DirEntry[];
+        }
+        return [] as DirEntry[];
       });
 
       runChangeStatus('complete-feature');
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => String(c[0]));
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.isComplete).toBe(true);
+      expect(parsed.location).toBe('changes');
     });
 
     it('should output isComplete=false when no features exist', () => {
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/empty-feature');
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'empty-feature'));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'empty-feature', isDirectory: () => true, isFile: () => false },
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
-          return [] as fs.Dirent[];
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       runChangeStatus('empty-feature');
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => String(c[0]));
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.isComplete).toBe(false);
     });
 
     it('should error when change name not found', () => {
-      mockFs.readdirSync.mockImplementation(() => [] as fs.Dirent[]);
+      mockFs.readdirSync.mockImplementation(() => [] as DirEntry[]);
 
       expect(() => runChangeStatus('nonexistent')).toThrow('process.exit called');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
     it('should search archive for change if not found in active changes', () => {
-      mockFs.setDir('openspec/changes');
-      mockFs.setDir('openspec/changes/archive');
-      mockFs.setDir('openspec/changes/archive/2026-01-01-archived-feature');
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(ARCHIVE_DIR);
+      mockFs.setDir(path.join(ARCHIVE_DIR, '2026-01-01-archived-feature'));
 
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === 'openspec/changes') {
+        if (normalized === NORM_CHANGES_DIR) {
           return [
             { name: 'archive', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        if (normalized === 'openspec/changes/archive') {
+        if (normalized === NORM_ARCHIVE_DIR) {
           return [
             { name: '2026-01-01-archived-feature', isDirectory: () => true, isFile: () => false },
-          ] as fs.Dirent[];
+          ] as DirEntry[];
         }
-        return [] as fs.Dirent[];
+        return [] as DirEntry[];
       });
 
       runChangeStatus('archived-feature');
 
-      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c) => String(c[0]));
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe('archived-feature');
+      expect(parsed.location).toBe('archive');
+    });
+  });
+
+  // =========================================================
+  // runChangeInstruction tests
+  // =========================================================
+
+  describe('runChangeInstruction', () => {
+    let runChangeInstruction: RunChangeInstructionFn;
+
+    beforeEach(async () => {
+      const mod = await import('./change.js');
+      runChangeInstruction = mod.runChangeInstruction;
+    });
+
+    it('should return proposal instruction with filled changeName and outputPath', () => {
+      // Set up the proposal template file in mock fs
+      const templatePath = path.join(process.cwd(), 'data', 'proposal-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'proposal',
+        outputPath: 'openspec/changes/[change-name]/proposal.md',
+        description: 'Initial proposal document outlining the change',
+        instruction: 'Create the proposal',
+        template: '## Why',
+        dependencies: [],
+      }));
+
+      runChangeInstruction('my-feature', { proposal: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.changeName).toBe('my-feature');
+      expect(parsed.outputPath).toBe('openspec/changes/my-feature/proposal.md');
+    });
+
+    it('should return proposal instruction with empty dependencies array', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'proposal-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'proposal',
+        outputPath: 'openspec/changes/[change-name]/proposal.md',
+        description: 'Initial proposal document outlining the change',
+        instruction: 'Create the proposal',
+        template: '## Why',
+        dependencies: [],
+      }));
+
+      runChangeInstruction('my-feature', { proposal: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.dependencies).toEqual([]);
+    });
+
+    it('should preserve static fields from template for --proposal', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'proposal-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'proposal',
+        outputPath: 'openspec/changes/[change-name]/proposal.md',
+        description: 'Initial proposal document outlining the change',
+        instruction: 'Create the proposal',
+        template: '## Why',
+        dependencies: [],
+      }));
+
+      runChangeInstruction('my-feature', { proposal: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.artifactId).toBe('proposal');
+      expect(parsed.description).toBe('Initial proposal document outlining the change');
+      expect(parsed.instruction).toBe('Create the proposal');
+      expect(parsed.template).toBe('## Why');
+    });
+
+    it('should return design instruction with proposal dependency done when proposal.md exists', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'design-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'design',
+        outputPath: 'openspec/changes/[change-name]/design.md',
+        description: 'Technical design document with implementation details',
+        instruction: 'Create the design',
+        template: '## Context',
+        dependencies: [
+          { id: 'proposal', done: true, path: 'proposal.md', description: 'Initial proposal document outlining the change' },
+        ],
+      }));
+      // Set up proposal.md to exist
+      const proposalPath = path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'proposal.md');
+      mockFs.setFile(proposalPath, '');
+
+      runChangeInstruction('my-feature', { design: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.artifactId).toBe('design');
+      expect(parsed.outputPath).toBe('openspec/changes/my-feature/design.md');
+      expect(parsed.dependencies.length).toBe(1);
+      expect(parsed.dependencies[0].id).toBe('proposal');
+      expect(parsed.dependencies[0].done).toBe(true);
+    });
+
+    it('should return design instruction with proposal dependency not done when proposal.md is missing', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'design-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'design',
+        outputPath: 'openspec/changes/[change-name]/design.md',
+        description: 'Technical design document with implementation details',
+        instruction: 'Create the design',
+        template: '## Context',
+        dependencies: [
+          { id: 'proposal', done: true, path: 'proposal.md', description: 'Initial proposal document outlining the change' },
+        ],
+      }));
+      // Do NOT set up proposal.md
+
+      runChangeInstruction('my-feature', { design: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.dependencies[0].done).toBe(false);
+    });
+
+    it('should return specs instruction with both deps done when files exist', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'specs-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'specs',
+        outputPath: 'openspec/changes/[change-name]/specs/**/*.md',
+        description: 'Detailed specifications for the change',
+        instruction: 'Create the specs',
+        template: '## ADDED Requirements',
+        dependencies: [
+          { id: 'proposal', done: true, path: 'proposal.md', description: 'Initial proposal document outlining the change' },
+          { id: 'design', done: false, path: 'design.md', description: 'Technical design document with implementation details' },
+        ],
+      }));
+      // Set up both files
+      mockFs.setFile(path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'proposal.md'), '');
+      mockFs.setFile(path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'design.md'), '');
+
+      runChangeInstruction('my-feature', { specs: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.artifactId).toBe('specs');
+      expect(parsed.outputPath).toBe('openspec/changes/my-feature/specs/**/*.md');
+      expect(parsed.dependencies.length).toBe(2);
+      expect(parsed.dependencies[0].done).toBe(true);
+      expect(parsed.dependencies[1].done).toBe(true);
+    });
+
+    it('should return specs instruction with design dep not done when design.md missing', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'specs-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'specs',
+        outputPath: 'openspec/changes/[change-name]/specs/**/*.md',
+        description: 'Detailed specifications for the change',
+        instruction: 'Create the specs',
+        template: '## ADDED Requirements',
+        dependencies: [
+          { id: 'proposal', done: true, path: 'proposal.md', description: 'Initial proposal document outlining the change' },
+          { id: 'design', done: false, path: 'design.md', description: 'Technical design document with implementation details' },
+        ],
+      }));
+      // Only set up proposal.md, not design.md
+      mockFs.setFile(path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'proposal.md'), '');
+
+      runChangeInstruction('my-feature', { specs: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.dependencies[0].done).toBe(true);
+      expect(parsed.dependencies[1].done).toBe(false);
+    });
+
+    it('should preserve dependency static fields for --specs', () => {
+      const templatePath = path.join(process.cwd(), 'data', 'specs-template.json');
+      mockFs.setFile(templatePath, JSON.stringify({
+        changeName: '[change-name]',
+        artifactId: 'specs',
+        outputPath: 'openspec/changes/[change-name]/specs/**/*.md',
+        description: 'Detailed specifications for the change',
+        instruction: 'Create the specs',
+        template: '## ADDED Requirements',
+        dependencies: [
+          { id: 'proposal', done: true, path: 'proposal.md', description: 'Initial proposal document outlining the change' },
+          { id: 'design', done: false, path: 'design.md', description: 'Technical design document with implementation details' },
+        ],
+      }));
+      mockFs.setFile(path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'proposal.md'), '');
+      mockFs.setFile(path.join(process.cwd(), 'openspec', 'changes', 'my-feature', 'design.md'), '');
+
+      runChangeInstruction('my-feature', { specs: true });
+
+      const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const output = stdoutCalls[stdoutCalls.length - 1];
+      const parsed = JSON.parse(output);
+      expect(parsed.dependencies[0].id).toBe('proposal');
+      expect(parsed.dependencies[0].path).toBe('proposal.md');
+      expect(parsed.dependencies[0].description).toBe('Initial proposal document outlining the change');
+      expect(parsed.dependencies[1].id).toBe('design');
+      expect(parsed.dependencies[1].path).toBe('design.md');
+      expect(parsed.dependencies[1].description).toBe('Technical design document with implementation details');
+    });
+
+    it('should exit with error on invalid change name', () => {
+      expect(() => runChangeInstruction('InvalidName', { proposal: true })).toThrow('process.exit called');
+    });
+
+    it('should exit with error when no flag is provided', () => {
+      expect(() => runChangeInstruction('my-feature', {})).toThrow('process.exit called');
+    });
+
+    it('should exit with error when multiple flags are provided', () => {
+      expect(() => runChangeInstruction('my-feature', { proposal: true, design: true })).toThrow('process.exit called');
     });
   });
 
@@ -829,7 +1266,7 @@ describe('src/commands/change.ts', () => {
       expect(typeof registerChangeCommand).toBe('function');
     });
 
-    it('should register change as a parent command with three subcommands', () => {
+    it('should register change as a parent command with four subcommands', () => {
       const program = new Command();
       registerChangeCommand(program);
 
@@ -840,6 +1277,7 @@ describe('src/commands/change.ts', () => {
       expect(subCommandNames).toContain('list');
       expect(subCommandNames).toContain('new');
       expect(subCommandNames).toContain('status');
+      expect(subCommandNames).toContain('instruction');
     });
 
     it('should register new subcommand with required --desc option', () => {

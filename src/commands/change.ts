@@ -7,6 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import url from 'url';
 import module from 'module';
 import { Command } from 'commander';
 import { logger } from '../utils/logger.js';
@@ -14,10 +15,22 @@ import { logger } from '../utils/logger.js';
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
 
-// Path constants
-const CHANGES_DIR = 'openspec/changes';
-const ARCHIVE_DIR = path.join(CHANGES_DIR, 'archive');
-const CHANGES_JSON_PATH = 'openpowers/changes.json';
+// Path constants (absolute, cross-platform)
+const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
+const CHANGES_JSON_PATH = path.join(process.cwd(), 'openpowers', 'changes.json');
+
+/**
+ * Converts an absolute path to a Linux-style forward-slash path relative to process.cwd().
+ * Uses path.relative() to compute the relative path, then replaces any backslashes with
+ * forward slashes for cross-platform portability.
+ * @param absolutePath - An absolute filesystem path
+ * @returns The path relative to process.cwd() with forward-slash separators
+ */
+export function toRelativePath(absolutePath: string): string {
+  const relative = path.relative(process.cwd(), absolutePath);
+  return relative.replace(/\\/g, '/');
+}
 
 // Default changes.json structure
 const DEFAULT_CHANGES_JSON = {
@@ -75,15 +88,29 @@ export function validateChangeName(name: string): { valid: boolean; error?: stri
 }
 
 /**
- * Builds the standard 6-item artifacts array for a change directory path.
- * @param dirPath - The directory path for the change (e.g., 'openspec/changes/my-feature')
- * @returns Array of { id, outputPath } objects
+ * Builds the artifacts array for a change directory path based on actual filesystem state.
+ * Only includes artifacts whose corresponding file (or directory for specs) exists on disk.
+ * @param dirPath - The directory path for the change (e.g., 'openpowers/changes/my-feature')
+ * @returns Array of { id, outputPath } objects for artifacts that exist on the filesystem
  */
 export function buildArtifacts(dirPath: string): Array<{ id: string; outputPath: string }> {
-  return ARTIFACT_IDS.map((id) => ({
-    id,
-    outputPath: `${dirPath}/${id === 'specs' ? `specs${ARTIFACT_EXTENSIONS[id]}` : `${id}${ARTIFACT_EXTENSIONS[id]}`}`,
-  }));
+  return ARTIFACT_IDS
+    .map((id) => {
+      const fileName = id === 'specs' ? `specs${ARTIFACT_EXTENSIONS[id]}` : `${id}${ARTIFACT_EXTENSIONS[id]}`;
+      const filePath = path.join(dirPath, fileName);
+      const outputPath = toRelativePath(path.resolve(filePath));
+      return { id, outputPath, filePath, fileName };
+    })
+    .filter(({ filePath, id }) => {
+      if (id === 'specs') {
+        // For specs, check if the directory (dirname of the glob) exists
+        const specsDir = path.join(dirPath, 'specs');
+        return fs.existsSync(specsDir);
+      }
+      // For file artifacts, check if the file exists
+      return fs.existsSync(filePath);
+    })
+    .map(({ id, outputPath }) => ({ id, outputPath }));
 }
 
 /**
@@ -120,7 +147,7 @@ export function computeProgress(planPath: string): { features: number; todo: num
  * Silently auto-creates changes.json with default values when missing.
  * @returns The parsed changes.json object
  */
-export function loadOrCreateChangesJson(): { framework: string; version: string; changes: unknown[]; archive: unknown[] } {
+export function loadOrCreateChangesJson(): { framework: string; version: string; changes: Array<Record<string, unknown>>; archive: Array<Record<string, unknown>> } {
   if (!fs.existsSync(CHANGES_JSON_PATH)) {
     const jsonContent = JSON.stringify(DEFAULT_CHANGES_JSON, null, 2);
     // Ensure the parent directory exists
@@ -143,7 +170,7 @@ export function loadOrCreateChangesJson(): { framework: string; version: string;
 
 /**
  * Synchronizes openpowers/changes.json with the filesystem state.
- * Scans openspec/changes/ for active changes and openspec/changes/archive/ for archived changes.
+ * Scans openpowers/changes/ for active changes and openpowers/archive/ for archived changes.
  * Recomputes features/todo from plan.json and fills missing artifacts/closedAt fields.
  * @returns The up-to-date changes.json object
  */
@@ -172,13 +199,13 @@ export function syncChangesJson(): { framework: string; version: string; changes
   // Rebuild changes array from filesystem scan
   const newChanges: Array<Record<string, unknown>> = [];
   for (const dirName of activeDirs) {
-    const changePath = `${CHANGES_DIR}/${dirName}`;
-    const planPath = `${changePath}/plan.json`;
+    const changePath = path.join(CHANGES_DIR, dirName);
+    const planPath = path.join(changePath, 'plan.json');
     const existing = existingChangesMap.get(dirName);
 
     const entry: Record<string, unknown> = {
       name: dirName,
-      path: changePath,
+      path: toRelativePath(changePath),
       description: (existing?.description as string) ?? '',
       createdAt: (existing?.createdAt as string) ?? new Date().toISOString(),
       features: 0,
@@ -227,32 +254,37 @@ export function syncChangesJson(): { framework: string; version: string; changes
   const newArchive: Array<Record<string, unknown>> = [];
   for (const dirName of archiveDirs) {
     const changeName = extractArchiveName(dirName);
-    const archivePath = `${ARCHIVE_DIR}/${dirName}`;
-    const planPath = `${archivePath}/plan.json`;
+    const archivePath = path.join(ARCHIVE_DIR, dirName);
+    const planPath = path.join(archivePath, 'plan.json');
     const existing = existingArchiveMap.get(changeName);
+
+    const previousChange = existingChangesMap.get(changeName);
 
     const entry: Record<string, unknown> = {
       name: changeName,
-      path: archivePath,
-      description: (existing?.description as string) ?? '',
-      createdAt: (existing?.createdAt as string) ?? new Date().toISOString(),
+      path: toRelativePath(archivePath),
+      description: (existing?.description ?? previousChange?.description ?? '') as string,
+      createdAt: (existing?.createdAt ?? previousChange?.createdAt as string) ?? new Date().toISOString(),
       closedAt: (existing?.closedAt as string) ?? new Date().toISOString(),
       features: 0,
-      todo: 0,
       artifacts: buildArtifacts(archivePath),
     };
 
-    // Compute progress from plan.json if available
+    // Compute features count from plan.json if available
     const progress = computeProgress(planPath);
     entry.features = progress.features;
-    entry.todo = progress.todo;
 
-    // Preserve existing fields if available
+    // Preserve existing description from archive or previous changes entry
     if (existing?.description) {
       entry.description = existing.description;
+    } else if (previousChange?.description) {
+      entry.description = previousChange.description;
     }
+    // Preserve existing createdAt from archive or previous changes entry
     if (existing?.createdAt) {
       entry.createdAt = existing.createdAt;
+    } else if (previousChange?.createdAt) {
+      entry.createdAt = previousChange.createdAt;
     }
 
     newArchive.push(entry);
@@ -278,21 +310,17 @@ export function syncChangesJson(): { framework: string; version: string; changes
 export function runChangeList(): void {
   const data = syncChangesJson();
 
-  if (data.changes.length === 0 && data.archive.length === 0) {
+  if (data.changes.length === 0) {
     process.stdout.write('No changes found\n');
     return;
   }
 
-  // Collect all entries (active first, then archived)
-  const allEntries: Array<Record<string, unknown>> = [
-    ...data.changes,
-    ...data.archive,
-  ];
+  const allEntries = data.changes;
 
   // Compute column widths
   const nameWidth = Math.max(4, ...allEntries.map((e) => String(e.name || '').length));
   const progressWidth = Math.max(8, ...allEntries.map((e) => {
-    const progressStr = `${e.todo ?? 0}/${e.features ?? 0} features`;
+    const progressStr = `${Number(e.features ?? 0) - Number(e.todo ?? 0)}/${Number(e.features ?? 0)} features`;
     return progressStr.length;
   }));
   const descWidth = Math.max(11, ...allEntries.map((e) => String(e.description || '').length));
@@ -311,7 +339,7 @@ export function runChangeList(): void {
   // Print each entry
   for (const entry of allEntries) {
     const name = String(entry.name || '').padEnd(nameWidth);
-    const progress = `${entry.todo ?? 0}/${entry.features ?? 0} features`.padEnd(progressWidth);
+    const progress = `${Number(entry.features ?? 0) - Number(entry.todo ?? 0)}/${Number(entry.features ?? 0)} features`.padEnd(progressWidth);
     const description = String(entry.description || '').padEnd(descWidth);
     const time = formatRelativeTime(String(entry.createdAt || ''));
 
@@ -332,7 +360,15 @@ export function runChangeNew(name: string, options: { desc: string }): void {
     process.exit(1);
   }
 
-  const changeDir = `${CHANGES_DIR}/${name}`;
+  // Check for duplicate in changes.json
+  const data = loadOrCreateChangesJson();
+  const existing = data.changes.find((c) => c.name === name);
+  if (existing) {
+    process.stdout.write(`Change '${name}' already exists\n`);
+    return;
+  }
+
+  const changeDir = path.join(CHANGES_DIR, name);
 
   // Create the change directory (silently skip if exists)
   if (!fs.existsSync(changeDir)) {
@@ -342,18 +378,15 @@ export function runChangeNew(name: string, options: { desc: string }): void {
     logger.info(`Directory already exists: ${changeDir}`);
   }
 
-  // Load or create changes.json
-  const data = loadOrCreateChangesJson();
-
   // Create new entry
   const newEntry = {
     name,
-    path: changeDir,
+    path: toRelativePath(changeDir),
     description: options.desc,
     createdAt: new Date().toISOString(),
     features: 0,
     todo: 0,
-    artifacts: buildArtifacts(changeDir),
+    artifacts: [],
   };
 
   // Append to changes array
@@ -367,12 +400,81 @@ export function runChangeNew(name: string, options: { desc: string }): void {
   fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
 
   logger.info(`Change '${name}' registered in changes.json`);
+  process.stdout.write(`Change '${name}' created successfully\n`);
+}
+
+// Core artifact IDs in pipeline order
+const CORE_ARTIFACTS = ['proposal', 'design', 'specs'];
+
+/**
+ * Computes artifact pipeline status for all existing artifacts in a change directory.
+ * Status follows sequential order: proposal -> design -> specs.
+ * Non-core artifacts (api, database, plan) are assigned 'done' unconditionally.
+ * Output paths are relative to the change directory with forward slashes.
+ * @param changeDirPath - The absolute path to the change directory
+ * @returns Array of { id, outputPath, status } for each existing artifact
+ */
+export function computeArtifactStatus(changeDirPath: string): Array<{ id: string; outputPath: string; status: string }> {
+  // Check existence of the three core artifacts in sequential order
+  const proposalMdExists = fs.existsSync(path.join(changeDirPath, 'proposal.md'));
+  const designMdExists = fs.existsSync(path.join(changeDirPath, 'design.md'));
+  const specsDir = path.join(changeDirPath, 'specs');
+  const specsExist = fs.existsSync(specsDir) && fs.readdirSync(specsDir, { withFileTypes: true }).some((f) => f.name.endsWith('.md'));
+
+  // Compute core artifact statuses using sequential pipeline logic
+  let proposalStatus: string;
+  let designStatus: string;
+  let specsStatus: string;
+  if (!proposalMdExists) {
+    proposalStatus = 'ready';
+    designStatus = 'blocked';
+    specsStatus = 'blocked';
+  } else if (!designMdExists) {
+    proposalStatus = 'done';
+    designStatus = 'ready';
+    specsStatus = 'blocked';
+  } else if (!specsExist) {
+    proposalStatus = 'done';
+    designStatus = 'done';
+    specsStatus = 'ready';
+  } else {
+    proposalStatus = 'done';
+    designStatus = 'done';
+    specsStatus = 'done';
+  }
+
+  const coreStatusMap: Record<string, string> = {
+    proposal: proposalStatus,
+    design: designStatus,
+    specs: specsStatus,
+  };
+
+  // Build result: core artifacts always included, non-core only when they exist on disk
+  const existingArtifacts = buildArtifacts(changeDirPath);
+
+  // Always include the three core artifacts
+  const results: Array<{ id: string; outputPath: string; status: string }> = CORE_ARTIFACTS.map((id) => {
+    const fileName = id === 'specs' ? `specs${ARTIFACT_EXTENSIONS[id]}` : `${id}${ARTIFACT_EXTENSIONS[id]}`;
+    return { id, outputPath: fileName, status: coreStatusMap[id] };
+  });
+
+  // Append non-core artifacts that exist on disk, with change-relative outputPath
+  for (const artifact of existingArtifacts) {
+    if (!CORE_ARTIFACTS.includes(artifact.id)) {
+      const fileName = `${artifact.id}${ARTIFACT_EXTENSIONS[artifact.id]}`;
+      results.push({ id: artifact.id, outputPath: fileName, status: 'done' });
+    }
+  }
+
+  return results;
 }
 
 /**
  * Outputs the status of a specific change as JSON.
  * Syncs changes.json first, then searches both changes and archive arrays.
- * Computes isComplete as todo === 0 && features > 0.
+ * Computes artifact pipeline status using computeArtifactStatus and
+ * determines isComplete as true only when all three core artifacts (proposal, design, specs) are done.
+ * Artifact outputPath values are relative to the change directory.
  * Exits with error if the change name is not found.
  * @param name - The change name to query
  */
@@ -381,9 +483,11 @@ export function runChangeStatus(name: string): void {
   const data = syncChangesJson();
 
   // Search in changes array first, then archive
+  let location = 'changes';
   let entry = data.changes.find((c) => c.name === name);
   if (!entry) {
     entry = data.archive.find((a) => a.name === name);
+    location = 'archive';
   }
 
   if (!entry) {
@@ -391,20 +495,99 @@ export function runChangeStatus(name: string): void {
     process.exit(1);
   }
 
-  const isComplete = (Number(entry.todo) === 0 && Number(entry.features) > 0);
+  // Resolve change directory path and compute artifact pipeline status
+  const changeDirPath = path.resolve(process.cwd(), String(entry.path));
+  const artifacts = computeArtifactStatus(changeDirPath);
+
+  // isComplete is true only when all three core artifacts are done
+  const isComplete = CORE_ARTIFACTS.every((id) => {
+    const artifact = artifacts.find((a) => a.id === id);
+    return artifact && artifact.status === 'done';
+  });
 
   const output = {
     name: entry.name,
+    location,
     isComplete,
-    artifacts: entry.artifacts,
+    artifacts,
   };
 
-  process.stdout.write(JSON.stringify(output) + '\n');
+  process.stdout.write(JSON.stringify(output, null, 2) + '\n');
+}
+
+// Resolve the directory of this module for reading template files
+const changeCommandDirname = path.dirname(url.fileURLToPath(import.meta.url));
+
+/**
+ * Reads an artifact template JSON file from the data/ directory.
+ * Resolved relative to this source file's location using import.meta.url.
+ * @param artifactId - The artifact identifier (proposal, design, or specs)
+ * @returns Parsed template object
+ */
+function readTemplateFile(artifactId: string): Record<string, unknown> {
+  const templatePath = path.join(changeCommandDirname, '..', '..', 'data', `${artifactId}-template.json`);
+  const raw = fs.readFileSync(templatePath, 'utf-8');
+  return JSON.parse(raw);
+}
+
+/**
+ * Outputs the instruction JSON for a given artifact type.
+ * Reads the corresponding template from data/, fills in changeName and outputPath
+ * (replacing [change-name] placeholders), checks dependency file existence for
+ * --design and --specs flags, and outputs the resulting JSON to stdout.
+ * @param name - The change name (must be kebab-case)
+ * @param options - Options containing exactly one of --proposal, --design, or --specs
+ */
+export function runChangeInstruction(name: string, options: { proposal?: boolean; design?: boolean; specs?: boolean }): void {
+  // Validate change name
+  const validation = validateChangeName(name);
+  if (!validation.valid) {
+    logger.error(validation.error);
+    process.exit(1);
+  }
+
+  // Ensure exactly one flag is set
+  const flags = [options.proposal, options.design, options.specs].filter(Boolean);
+  if (flags.length !== 1) {
+    logger.error('Exactly one of --proposal, --design, or --specs is required');
+    process.exit(1);
+  }
+
+  // Determine artifact type from flag
+  let artifactId: string;
+  if (options.proposal) {
+    artifactId = 'proposal';
+  } else if (options.design) {
+    artifactId = 'design';
+  } else {
+    artifactId = 'specs';
+  }
+
+  // Read the template file and replace [change-name] placeholders
+  const templateRaw = JSON.stringify(readTemplateFile(artifactId));
+  const filledRaw = templateRaw.replace(/\[change-name\]/g, name);
+  const result = JSON.parse(filledRaw);
+
+  // Check dependency file existence for --design and --specs
+  if (artifactId === 'design' || artifactId === 'specs') {
+    const deps: Array<Record<string, unknown>> = result.dependencies as Array<Record<string, unknown>> || [];
+    if (deps.length > 0) {
+      const proposalPath = path.join(process.cwd(), 'openspec', 'changes', name, 'proposal.md');
+      deps[0].done = fs.existsSync(proposalPath);
+    }
+    if (artifactId === 'specs' && deps.length > 1) {
+      const designPath = path.join(process.cwd(), 'openspec', 'changes', name, 'design.md');
+      deps[1].done = fs.existsSync(designPath);
+    }
+  }
+
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
 }
 
 /**
  * Registers the `change` command and its subcommands on the given program.
- * Subcommands: list, new <name> --desc <description>, status <name>
+ * Subcommands: list, new <name> --desc <description>, status <name>,
+ * instruction <name> --proposal|--design|--specs
  * @param program - The commander Command instance
  */
 export function registerChangeCommand(program: Command): void {
@@ -432,5 +615,15 @@ export function registerChangeCommand(program: Command): void {
     .description('Show status of a specific change')
     .action((name: string) => {
       runChangeStatus(name);
+    });
+
+  changeCmd
+    .command('instruction <name>')
+    .description('Get artifact generation instructions')
+    .option('--proposal', 'Get proposal generation instructions')
+    .option('--design', 'Get design generation instructions')
+    .option('--specs', 'Get specs generation instructions')
+    .action((name: string, options: { proposal?: boolean; design?: boolean; specs?: boolean }) => {
+      runChangeInstruction(name, options);
     });
 }
