@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import { logger } from '../../utils/logger.js';
-import { validateChangeName } from './shared.js';
+import { validateChangeName, CHANGES_DIR } from './shared.js';
 
 // Resolve the directory of this module for reading template files
 const changeCommandDirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -42,6 +42,13 @@ export function runChangeInstruction(name: string, options: { proposal?: boolean
     process.exit(1);
   }
 
+  // Check change directory exists
+  const changeDir = path.join(CHANGES_DIR, name);
+  if (!fs.existsSync(changeDir)) {
+    process.stderr.write(`Change '${name}' not found\n`);
+    process.exit(1);
+  }
+
   // Ensure exactly one flag is set
   const flags = [options.proposal, options.design, options.specs].filter(Boolean);
   if (flags.length !== 1) {
@@ -63,8 +70,6 @@ export function runChangeInstruction(name: string, options: { proposal?: boolean
   const templateRaw = JSON.stringify(readTemplateFile(artifactId));
   const filledRaw = templateRaw.replace(/\[change-name\]/g, name);
   const result = JSON.parse(filledRaw);
-
-  // Check dependency file existence for --design and --specs
   if (artifactId === 'design' || artifactId === 'specs') {
     const deps: Array<Record<string, unknown>> = result.dependencies as Array<Record<string, unknown>> || [];
     if (deps.length > 0) {
@@ -78,4 +83,5 @@ export function runChangeInstruction(name: string, options: { proposal?: boolean
   }
 
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  logger.info(`Generated ${artifactId} instruction for '${name}'`);
 }

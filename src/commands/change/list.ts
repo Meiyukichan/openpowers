@@ -5,6 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
+import { logger } from '../../utils/logger.js';
 import { syncChangesJson, formatRelativeTime } from './shared.js';
 
 /**
@@ -50,4 +51,5 @@ export function runChangeList(): void {
 
     process.stdout.write(`${name}  ${progress}  ${description}  ${time}\n`);
   }
+  logger.info(`Listed ${allEntries.length} changes`);
 }

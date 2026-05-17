@@ -154,6 +154,7 @@ export function loadOrCreateChangesJson(): { framework: string; version: string;
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(CHANGES_JSON_PATH, jsonContent, 'utf-8');
+    logger.info(`Created default ${path.relative(process.cwd(), CHANGES_JSON_PATH)}`);
     return JSON.parse(JSON.stringify(DEFAULT_CHANGES_JSON));
   }
   const raw = fs.readFileSync(CHANGES_JSON_PATH, 'utf-8');
@@ -296,6 +297,7 @@ export function syncChangesJson(): { framework: string; version: string; changes
     fs.mkdirSync(dir, { recursive: true });
   }
   fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  logger.info(`Synced changes.json: ${newChanges.length} active, ${newArchive.length} archived`);
 
   return data;
 }

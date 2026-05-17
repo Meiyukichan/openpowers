@@ -69,8 +69,12 @@ export function loadConfig(cwd?: string): Record<string, unknown> {
     try {
       const overrideRaw = fs.readFileSync(overrideConfigPath, 'utf-8');
       deepMerge(config, JSON.parse(overrideRaw));
-    } catch {
-      logger.warn('Failed to parse override config: invalid JSON, falling back to defaults');
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        logger.warn('Failed to parse override config: invalid JSON, falling back to defaults');
+      } else {
+        throw err;
+      }
     }
   }
 

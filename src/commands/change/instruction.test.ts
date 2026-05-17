@@ -101,7 +101,17 @@ describe('src/commands/change/instruction.ts', () => {
     vi.restoreAllMocks();
   });
 
+  // Helper: set up the change directory so existence check passes
+  function setupChangeDir(name: string): void {
+    mockFs.setDir(path.join(process.cwd(), 'openpowers', 'changes', name));
+  }
+
+  it('should exit with error when change directory does not exist', () => {
+    expect(() => runChangeInstruction('my-feature', { proposal: true })).toThrow('process.exit called');
+  });
+
   it('should return proposal instruction with filled changeName and outputPath', () => {
+    setupChangeDir('my-feature');
     const templatePath = path.join(RESOURCES_DIR, 'proposal-template.json');
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
@@ -123,6 +133,7 @@ describe('src/commands/change/instruction.ts', () => {
   });
 
   it('should return proposal instruction with empty dependencies array', () => {
+    setupChangeDir('my-feature');
     const templatePath = path.join(RESOURCES_DIR, 'proposal-template.json');
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
@@ -143,6 +154,7 @@ describe('src/commands/change/instruction.ts', () => {
   });
 
   it('should preserve static fields from template for --proposal', () => {
+    setupChangeDir('my-feature');
     const templatePath = path.join(RESOURCES_DIR, 'proposal-template.json');
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
@@ -195,6 +207,7 @@ describe('src/commands/change/instruction.ts', () => {
   });
 
   it('should return design instruction with proposal dependency not done when proposal.md is missing', () => {
+    setupChangeDir('my-feature');
     const templatePath = path.join(RESOURCES_DIR, 'design-template.json');
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
@@ -308,10 +321,12 @@ describe('src/commands/change/instruction.ts', () => {
   });
 
   it('should exit with error when no flag is provided', () => {
+    setupChangeDir('my-feature');
     expect(() => runChangeInstruction('my-feature', {})).toThrow('process.exit called');
   });
 
   it('should exit with error when multiple flags are provided', () => {
+    setupChangeDir('my-feature');
     expect(() => runChangeInstruction('my-feature', { proposal: true, design: true })).toThrow('process.exit called');
   });
 });

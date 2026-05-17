@@ -7,6 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../../utils/logger.js';
 import { syncChangesJson, buildArtifacts, ARTIFACT_EXTENSIONS } from './shared.js';
 
 // Core artifact IDs in pipeline order
@@ -100,17 +101,19 @@ export function runChangeStatus(name: string): void {
   const data = syncChangesJson();
 
   // Search in changes array first, then archive
-  let location = 'changes';
+  let status = 'active';
   let entry = data.changes.find((c) => c.name === name);
   if (!entry) {
     entry = data.archive.find((a) => a.name === name);
-    location = 'archive';
+    status = 'archived';
   }
 
   if (!entry) {
     process.stderr.write(`Change '${name}' not found\n`);
     process.exit(1);
   }
+
+  logger.info(`Status queried for '${name}' (${status})`);
 
   // Resolve change directory path and compute artifact pipeline status
   const changeDirPath = path.resolve(process.cwd(), String(entry.path));
@@ -124,7 +127,7 @@ export function runChangeStatus(name: string): void {
 
   const output = {
     name: entry.name,
-    location,
+    status,
     isComplete,
     artifacts,
   };

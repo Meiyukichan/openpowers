@@ -27,9 +27,9 @@ describe('src/commands/recover.ts', () => {
     const program = new Command();
     registerRecoverCommand(program);
 
-    const logSpy = vi.spyOn(console, 'log');
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     program.parse(['node', 'test', 'recover']);
-    expect(logSpy).toHaveBeenCalledWith('claude 配置已还原（mock）');
-    logSpy.mockRestore();
+    expect(stdoutSpy).toHaveBeenCalledWith('claude 配置已还原（mock）\n');
+    stdoutSpy.mockRestore();
   });
 });

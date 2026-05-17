@@ -292,7 +292,7 @@ describe('src/commands/change/status.ts', () => {
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe('my-feature');
-      expect(parsed.location).toBe('changes');
+      expect(parsed.status).toBe('active');
       expect(parsed.isComplete).toBe(false);
       expect(parsed.artifacts).toBeDefined();
       // Core artifacts always included: proposal=done, design=ready, specs=blocked + plan=done
@@ -336,7 +336,7 @@ describe('src/commands/change/status.ts', () => {
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.isComplete).toBe(true);
-      expect(parsed.location).toBe('changes');
+      expect(parsed.status).toBe('active');
     });
 
     it('should output isComplete=false when no features exist', () => {
@@ -398,7 +398,7 @@ describe('src/commands/change/status.ts', () => {
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe('archived-feature');
-      expect(parsed.location).toBe('archive');
+      expect(parsed.status).toBe('archived');
     });
   });
 });

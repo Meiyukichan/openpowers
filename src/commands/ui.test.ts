@@ -27,9 +27,9 @@ describe('src/commands/ui.ts', () => {
     const program = new Command();
     registerUiCommand(program);
 
-    const logSpy = vi.spyOn(console, 'log');
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     program.parse(['node', 'test', 'ui']);
-    expect(logSpy).toHaveBeenCalledWith('正在打开 openpowers UI...（mock）');
-    logSpy.mockRestore();
+    expect(stdoutSpy).toHaveBeenCalledWith('正在打开 openpowers UI...（mock）\n');
+    stdoutSpy.mockRestore();
   });
 });

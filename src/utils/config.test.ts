@@ -247,6 +247,19 @@ describe('loadConfig', () => {
     );
   });
 
+  it('should re-throw filesystem errors (e.g. EACCES) instead of swallowing them', () => {
+    existsSyncMock.mockReturnValue(true);
+    const fsError = new Error('EACCES: permission denied');
+    (fsError as NodeJS.ErrnoException).code = 'EACCES';
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify(defaultConfigFixture)) // default OK
+      .mockImplementationOnce(() => { throw fsError; }); // override read fails
+
+    expect(() => loadConfig('/mock/cwd')).toThrow('EACCES: permission denied');
+    // Should not have logged the misleading JSON parse warning
+    expect(loggerWarnMock).not.toHaveBeenCalled();
+  });
+
   it('should use process.cwd() when no cwd argument is provided', () => {
     existsSyncMock.mockImplementation((p: string) => {
       return !p.includes('.claude');

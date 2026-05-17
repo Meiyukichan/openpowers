@@ -5,6 +5,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../utils/logger.js';
 
 /**
  * Registers the `ui` subcommand on the given program.
@@ -15,6 +16,7 @@ export function registerUiCommand(program: Command): void {
     .command('ui')
     .description('Open the openpowers user interface')
     .action(() => {
-      console.log('正在打开 openpowers UI...（mock）');
+      logger.info('openpowers UI launched (mock)');
+      process.stdout.write('正在打开 openpowers UI...（mock）\n');
     });
 }
