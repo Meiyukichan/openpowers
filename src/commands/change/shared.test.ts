@@ -375,6 +375,15 @@ describe('src/commands/change/shared.ts', () => {
       const result = computeProgress('object-plan.json');
       expect(result).toEqual({ features: 0, todo: 0 });
     });
+
+    it('should count items without status field as todo', () => {
+      mockFs.setFile('partial-plan.json', JSON.stringify([
+        { id: 'task1', status: 'done' },
+        { id: 'task2' },
+      ]));
+      const result = computeProgress('partial-plan.json');
+      expect(result).toEqual({ features: 2, todo: 1 });
+    });
   });
 
   // =========================================================
@@ -408,6 +417,20 @@ describe('src/commands/change/shared.ts', () => {
       expect(data.framework).toBe('openpowers');
       expect(data.version).toBe('1.0.0');
       expect(data.changes.length).toBe(1);
+      expect(data.archive).toEqual([]);
+    });
+
+    it('should replace null changes and archive fields with empty arrays', async () => {
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
+        framework: 'openpowers',
+        version: '1.0.0',
+        changes: null,
+        archive: null,
+      }));
+      const mod = await import('./shared.js');
+      const { loadOrCreateChangesJson } = mod;
+      const data = loadOrCreateChangesJson();
+      expect(data.changes).toEqual([]);
       expect(data.archive).toEqual([]);
     });
 
@@ -602,6 +625,87 @@ describe('src/commands/change/shared.ts', () => {
       const { syncChangesJson } = mod;
       const data = syncChangesJson();
       expect(data.changes.length).toBe(0); // stale entry removed
+    });
+
+    it('should filter out entries with null or undefined name from existing changes.json', async () => {
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
+        framework: 'openpowers',
+        version: '1.0.0',
+        changes: [
+          { name: 'valid-change', path: 'openpowers/changes/valid-change' },
+          { name: null, path: 'openpowers/changes/null-name' },
+          { path: 'openpowers/changes/no-name' },
+        ],
+        archive: [],
+      }));
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'valid-change'));
+
+      mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
+        const normalized = p.replace(/\\/g, '/');
+        if (normalized === NORM_CHANGES_DIR) {
+          return [
+            { name: 'valid-change', isDirectory: () => true, isFile: () => false },
+            { name: 'archive', isDirectory: () => true, isFile: () => false },
+          ] as DirEntry[];
+        }
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [] as DirEntry[];
+        }
+        return [] as DirEntry[];
+      });
+
+      const mod = await import('./shared.js');
+      const { syncChangesJson } = mod;
+      const data = syncChangesJson();
+      // Only the valid entry should remain; null-name and no-name are discarded
+      expect(data.changes.length).toBe(1);
+      expect(data.changes[0].name).toBe('valid-change');
+    });
+
+    it('should cross-reference active change metadata when building archive entry with matching name', async () => {
+      const mod = await import('./shared.js');
+      const { syncChangesJson } = mod;
+      mockFs.setDir(CHANGES_DIR);
+      mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+      mockFs.setDir(ARCHIVE_DIR);
+      mockFs.setDir(path.join(ARCHIVE_DIR, '2026-05-17-my-feature'));
+
+      // Pre-populate changes.json with active change metadata
+      mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
+        framework: 'openpowers',
+        version: '1.0.0',
+        changes: [{
+          name: 'my-feature',
+          path: 'openpowers/changes/my-feature',
+          description: 'Shared feature description',
+          createdAt: '2026-01-15T00:00:00.000Z',
+        }],
+        archive: [],
+      }));
+
+      mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
+        const normalized = p.replace(/\\/g, '/');
+        if (normalized === NORM_CHANGES_DIR) {
+          return [
+            { name: 'my-feature', isDirectory: () => true, isFile: () => false },
+            { name: 'archive', isDirectory: () => true, isFile: () => false },
+          ] as DirEntry[];
+        }
+        if (normalized === NORM_ARCHIVE_DIR) {
+          return [
+            { name: '2026-05-17-my-feature', isDirectory: () => true, isFile: () => false },
+          ] as DirEntry[];
+        }
+        return [] as DirEntry[];
+      });
+
+      const data = syncChangesJson();
+      expect(data.archive.length).toBe(1);
+      expect(data.archive[0].name).toBe('my-feature');
+      // Should inherit description and createdAt from the active change
+      expect(data.archive[0].description).toBe('Shared feature description');
+      expect(data.archive[0].createdAt).toBe('2026-01-15T00:00:00.000Z');
     });
   });
 });
