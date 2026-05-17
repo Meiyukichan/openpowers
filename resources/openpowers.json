@@ -15,12 +15,7 @@
         "sourcecode": "./",
         "codebases": "docs/codebases",
         "repositories": [],
-        "references": [
-            {
-                "type": "codebases",
-                "path": "docs/reference"
-            }
-        ]
+        "references": []
     },
     "experimental": {
         "codebases": false,
@@ -39,5 +34,13 @@
         "coverage": "70%",
         "save-token": true,
         "plan-factor": 1.5
+    },
+    "enhancement": {
+        "context": null,
+        "rules": {
+            "design": [],
+            "specs": [],
+            "implement": []
+        }
     }
 }

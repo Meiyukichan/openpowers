@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
+import type { OpenPowersConfig } from '../utils/config.js';
 
 // Mock the config utility before any imports
 vi.mock('../utils/config.js', () => ({
@@ -64,7 +65,7 @@ describe('src/commands/config.ts', () => {
   it('config list should output merged config as formatted JSON', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { language: 'chinese', providers: { enable: false } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -84,7 +85,7 @@ describe('src/commands/config.ts', () => {
       providers: { enable: false, default: 'mimo' },
       project: { sourcecode: './' },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -101,10 +102,10 @@ describe('src/commands/config.ts', () => {
     expect(lines[2]).toBe('project.sourcecode=./');
   });
 
-  it('config show should print key=None for object values', async () => {
+  it('config show should print JSON for plain object values', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { project: { sourcecode: './' } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -114,13 +115,13 @@ describe('src/commands/config.ts', () => {
     await program.parseAsync(['config', 'show', 'project'], { from: 'user' });
 
     const output = stdoutCalls.join('');
-    expect(output).toBe('project=None\n');
+    expect(output).toBe('project=' + JSON.stringify(mockConfig.project) + '\n');
   });
 
   it('config show should print key=None for keys that do not exist', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { language: 'chinese' };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -133,10 +134,10 @@ describe('src/commands/config.ts', () => {
     expect(output).toBe('nonexistent.key=None\n');
   });
 
-  it('config show should print key=None for array values', async () => {
+  it('config show should print JSON stringified value for array values', async () => {
     const { loadConfig } = await import('../utils/config.js');
-    const mockConfig = { project: { repositories: [] } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    const mockConfig = { project: { repositories: [{ path: '/test' }] } };
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -146,7 +147,7 @@ describe('src/commands/config.ts', () => {
     await program.parseAsync(['config', 'show', 'project.repositories'], { from: 'user' });
 
     const output = stdoutCalls.join('');
-    expect(output).toBe('project.repositories=None\n');
+    expect(output).toBe('project.repositories=' + JSON.stringify(mockConfig.project.repositories) + '\n');
   });
 
   it('config show should handle mixed output: non-object, object, missing keys', async () => {
@@ -156,7 +157,7 @@ describe('src/commands/config.ts', () => {
       providers: { enable: false, default: 'mimo' },
       project: { sourcecode: './', references: [] },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -172,8 +173,8 @@ describe('src/commands/config.ts', () => {
     const lines = output.trim().split('\n');
     expect(lines).toHaveLength(4);
     expect(lines[0]).toBe('language=chinese');
-    expect(lines[1]).toBe('providers=None');
+    expect(lines[1]).toBe('providers=' + JSON.stringify(mockConfig.providers));
     expect(lines[2]).toBe('nonexistent.key=None');
-    expect(lines[3]).toBe('project.references=None');
+    expect(lines[3]).toBe('project.references=' + JSON.stringify(mockConfig.project.references));
   });
 });

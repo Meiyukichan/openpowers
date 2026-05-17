@@ -8,6 +8,27 @@ import { Command } from 'commander';
 import { loadConfig, queryConfig } from '../utils/config.js';
 
 /**
+ * Checks whether a value is a plain object (not null, not array).
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Formats a config value for output. Plain objects and null/undefined
+ * print as None; arrays and primitives print their value.
+ */
+function formatValue(value: unknown): string {
+  if (value === undefined || value === null) {
+    return 'None';
+  }
+  if (isPlainObject(value) || Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/**
  * Registers the `config` command and its subcommands on the given program.
  * Subcommands: list, show <keys...>
  * @param program - The commander Command instance
@@ -32,11 +53,7 @@ export function registerConfigCommand(program: Command): void {
       const config = loadConfig();
       for (const key of keys) {
         const value = queryConfig(config, key);
-        if (value === undefined || value === null || typeof value === 'object') {
-          process.stdout.write(key + '=None\n');
-        } else {
-          process.stdout.write(key + '=' + value + '\n');
-        }
+        process.stdout.write(key + '=' + formatValue(value) + '\n');
       }
     });
 }

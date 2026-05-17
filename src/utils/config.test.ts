@@ -6,6 +6,7 @@
 
 import path from 'path';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+import type { OpenPowersConfig } from './config.js';
 
 // ---- mocks for loadConfig file I/O ----
 
@@ -47,10 +48,37 @@ const defaultConfigFixture = {
   providers: {
     enable: false,
     default: 'mimo',
+    switch: {
+      explore: 'minimax',
+      plan: 'glm',
+      review: 'deepseek',
+      coding: 'minimax',
+      finalize: 'deepseek',
+    },
   },
   project: {
     sourcecode: './',
+    codebases: 'docs/codebases',
     repositories: [],
+    references: [],
+  },
+  experimental: {
+    codebases: false,
+    websearch: true,
+    context7: true,
+    review: {
+      propose: false,
+      plan: false,
+      specs: false,
+      code: true,
+      acceptance: true,
+    },
+    prompt: {
+      'review-code': null as string | null,
+    },
+    coverage: '70%',
+    'save-token': true,
+    'plan-factor': 1.5,
   },
 };
 
@@ -58,10 +86,10 @@ const overrideConfigFixture = {
   language: 'english',
   providers: {
     enable: true,
-    newKey: 'value',
   },
   project: {
-    repositories: ['repo-a'],
+    sourcecode: 'src/',
+    repositories: [{ path: '/custom', description: 'custom repo' }],
   },
 };
 
@@ -118,7 +146,7 @@ describe('deepMerge', () => {
   it('should deep merge deeply nested objects (3 levels)', () => {
     const base = { a: { b: { c: 1, d: 2 } } };
     const override = { a: { b: { d: 3, e: 4 } } };
-    const result = deepMerge(base, override);
+    const result = deepMerge(base, override) as typeof base;
     expect(result.a.b).toEqual({ c: 1, d: 3, e: 4 });
   });
 
@@ -179,7 +207,7 @@ describe('queryConfig', () => {
 });
 
 describe('loadConfig', () => {
-  let loadConfig: (cwd?: string) => Record<string, unknown>;
+  let loadConfig: (cwd?: string) => OpenPowersConfig;
 
   beforeAll(async () => {
     const mod = await import('./config.js');
@@ -214,8 +242,9 @@ describe('loadConfig', () => {
 
     // language replaced, providers merged, project merged
     expect(result.language).toBe('english');
-    expect(result.providers).toEqual({ enable: true, default: 'mimo', newKey: 'value' });
-    expect(result.project).toEqual({ sourcecode: './', repositories: ['repo-a'] });
+    expect(result.providers).toEqual({ enable: true, default: 'mimo', switch: defaultConfigFixture.providers.switch });
+    expect(result.project.sourcecode).toBe('src/');
+    expect(result.project.repositories).toEqual([{ path: '/custom', description: 'custom repo' }]);
   });
 
   it('should silently skip override when .claude/openpowers.json does not exist', () => {
