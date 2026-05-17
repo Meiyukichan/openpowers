@@ -10,7 +10,7 @@ import { registerInitCommand } from '../commands/init.js';
 import { registerUiCommand } from '../commands/ui.js';
 import { registerRemoveCommand } from '../commands/remove.js';
 import { registerRecoverCommand } from '../commands/recover.js';
-import { registerChangeCommand } from '../commands/change.js';
+import { registerChangeCommand } from '../commands/change/index.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
