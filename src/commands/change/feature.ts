@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../../utils/logger.js';
-import { CHANGES_DIR, KEBAB_CASE } from './shared.js';
+import { CHANGES_DIR, validateChangeName } from './shared.js';
 
 // Feature data interface
 interface Feature {
@@ -24,12 +24,14 @@ interface Feature {
 }
 
 /**
- * Validates a change name is kebab-case. Exits with error if invalid.
+ * Validates a change name is kebab-case, exiting with error if invalid.
+ * Delegates to the shared validateChangeName for the kebab-case check.
  * @param changeName - The change name to validate
  */
-function validateChangeName(changeName: string): void {
-  if (!KEBAB_CASE.test(changeName)) {
-    process.stderr.write(`Error: Change name '${changeName}' must be kebab-case (e.g., my-change)\n`);
+function requireValidChangeName(changeName: string): void {
+  const result = validateChangeName(changeName);
+  if (!result.valid) {
+    process.stderr.write(`Error: ${result.error}\n`);
     process.exit(1);
   }
 }
@@ -60,6 +62,10 @@ function loadPlan(planPath: string): Feature[] {
  * @param features - Array of Feature objects to save
  */
 function savePlan(planPath: string, features: Feature[]): void {
+  const dir = path.dirname(planPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   const content = JSON.stringify(features, null, 2);
   fs.writeFileSync(planPath, content, 'utf-8');
   logger.info(`Saved plan to ${path.relative(process.cwd(), planPath)}`);
@@ -161,7 +167,7 @@ function getNextFeature(features: Feature[]): Feature | undefined {
  * @param feature - The feature to print
  */
 function printFeatureDetails(feature: Feature): void {
-  process.stdout.write(`\n  Next feature to work on:\n`);
+  process.stdout.write(`\n`);
   process.stdout.write(`  ID: ${feature.id}\n`);
   if (feature.category) process.stdout.write(`  Category: ${feature.category}\n`);
   if (feature.function) process.stdout.write(`  Function: ${feature.function}\n`);
@@ -192,7 +198,7 @@ function printFeatureDetails(feature: Feature): void {
  * @param changeName - The kebab-case change name
  */
 export function runFeatureStatus(changeName: string): void {
-  validateChangeName(changeName);
+  requireValidChangeName(changeName);
 
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   const features = loadPlan(planPath);
@@ -257,7 +263,7 @@ export function runFeatureStatus(changeName: string): void {
  * @param changeName - The kebab-case change name
  */
 export function runFeatureNext(changeName: string): void {
-  validateChangeName(changeName);
+  requireValidChangeName(changeName);
 
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   const features = loadPlan(planPath);
@@ -310,7 +316,7 @@ export function runFeatureNext(changeName: string): void {
  * @param featureId - The ID of the feature to start
  */
 export function runFeatureStart(changeName: string, featureId: string): void {
-  validateChangeName(changeName);
+  requireValidChangeName(changeName);
 
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {
@@ -355,7 +361,7 @@ export function runFeatureStart(changeName: string, featureId: string): void {
  * @param featureId - The ID of the feature to complete
  */
 export function runFeatureComplete(changeName: string, featureId: string): void {
-  validateChangeName(changeName);
+  requireValidChangeName(changeName);
 
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {

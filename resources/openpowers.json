@@ -13,12 +13,14 @@
     },
     "project": {
         "sourcecode": "./",
-        "codebases": "docs/codebases",
+        "codebases": {
+            "codebases": false,
+            "path": "docs/codebases"
+        },
         "repositories": [],
         "references": []
     },
     "experimental": {
-        "codebases": false,
         "websearch": true,
         "context7": true,
         "review": {

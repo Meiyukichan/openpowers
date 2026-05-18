@@ -13,3 +13,5 @@ openspec/
 dist/
 coverage/
 openpowers/
+docs/
+build/

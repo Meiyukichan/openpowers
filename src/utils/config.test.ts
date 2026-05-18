@@ -58,12 +58,14 @@ const defaultConfigFixture = {
   },
   project: {
     sourcecode: './',
-    codebases: 'docs/codebases',
+    codebases: {
+      codebases: false,
+      path: 'docs/codebases',
+    },
     repositories: [],
     references: [],
   },
   experimental: {
-    codebases: false,
     websearch: true,
     context7: true,
     review: {
@@ -170,7 +172,10 @@ describe('queryConfig', () => {
     language: 'chinese',
     project: {
       sourcecode: './',
-      codebases: 'docs/codebases',
+      codebases: {
+        codebases: false,
+        path: 'docs/codebases',
+      },
     },
     providers: {
       enable: false,

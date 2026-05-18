@@ -29,6 +29,11 @@ const ProvidersSchema = z.object({
   switch: ProviderSwitchSchema,
 });
 
+const CodebasesSchema = z.object({
+  codebases: z.boolean(),
+  path: z.string(),
+});
+
 const RepositoryRefSchema = z.object({
   path: z.string().optional(),
   type: z.string().optional(),
@@ -37,7 +42,7 @@ const RepositoryRefSchema = z.object({
 
 const ProjectSchema = z.object({
   sourcecode: z.string(),
-  codebases: z.string(),
+  codebases: CodebasesSchema,
   repositories: z.array(RepositoryRefSchema),
   references: z.array(RepositoryRefSchema),
 });
@@ -55,7 +60,6 @@ const PromptSchema = z.object({
 });
 
 const ExperimentalSchema = z.object({
-  codebases: z.boolean(),
   websearch: z.boolean(),
   context7: z.boolean(),
   review: ReviewSchema,
@@ -63,7 +67,6 @@ const ExperimentalSchema = z.object({
   coverage: z.string(),
   'save-token': z.boolean(),
   'plan-factor': z.number(),
-  budget: z.boolean().optional(),
 });
 
 const EnhancementRulesSchema = z.object({
