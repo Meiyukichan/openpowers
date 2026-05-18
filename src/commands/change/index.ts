@@ -55,40 +55,26 @@ export function registerChangeCommand(program: Command): void {
       runChangeInstruction(name, options);
     });
 
-  // Feature lifecycle management sub-subcommands
-  const featureCmd = changeCmd
+  // Feature lifecycle management subcommands
+  changeCmd
     .command('feature <changeName>')
-    .description('Manage features for a change');
-
-  featureCmd
-    .command('status')
-    .description('Display feature status summary')
-    .action((_opts: Record<string, unknown>, command: Command) => {
-      const changeName = command.parent?.processedArgs?.[0] as string;
-      runFeatureStatus(changeName);
-    });
-
-  featureCmd
-    .command('next')
-    .description('Find the next actionable feature')
-    .action((_opts: Record<string, unknown>, command: Command) => {
-      const changeName = command.parent?.processedArgs?.[0] as string;
-      runFeatureNext(changeName);
-    });
-
-  featureCmd
-    .command('start <featureId>')
-    .description('Start a pending feature')
-    .action((featureId: string, _opts: Record<string, unknown>, command: Command) => {
-      const changeName = command.parent?.processedArgs?.[0] as string;
-      runFeatureStart(changeName, featureId);
-    });
-
-  featureCmd
-    .command('complete <featureId>')
-    .description('Complete an in-progress feature')
-    .action((featureId: string, _opts: Record<string, unknown>, command: Command) => {
-      const changeName = command.parent?.processedArgs?.[0] as string;
-      runFeatureComplete(changeName, featureId);
+    .description('Manage features for a change')
+    .option('--status', 'Display feature status summary')
+    .option('--next', 'Find the next actionable feature')
+    .option('--start <featureId>', 'Start a pending feature')
+    .option('--complete <featureId>', 'Complete an in-progress feature')
+    .action((changeName: string, options: { status?: boolean; next?: boolean; start?: string; complete?: string }) => {
+      if (options.status) {
+        runFeatureStatus(changeName);
+      } else if (options.next) {
+        runFeatureNext(changeName);
+      } else if (options.start) {
+        runFeatureStart(changeName, options.start);
+      } else if (options.complete) {
+        runFeatureComplete(changeName, options.complete);
+      } else {
+        process.stderr.write('Error: No action specified. Use --status, --next, --start <featureId>, or --complete <featureId>\n');
+        process.exit(1);
+      }
     });
 }

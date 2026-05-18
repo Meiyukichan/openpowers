@@ -3,33 +3,34 @@
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
-$ test -f openspec/changes/auth/plan.json && echo "Exists" || echo "Not found"
-Exists
-
-$ python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py /path/to/project language experimental.review.specs experimental.review.code
+$ openpowers config show language experimental.review.specs experimental.review.code
 Language: en
 Spec review: True
 Code quality review: True
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py status openspec/changes/auth/plan.json
+$ openpowers change feature auth --status
 Feature List Status:
-  Total: 5
-  ✅ Done: 0
-  🔄 In Progress: 0
-  ⏳ Pending: 5
-  🚫 Blocked: 0
+openpowers/changes/auth/plan.json
+  Total: 3
+  Done: 0
+  In Progress: 0
+  Pending: 3
+  Blocked: 0
+  Skipped: 0
+Progress: 0.0%
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py next openspec/changes/auth/plan.json
+$ openpowers change feature auth --next
 Next feature: auth-001
   Category: authentication
   Function: user-login
   Description: Implement email/password login
+...
 
 Feature auth-001: User login
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py start openspec/changes/auth/plan.json auth-001
+$ openpowers change feature auth --start auth-001
 
-[Dispatch reference explorer — invoke openpowers-explore skill to explore references for auth-001, output to openspec/changes/auth/auth-001-reference.md]
+[Dispatch reference explorer — invoke openpowers-explore skill to explore references for auth-001, output to openpowers/changes/auth/auth-001-reference.md]
 
 [Reference explorer completed, continue to next step]
 
@@ -62,19 +63,18 @@ Spec reviewer: ✅ All acceptance criteria met now
 [experimental.review.code = True, get git SHA, dispatch code quality reviewer]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py complete openspec/changes/auth/plan.json auth-001
+$ openpowers change feature auth --complete auth-001
 
-[Edit openspec/changes/auth/tasks.md, find the task referenced by auth-001, check it off as [x]]
-
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py next openspec/changes/auth/plan.json
+$ openpowers change feature auth --next
 Next feature: auth-002
   Category: authentication
   Function: token-refresh
   Description: Implement token refresh endpoint
+...
 
 Feature auth-002: Token refresh
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py start openspec/changes/auth/plan.json auth-002
+$ openpowers change feature auth --start auth-002
 
 [Dispatch reference explorer — invoke openpowers-explore skill to explore references for auth-002]
 
@@ -109,14 +109,12 @@ Implementer: Extracted TOKEN_TTL_SECONDS constant
 [Code reviewer reviews again]
 Code reviewer: ✅ Approved
 
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py complete openspec/changes/auth/plan.json auth-002
-
-[Edit openspec/changes/auth/tasks.md, find the task referenced by auth-002, check it off as [x]]
+$ openpowers change feature auth --complete auth-002
 
 ...
 
 [After all features]
-$ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py status openspec/changes/auth/plan.json
+$ openpowers change feature auth --status
 Feature List Status:
   Total: 5
   ✅ Done: 5

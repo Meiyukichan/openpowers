@@ -14,15 +14,35 @@ Skipping any phase is forbidden. Each phase builds on the previous one. Skipping
 
 **Force Restart**: The `FORCE_RESTART` parameter is enabled only when the user provides the argument - `FORCE_RESTART`.
 
-## Language Adaptation
+## Workflow Configuration
+
+### Dependency Check
+
+**Before starting the workflow, verify that openpowers is installed:**
+
+```bash
+openpowers --version
+```
+
+**If openpowers is not installed:**
+
+```bash
+npm install -g openpowers@latest
+```
+
+**After successful installation:**
+
+Remind the user: "OpenPowers installed successfully. Please close the CLI window and reopen to continue."
+
+### Language Adaptation
 
 You SHOULD query the `output language` required by the plugin via the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current project path} language
+openpowers config show language
 ```
 
-Use the language returned by the script as the default language for all user-facing responses and output of this command. If the script produces no output or fails to execute, fall back to Chinese.
+- `language`: **MUST** use the language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
 ## Phase Execution Rules
 
@@ -55,26 +75,6 @@ digraph workflow {
 }
 ```
 
-## Dependency Check
-
-**Before starting the workflow, verify that openspec is installed:**
-
-### Check openspec installation
-
-```bash
-openspec --version
-```
-
-**If openspec is not installed:**
-
-```bash
-npm install -g @fission-ai/openspec@latest
-```
-
-**After successful installation:**
-
-Remind the user: "openspec installed successfully. Please close the CLI window and reopen to continue."
-
 ## Phase Detection - Resume from Current State
 
 **Critical: Do not start from phase 1 if changes already exist.**
@@ -82,15 +82,14 @@ Remind the user: "openspec installed successfully. Please close the CLI window a
 **Critical: When `Force Restart` is enabled, absolutely must start from phase 1.**
 
 - When `Force Restart` is enabled, start from phase 1
-- Otherwise, check active changes via `openspec list --json` or `ls openspec/changes/`, then determine the phase using the artifact mapping below:
+- Otherwise, check active changes via `openpowers change list` or `ls openpowers/changes/`, then determine the phase using the artifact mapping below:
 
 | Existing Artifacts | Current Phase | Resume Action |
 |-------------------|---------------|---------------|
-| No change directory | Phase 1: Explore | Start exploration |
-| `exploration.md` exists (no `.openspec.yaml`) | Phase 1: Explore complete | Start Phase 2: Propose |
-| Only `.openspec.yaml` | Phase 2: Propose started | Continue proposal |
-| `.openspec.yaml`(not required) + `proposal.md` only | Phase 2: Propose partially complete | Continue design/tasks |
-| `.openspec.yaml`(not required) + `proposal.md` + `design.md` + `tasks.md` + `specs/` | Phase 2: Propose complete | Start Phase 3: Review Propose |
+| No change directory or change directory is empty | Phase 1: Explore | Start exploration |
+| `exploration.md` exists (no `proposal.md`) | Phase 1: Explore complete | Start Phase 2: Propose |
+| `proposal.md` + `design.md` + `specs/` partially missing | Phase 2: Propose partially complete | Continue Phase 2: Propose |
+| `proposal.md` + `design.md` + `specs/` complete | Phase 2: Propose complete | Start Phase 3: Review Propose |
 | `plan.json` exists, no features completed yet | Phase 4: Plan complete | Start Phase 5: Review Plan |
 | `plan.json`: some features completed/in_progress, some pending | Phase 6: Development in progress | Resume next feature |
 | All features completed | Phase 6: Development complete | Start Phase 7: Finalize |
@@ -99,7 +98,7 @@ Remind the user: "openspec installed successfully. Please close the CLI window a
 
 When multiple active changes exist, ask the user to choose which one to resume.
 
-**RED LAW: At this point, the final openspec change directory: `openspec/changes/<name>/` must be determined (or create one by yourself, do NOT ask user) before follow phases**.
+**RED LAW: At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user) before follow phases**.
 
 **RED LAW: After completing each phase, immediately start the next phase — do NOT pause and ask the user to confirm. Do not output prompts like "Phase complete, continue?"**.
 
@@ -113,27 +112,27 @@ In this phase, you must strictly and accurately follow these steps:
 
 #### 1. Pre-Execution
 
-- At this point, the final openspec change directory: `openspec/changes/<name>/` must be determined (or create one by yourself, do NOT ask user)
+- At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user)
 
 #### 2. Phase Execution
 
 Invoke Skill: openpowers-explore to explore the codebase, with parameters:
   - Exploration type: project
   - Exploration content: $ARGUMENTS
-  - Output file path: `openspec/changes/<name>/exploration.md`
+  - Output file path: `openpowers/changes/<name>/exploration.md`
 
 #### 3. Post-Execution
 
 - None
 
 ### Output
-`openspec/changes/<name>/exploration.md`
+`openpowers/changes/<name>/exploration.md`
 
 ### Principle
 Exploration time, not implementation time. Do not write code.
 
 ### Transition
-After insights from exploration are clear, notify the user that the next step will automatically proceed to proposal.
+Exploration complete. Auto entering proposal.
 
 ## Phase 2: Propose
 
@@ -157,7 +156,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 - None
 
 ### Output
-`openspec/changes/<name>/` containing `.openspec.yaml`, `proposal.md`, `design.md`, `tasks.md`, `specs/`
+`openpowers/changes/<name>/` containing `proposal.md`, `design.md`, `specs/**/*.md`
 
 ### Principle
 Generate all artifacts in one step.
@@ -181,7 +180,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 Invoke Skill: openpowers-review to review the proposal, with parameters:
   - Review type: propose
-  - Change directory: `openspec/changes/<name>/`
+  - Change directory: `openpowers/changes/<name>/`
 
 #### 3. Post-Execution
 
@@ -221,8 +220,8 @@ Task tool (general-purpose):
     ## Output Language
     [`output language`]
 
-    ## openspec change
-    [`openspec/changes/<name>/`]
+    ## openpowers change
+    [`openpowers/changes/<name>/`]
 
     ## Project Path
     [current project path]
@@ -243,9 +242,9 @@ Task tool (general-purpose):
 - None
 
 ### Output
-- `openspec/changes/<name>/plan.json`, containing feature IDs, descriptions, acceptance criteria, file paths, dependencies, and status tracking
-- `openspec/changes/<name>/api.yaml` (optional)
-- `openspec/changes/<name>/database.md` (optional)
+- `openpowers/changes/<name>/plan.json`, containing feature IDs, descriptions, acceptance criteria, file paths, dependencies, and status tracking
+- `openpowers/changes/<name>/api.yaml` (optional)
+- `openpowers/changes/<name>/database.md` (optional)
 
 ### Principle
 Features should be completable in one session, while delivering meaningful value.
@@ -269,7 +268,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 Invoke Skill: openpowers-review to review the plan, with parameters:
   - Review type: plan
-  - Change directory: `openspec/changes/<name>/`
+  - Change directory: `openpowers/changes/<name>/`
 
 #### 3. Post-Execution
 
@@ -282,7 +281,7 @@ Review passed (or modification suggestions).
 Plan quality determines development efficiency. Do not overlook unreasonable decomposition and dependencies.
 
 ### Transition
-"Plan review passed. Auto entering subagent-driven development."
+"Plan review passed. Use the AskUserQuestion tool to ask the user whether to automatically enter subagent-driven development?"
 
 ## Phase 6: Subagent-Driven Development
 
@@ -383,8 +382,8 @@ Task tool (general-purpose):
     ## Output Language
     [`output language`]
 
-    ## openspec change directory
-    [`openspec/changes/<name>/`]
+    ## openpowers change directory
+    [`openpowers/changes/<name>/`]
 
     ## Project Path
     [current project path]
@@ -398,7 +397,7 @@ Task tool (general-purpose):
 - None
 
 ### Output
-`openspec/changes/archive/YYYY-MM-DD-<name>/`, preserving all artifacts.
+`openpowers/archive/YYYY-MM-DD-<name>/`, preserving all artifacts.
 
 ### Principle
 Archive preserves the complete change history.
@@ -416,7 +415,7 @@ Archive preserves the complete change history.
 6. **Fresh subagent per feature** - Isolated context, focused execution.
 7. **Two-phase review** - Spec compliance first, then code quality. Both must pass.
 8. **Tests must pass** - Before review, merge, integration.
-9. **Auto transition** - After completing a phase, do NOT pause and ask the user to confirm — immediately start the next phase. Do not output prompts like "Phase complete, continue?"
+9. **Auto transition** - After completing a phase, do NOT pause and ask the user to confirm — immediately start the next phase. Do not output prompts like "Phase complete, continue?" (except for Phase 5: Review Plan)
 10. **Archive to complete workflow** - Preserve history, sync specs.
 11. **When `Force Restart` is enabled, absolutely must start from phase 1. And! Must reference existing design, plan, spec documents and redesign more comprehensively and professionally on that basis!**
 
@@ -437,7 +436,6 @@ Archive preserves the complete change history.
 - Continue after phase detection errors
 - Ignore subagent BLOCKED/NEEDS_CONTEXT status
 - Force retry with the same model without resolving blockers
-- Execute the command: `openspec init`
 
 **If you find yourself rationalizing or skipping steps: Stop. Return to the correct phase. Follow the workflow.**
 

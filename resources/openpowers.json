@@ -14,7 +14,7 @@
     "project": {
         "sourcecode": "./",
         "codebases": {
-            "codebases": false,
+            "enable": false,
             "path": "docs/codebases"
         },
         "repositories": [],
@@ -34,8 +34,8 @@
             "review-code": null
         },
         "coverage": "70%",
-        "save-token": true,
-        "plan-factor": 1.5
+        "budget": true,
+        "factor": 1.5
     },
     "enhancement": {
         "context": null,

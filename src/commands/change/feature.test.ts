@@ -86,6 +86,7 @@ function makeFeature(overrides: Record<string, unknown> = {}) {
     function: 'test-func',
     description: 'Test feature description',
     acceptance_criteria: ['AC1: must work'],
+    tasks: ['1.1 do something', '1.2 do another'],
     files: ['src/foo.ts'],
     dependencies: [],
     spec_refs: ['openspec/changes/test/spec.md'],
@@ -121,7 +122,7 @@ describe('runFeatureStatus', () => {
     vi.restoreAllMocks();
   });
 
-  it('should print status summary with mixed states (blocked as mutually exclusive)', () => {
+  it('should print status summary with mixed states', () => {
     const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
     mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
     mockFs.setFile(planPath, JSON.stringify([
@@ -136,23 +137,24 @@ describe('runFeatureStatus', () => {
 
     const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
     const output = stdoutCalls.join('');
-    expect(output).toContain('Feature Status for my-change:');
+    expect(output).toContain('Feature List Status:');
     expect(output).toContain('Total: 5');
     expect(output).toContain('Done: 2');
     expect(output).toContain('In Progress: 1');
-    expect(output).toContain('Pending: 1');
+    expect(output).toContain('Pending: 2');
     expect(output).toContain('Blocked: 1');
     expect(output).toContain('Skipped: 0');
     expect(output).toContain('Progress: 40.0%');
     expect(output).toContain('Currently in progress:');
-    expect(output).toContain('f3');
+    expect(output).toContain('- f3: test-func');
   });
 
-  it('should print "No plan.json found" when plan.json does not exist', () => {
-    runFeatureStatus('my-change');
+  it('should exit with error when plan.json does not exist', () => {
+    expect(() => runFeatureStatus('my-change')).toThrow('process.exit called');
+    expect(exitSpy).toHaveBeenCalledWith(1);
 
-    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(stdoutCalls.some((c: string) => c.includes("No plan.json found"))).toBe(true);
+    const stderrCalls = stderrWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(stderrCalls.some((c: string) => c.includes('No plan.json found'))).toBe(true);
   });
 
   it('should exit with error on invalid (non-kebab-case) change name', () => {
@@ -250,7 +252,6 @@ describe('runFeatureNext', () => {
     const output = stdoutCalls.join('');
     expect(output).toContain('f2');
     expect(output).toContain('The active one');
-    expect(output).toContain('in_progress');
   });
 
   it('should return first pending with satisfied dependencies when no in_progress', () => {
@@ -330,6 +331,42 @@ describe('runFeatureNext', () => {
     expect(output).toContain('spec/doc.md');
     expect(output).toContain('src/ui.ts');
     expect(output).toContain('src/ui.test.ts');
+    expect(output).toContain('Tasks:');
+    expect(output).toContain('- 1.1 do something');
+  });
+
+  it('should show Tasks section in next feature details', () => {
+    const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(planPath, JSON.stringify([
+      makeFeature({
+        id: 'feat-t',
+        status: 'pending',
+        tasks: ['1.1 create module', '1.2 add dependencies'],
+      }),
+    ]));
+
+    runFeatureNext('my-change');
+
+    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    const output = stdoutCalls.join('');
+    expect(output).toContain('Tasks:');
+    expect(output).toContain('- 1.1 create module');
+    expect(output).toContain('- 1.2 add dependencies');
+  });
+
+  it('should not show Tasks section when tasks is empty', () => {
+    const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(planPath, JSON.stringify([
+      makeFeature({ id: 'feat-t', status: 'pending', tasks: [] }),
+    ]));
+
+    runFeatureNext('my-change');
+
+    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    const output = stdoutCalls.join('');
+    expect(output).not.toContain('Tasks:');
   });
 
   it('should exit with error on invalid change name', () => {
@@ -534,54 +571,6 @@ describe('runFeatureComplete', () => {
     const savedFeatures = JSON.parse(writtenContent);
     const completedFeature = savedFeatures.find((f: { id: string }) => f.id === 'f1');
     expect(completedFeature.status).toBe('done');
-  });
-
-  it('should run post-completion check and print "All features completed!" when all done', () => {
-    const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
-    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
-    const features = [
-      makeFeature({ id: 'f1', status: 'in_progress' }),
-      makeFeature({ id: 'f2', status: 'done' }),
-    ];
-    mockFs.setFile(planPath, JSON.stringify(features));
-
-    runFeatureComplete('my-change', 'f1');
-
-    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    const output = stdoutCalls.join('');
-    expect(output).toContain('All features completed');
-  });
-
-  it('should run post-completion check and print next feature when available', () => {
-    const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
-    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
-    const features = [
-      makeFeature({ id: 'f1', status: 'in_progress' }),
-      makeFeature({ id: 'f2', status: 'pending' }),
-    ];
-    mockFs.setFile(planPath, JSON.stringify(features));
-
-    runFeatureComplete('my-change', 'f1');
-
-    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    const output = stdoutCalls.join('');
-    expect(output).toContain('Next feature');
-  });
-
-  it('should run post-completion check and warn when remaining features are blocked', () => {
-    const planPath = path.join(CHANGES_DIR, 'my-change', 'plan.json');
-    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
-    const features = [
-      makeFeature({ id: 'f1', status: 'in_progress' }),
-      makeFeature({ id: 'f2', status: 'pending', dependencies: ['f3'] }),
-    ];
-    mockFs.setFile(planPath, JSON.stringify(features));
-
-    runFeatureComplete('my-change', 'f1');
-
-    const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    const output = stdoutCalls.join('');
-    expect(output).toContain('blocked');
   });
 
   it('should exit with error for feature not found', () => {

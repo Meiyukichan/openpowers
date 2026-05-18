@@ -8,6 +8,10 @@ You are implementing feature [feature-id]: [feature name]
 
 [feature.acceptance_criteria — one per line, using bullet points]
 
+## Feature Tasks
+
+[feature.tasks — one per line]
+
 ## Files
 
 You will work with the following files (these are only the likely files involved, not a complete list; do not limit yourself to them):
@@ -15,23 +19,22 @@ You will work with the following files (these are only the likely files involved
 
 ## Context
 
-[Setting: where this feature fits in the overall system, what dependencies have been completed,
-architectural conventions to follow]
+[Setting: where this feature fits in the overall system, what dependencies have been completed, architectural conventions to follow]
 
 ## Feature Reference Documents and Related Implementations
 
-The feature reference document is: `openspec/changes/<name>/reference/{feature-id}.md`. If it exists, you must read it and use it as a reference when writing code.
+The feature reference document is: `openpowers/changes/<name>/reference/{feature-id}.md`. If it exists, you must read it and use it as a reference when writing code.
 
 ## Spec References
 
 [If feature.spec_refs exists and is non-empty]
 
-This feature references the following documents (specs, tasks, design, API):
-[feature.spec_refs — one per line, formatted like "openspec/changes/<name>/specs/auth/spec.md#login", "openspec/changes/<name>/tasks.md#task-id", "openspec/changes/<name>/design.md#section"]
+This feature references the following documents (specs, design, API):
+[feature.spec_refs — one per line, formatted like "openpowers/changes/<name>/specs/auth/spec.md#login", "openpowers/changes/<name>/design.md#section"]
 
-**Lazy Loading:** You can access specs, design, tasks, API, and other documents under openspec/changes/<name>/.
+**Lazy Loading:** You can access specs, design, tasks, API, and other documents under openpowers/changes/<name>/.
 
-**Must Read:** The referenced documents, especially spec documents, design.md, and API documents.
+**Must Read:** The referenced documents, especially relevant sections of spec documents, design.md, and API documents.
 Also read them in the following cases:
 - Acceptance criteria are unclear or ambiguous
 - You need to understand the broader system context

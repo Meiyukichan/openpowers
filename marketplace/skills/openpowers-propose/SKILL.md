@@ -5,27 +5,29 @@ description: Propose a new change with all artifacts generated in one step. Use 
 
 Propose a new change - create the change and generate all artifacts in one step.
 
-I'll create a change with artifacts:
+This skill will create a change with artifacts:
 
 - proposal.md (what & why)
 - design.md (how)
-- tasks.md (implementation steps)
+- specs/\*\*/*.md (requirements specs)
 
 ---
 
 **Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
-**Language Adaptation**
+## Language Adaptation
 
 Query the plugin's required output language using the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current_project_path} language
+openpowers config show language
 ```
 
-Use the language returned by the script as the default language for all user-facing responses and outputs in this skill. If the script returns no output or fails, fall back to Chinese.
+- `language`: This skill **must** use this language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
-**Steps**
+## Change Steps
+
+Follow these change steps strictly and accurately to complete the creation of change artifacts:
 
 1. **If no clear input provided, ask what they want to build**
 
@@ -40,31 +42,30 @@ Use the language returned by the script as the default language for all user-fac
 2. **Create the change directory**
 
    ```bash
-   openspec new change "<name>"
+   openpowers change new <name> --desc <brief description of this change [15-30 words]>
    ```
 
-   This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
+   This creates the change at `openpowers/changes/<name>/` and brings it into the OpenPowers change management system.
 
 3. **Get the artifact build order**
 
    ```bash
-   openspec status --change "<name>" --json
+   openpowers change status <name>
    ```
 
    Parse the JSON to get:
-   - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
-   - `artifacts`: list of all artifacts with their status and dependencies
+   - `isComplete`: Whether the change is complete (true/false)
+   - `status`: Change status (active/archived)
+   - `artifacts`: list of all artifacts with their status and file names
 
-4. **Create artifacts in sequence until apply-ready**
+4. **Create artifacts in strict order as follows until ready**
 
    Use the **TodoWrite tool** to track progress through the artifacts.
 
-   Loop through artifacts in dependency order (artifacts with no pending dependencies first):
-
-   a. **For each artifact that is `ready` (dependencies satisfied)**:
+   a. **Process artifacts in `ready` status from the `artifacts` list**:
    - Get instructions:
      ```bash
-     openspec instructions <artifact-id> --change "<name>" --json
+     openpowers change instruction <name> --<artifact-id>
      ```
    - The instructions JSON includes:
      - `context`: Project background (constraints for you - do NOT include in output)
@@ -74,14 +75,13 @@ Use the language returned by the script as the default language for all user-fac
      - `outputPath`: Where to write the artifact
      - `dependencies`: Completed artifacts to read for context
    - Read any completed dependency files for context
-   - Create the artifact file using `template` as the structure
+   - Must use `template` as the structure, create the artifact file according to `instruction`
    - Apply `context` and `rules` as constraints - but do NOT copy them into the file
    - Show brief progress: "Created <artifact-id>"
 
-   b. **Continue until all `applyRequires` artifacts are complete**
-   - After creating each artifact, re-run `openspec status --change "<name>" --json`
-   - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
-   - Stop when all `applyRequires` artifacts are done
+   b. **Loop through `step a` above until `isComplete` = `true`**
+   - After creating each artifact in `step a`, re-run `openpowers change status <name>`
+   - Stop when `isComplete` = `true`
 
    c. **If an artifact requires user input** (unclear context):
    - Use **AskUserQuestion tool** to clarify
@@ -89,7 +89,7 @@ Use the language returned by the script as the default language for all user-fac
 
 5. **Show final status**
    ```bash
-   openspec status --change "<name>"
+   openpowers change status <name>
    ```
 
 **Output**
@@ -102,7 +102,7 @@ After completing all artifacts, summarize:
 
 **Artifact Creation Guidelines**
 
-- Follow the `instruction` field from `openspec instructions` for each artifact type
+- Follow the `instruction` field from `openpowers instructions` for each artifact type
 - The schema defines what each artifact should contain - follow it
 - Read dependency artifacts for context before creating new ones
 - Use `template` as the structure for your output file - fill in its sections
@@ -112,8 +112,14 @@ After completing all artifacts, summarize:
 
 **Guardrails**
 
-- Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
+- Create ALL artifacts needed for implementation (the `artifacts` field)
 - Always read dependency artifacts before creating a new one
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+
+**Artifact Checklist**:
+
+- [ ] `openpowers/changes/<name>/proposal.md`
+- [ ] `openpowers/changes/<name>/design.md`
+- [ ] `openpowers/changes/<name>/spec/**/*.md`

@@ -10,6 +10,9 @@ You are reviewing whether an implementation matches its spec.
 
 {feature.acceptance_criteria — one per line, using bullet points}
 
+## Feature Tasks
+{feature.tasks — one per line}
+
 ## Spec References
 
 {feature.spec_refs — one per line, if any. These define the upstream requirements this feature must satisfy. If acceptance criteria are ambiguous, cross-check against these.}

@@ -18,7 +18,7 @@ Dispatch specialized review sub-agents to catch issues that implementers tend to
    - `propose`: Review the proposal document
    - `plan`: Review the plan document
    - `code`: Review code changes
-2. **Change Directory (change)** <required when review is `propose` or `plan`>: `openspec/changes/<name>/`
+2. **Change Directory (change)** <required when review is `propose` or `plan`>: `openpowers/changes/<name>/`
 
 If required parameters are missing, you MUST use the `AskUserQuestion` tool to ask the user for them.
 
@@ -27,13 +27,13 @@ If required parameters are missing, you MUST use the `AskUserQuestion` tool to a
 After determining the review type (propose/plan/code), query the following configuration, replacing `<type>` with the actual review type:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current project path} language experimental.review.\<type\>
+openpowers config show language experimental.review.\<type\>
 ```
 
 Returns two values in order:
 
 1. `language` — Output language. Use this as the language for all user-facing answers and outputs in this skill. If None, default to Chinese.
-2. `experimental.review.<type>` — Review toggle. If this value is not `True`, **you MUST immediately terminate the openpowers-review skill** and not perform any review operations (this is a mandatory user configuration).
+2. `experimental.review.<type>` — Review toggle. If this value is not `true`, **you MUST immediately terminate the openpowers-review skill** and not perform any review operations (this is a mandatory user configuration).
 
 ## Review Dispatch Flow
 
@@ -48,14 +48,11 @@ Task tool (general-purpose):
     ## Language Adaptation
     Output language for this review: {`language` or Chinese}
 
-    ## openspec change
-    {`openspec/changes/<name>/`}
+    ## openpowers change
+    {`openpowers/changes/<name>/`}
 
     ## Current project path
     {current project path}
-
-    ## Script path
-    {${CLAUDE_PLUGIN_ROOT}/scripts/config.py}
 
     ## Execution flow
     Strictly follow the steps below:
@@ -73,4 +70,4 @@ Task tool (general-purpose):
 
 - **openpowers-review MUST NOT read the `review template documents`. Other documents should only be read when necessary.**
 - **openpowers-review MUST NOT run git commands**: openpowers-review itself must never run any git commands, especially when the review type is code!
-- `optional.review.<type>` is the skill toggle. If it is not `True`, stop executing this skill.
+- `optional.review.<type>` is the skill toggle. If it is not `true`, stop executing this skill.

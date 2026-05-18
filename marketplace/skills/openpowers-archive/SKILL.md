@@ -11,7 +11,7 @@ Archive a completed change in the experimental workflow.
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
+   Run `openpowers change list` to get available changes. Use the **AskUserQuestion tool** to let the user select.
 
    Show only active changes (not already archived).
    Include the schema used for each change if available.
@@ -20,10 +20,9 @@ Archive a completed change in the experimental workflow.
 
 2. **Check artifact completion status**
 
-   Run `openspec status --change "<name>" --json` to check artifact completion.
+   Run `openpowers change status <name>` to check artifact completion.
 
    Parse the JSON to understand:
-   - `schemaName`: The workflow being used
    - `artifacts`: List of artifacts with their status (`done` or other)
 
    **If any artifacts are not `done`:**
@@ -33,9 +32,9 @@ Archive a completed change in the experimental workflow.
 
 3. **Check task completion status**
 
-   Read the tasks file (typically `tasks.md`) to check for incomplete tasks.
+   Read the tasks file (typically `plan.json`) to check for incomplete tasks.
 
-   Count tasks marked with `- [ ]` (incomplete) vs `- [x]` (complete).
+   Count tasks marked with `status != done` (incomplete) vs `status == done` (complete).
 
    **If incomplete tasks found:**
    - Display warning showing count of incomplete tasks
@@ -48,7 +47,7 @@ Archive a completed change in the experimental workflow.
 
    Create the archive directory if it doesn't exist:
    ```bash
-   mkdir -p openspec/changes/archive
+   mkdir -p openpowers/archive
    ```
 
    Generate target name using current date: `YYYY-MM-DD-<change-name>`
@@ -58,7 +57,12 @@ Archive a completed change in the experimental workflow.
    - If no: Move the change directory to archive
 
    ```bash
-   mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
+   mv openpowers/changes/<name> openpowers/archive/YYYY-MM-DD-<name>
+   ```
+
+   **Run the following command to update the current project OpenPowers change management system**:
+   ```
+   openpowers change list
    ```
 
 5. **Display summary**
@@ -76,14 +80,13 @@ Archive a completed change in the experimental workflow.
 
 **Change:** <change-name>
 **Schema:** <schema-name>
-**Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
+**Archived to:** openpowers/archive/YYYY-MM-DD-<name>/
 
 All artifacts complete. All tasks complete.
 ```
 
 **Guardrails**
 - Always prompt for change selection if not provided
-- Use artifact graph (openspec status --json) for completion checking
+- Use artifact graph (`openpowers change status <name>`) for completion checking
 - Don't block archive on warnings - just inform and confirm
-- Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened

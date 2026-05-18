@@ -4,7 +4,7 @@
 
 The controller provides:
 - Feature data (description, acceptance_criteria, files)
-- Document references (paths like `openspec/changes/<name>/specs/auth/spec.md#login`, `openspec/changes/<name>/tasks.md#task-id`, `openspec/changes/<name>/design.md#section`)
+- Document references (paths like `openpowers/changes/<name>/specs/auth/spec.md#login`, `openpowers/changes/<name>/design.md#section`)
 - Context about dependencies and conventions
 
 Subagents decide on their own:

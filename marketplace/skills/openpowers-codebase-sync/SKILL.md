@@ -29,14 +29,14 @@ If the user does not provide sufficient information, use the `AskUserQuestion` t
 Query skill configuration via the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current-project-path} language experimental.codebases project.codebases
+openpowers config show language project.codebases.enable project.codebases.path
 ```
 
 Returns three values in order:
 
 1. `language` — Output language. Used for all user-facing responses and outputs in this skill invocation. If None, defaults to English.
-2. `experimental.codebases` — Skill toggle. When this value is not `True`, **you must immediately terminate the openpowers-codebase-sync skill** and must not proceed with any sync operations (this is a mandatory user configuration).
-3. `project.codebases` — `Codebase path`. If this value is None, **you must immediately terminate the openpowers-codebase-sync skill**.
+2. `project.codebases.enable` — Skill toggle. When this value is not `true`, **you must immediately terminate the openpowers-codebase-sync skill** and must not proceed with any sync operations (this is a mandatory user configuration).
+3. `project.codebases.path` — `Codebase path`. If this value is None, **you must immediately terminate the openpowers-codebase-sync skill**.
 
 ## Prerequisites
 

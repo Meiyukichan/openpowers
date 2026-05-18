@@ -1,8 +1,8 @@
 You are reviewing an implementation plan (plan.json) to ensure it is complete, executable, and consistent with upstream artifacts.
 
 **Your task:**
-1. Review the plan in `openspec/changes/<name>/plan.json`
-2. Cross-check against upstream artifacts (proposal.md, design.md, tasks.md, specs/**/*.md) item by item
+1. Review the plan in `openpowers/changes/<name>/plan.json`
+2. Cross-check against upstream artifacts (proposal.md, design.md, specs/\*\*/*.md) item by item
 3. Review each feature's JSON schema compliance field by field
 4. Check dependency ordering, granularity, coverage, and acceptance criteria quality
 5. Categorize issues by ## Review Issue Severity
@@ -12,26 +12,25 @@ You are reviewing an implementation plan (plan.json) to ensure it is complete, e
 ## Language Adaptation
 Output language: {`language` or Chinese}
 
-## openspec Change
-{`openspec/changes/<name>/`}
+## openpowers change
+{`openpowers/changes/<name>/`}
 
 ## Review Scope
 
 ### Primary File (must read)
 
-1. `openspec/changes/<name>/plan.json` — Plan JSON (core review target)
+1. `openpowers/changes/<name>/plan.json` — Plan JSON (core review target)
 
 ### Reference Files (must read for consistency validation)
 
-2. `openspec/changes/<name>/tasks.md` — Tasks document (the most direct basis for the plan)
-3. `openspec/changes/<name>/proposal.md` — Proposal document
-4. `openspec/changes/<name>/design.md` — Design document
-5. `openspec/changes/<name>/specs/**/*.md` — Functional module specs
+2. `openpowers/changes/<name>/proposal.md` — Proposal document
+3. `openpowers/changes/<name>/design.md` — Design document
+4. `openpowers/changes/<name>/specs/**/*.md` — Functional module specs
 
 ### Auxiliary Files (read if they exist)
 
-6. `openspec/changes/<name>/api.yaml` — API definition
-7. `openspec/changes/<name>/database.md` — Database design
+5. `openpowers/changes/<name>/api.yaml` — API definition
+6. `openpowers/changes/<name>/database.md` — Database design
 
 ## plan.json Field Definition Reference
 
@@ -44,14 +43,15 @@ plan.json is a JSON array where each element represents a feature. Field definit
 | `function` | yes | Feature name, concise and specific |
 | `description` | yes | What to build — provide enough context for agents to make good implementation decisions, but no code |
 | `acceptance_criteria` | yes | List of verifiable conditions. Spec reviewers check against these. |
+| `tasks` | yes | List of tasks to be completed for this feature |
 | `files` | yes | File paths this feature will create or modify. Must be specific paths, not patterns. |
 | `dependencies` | yes | List of feature IDs that must complete first. Empty array if none. |
-| `spec_refs` | yes | References to upstream spec documents. **Must** include all `specs/` spec documents involved in this feature; `design.md` as the baseline document **must** always be added to the reference list. If other artifacts such as `api.yaml` and `database.md` exist, include them as appropriate based on relevance to this feature. (e.g. `openspec/changes/<name>/specs/auth/spec.md#login`, `openspec/changes/<name>/design.md#auth`, `openspec/changes/<name>/tasks.md#auth-001`) |
+| `spec_refs` | yes | References to upstream spec documents. **Should** accurately include the `specs/` spec documents involved in this feature; for other artifacts such as `design.md`, `api.yaml`, `database.md`, accurately add references based on what this feature actually involves. (e.g. `openpowers/changes/<name>/specs/auth/spec.md#login`, `openpowers/changes/<name>/design.md#auth`) |
 | `status` | yes | `pending` / `in_progress` / `done` / `skipped` / `blocked`. Default: `pending` |
 
 ## Review Checklist
 
-**Important: The following checklist items only apply when the change involves the corresponding document or concern.** Upstream reference files (proposal.md, design.md, tasks.md, specs/**, api.yaml, database.md) may not all exist — only cross-reference files that are actually present. The absence of documents like API definitions or database designs is not itself an issue, unless plan.json references them (e.g., spec_refs or files contain corresponding paths). The core review target is always plan.json itself.
+**Important: The following checklist items only apply when the change involves the corresponding document or concern.** Upstream reference files (proposal.md, design.md, specs/\*\*/*.md, api.yaml, database.md) may not all exist — only cross-reference files that are actually present. The absence of documents like API definitions or database designs is not itself an issue, unless plan.json references them (e.g., spec_refs or files contain corresponding paths). The core review target is always plan.json itself.
 
 ### I. JSON Structure & Field Compliance
 
@@ -109,7 +109,7 @@ plan.json is a JSON array where each element represents a feature. Field definit
 ### II. Feature Granularity
 
 - Is each feature one independently testable unit of work?
-- Completable by an agent in a single focused session, while delivering meaningful standalone value?
+- Is it small enough to be completed by an agent in a single focused session, yet large enough to deliver meaningful standalone value?
 - Good granularity example: "User login with email and password, returns JWT token"
 - Too coarse example: "Authentication system" (should be split into login, registration, password reset, etc.)
 - Too fine example: "Add `import jwt` to auth module" (no standalone value)
@@ -123,9 +123,8 @@ plan.json is a JSON array where each element represents a feature. Field definit
 
 ### IV. Spec Coverage
 
-- Against specs/**/*.md, tasks.md, design.md — does the plan cover all requirements?
+- Against specs/\*\*/*.md, design.md — does the plan cover all requirements?
 - For each important requirement in specs, can you find a feature in the plan that implements it?
-- For each task listed in tasks.md, is there a corresponding feature?
 - Are key design decisions from design.md reflected in the corresponding features?
 - Is there any scope creep — features in plan that don't trace back to specs?
 
@@ -145,7 +144,6 @@ plan.json is a JSON array where each element represents a feature. Field definit
 
 ### VII. Consistency with Upstream Artifacts
 
-- Does the number and scope of features in the plan match tasks.md?
 - Do descriptions align with the technical direction in design.md?
 - Do acceptance_criteria align with requirement definitions in specs?
 - Is the scope defined in proposal.md fully covered, with no gaps or overflow?
@@ -188,7 +186,7 @@ Not real issues:
 
 **DO:**
 - Review each feature field by field — no skimming
-- Compare the plan against upstream artifacts (proposal, design, specs, tasks) item by item
+- Compare the plan against upstream artifacts (proposal, design, specs) item by item
 - Categorize by actual severity (broken dependency is Critical, wording is Minor)
 - Be specific (identify the problematic feature id and field name)
 - Explain WHY issues matter for implementation

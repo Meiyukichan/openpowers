@@ -5,7 +5,7 @@ description: Use when users present a product idea or requirement before startin
 
 # Pre-Development Documentation
 
-This skill supplements the earlier propose/design phase. It generates technical specification documents — API (Swagger) and Database — that are not covered by proposal, design, tasks, or specs.
+This skill supplements the earlier propose/design phase. It generates technical specification documents — API (Swagger) and Database — that are not covered by proposal, design, or specs.
 
 Generate pre-dev docs iteratively: API → Database (not all required every project).
 
@@ -14,16 +14,16 @@ Generate pre-dev docs iteratively: API → Database (not all required every proj
 Query the plugin's required output language using the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current_project_path} language
+openpowers config show language
 ```
 
-Use the language returned by the script as the default language for all user-facing responses and outputs in this skill. If the script returns no output or fails, fall back to Chinese.
+- `language`: This skill **must** use this language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
 ## Workflow
 
-1. **Understand** - Derive vision, features, constraints from existing openspec docs.
+1. **Understand** - Derive vision, features, constraints from existing openpowers docs.
 2. **Classify** - Determine project type from available info, select docs from table below.
-3. **Check Existing** - Carefully read and analyze ALL openspec artifacts under `openspec/changes/<name>/`, including proposal, design, tasks, and specs. **All four artifacts (proposal, design, tasks, specs) must exist.** If any are missing, consider the previous phases incomplete — STOP executing this skill and remind the user to run `openpowers-propose` first.
+3. **Check Existing** - Carefully read and analyze ALL openpowers artifacts under `openpowers/changes/<name>/`, including proposal, design, and specs. **All three artifacts (proposal, design, specs) must exist.** If any are missing, consider the previous phases incomplete — STOP executing this skill and remind the user to run `openpowers-propose` first.
 
 ## Document Generation Loop
 
@@ -48,7 +48,7 @@ Read template from `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-schema/references/te
 
 ### B: Cross-Check
 
-Compare with existing docs in `openspec/changes/<name>/`. Record any conflicts found and self-correct when generating the document.
+Compare with existing docs in `openpowers/changes/<name>/`. Record any conflicts found and self-correct when generating the document.
 
 ### C: Self-Review
 
@@ -92,7 +92,7 @@ Do not wait for user review. After self-review is complete, immediately proceed 
 | CLI                       | ✓   | ✗   |
 | Desktop                   | opt | opt |
 
-The above is a starting guide. The final decision on whether to generate API and Database docs must also be based on the design docs and specs in `openspec/changes/<name>/`.
+The above is a starting guide. The final decision on whether to generate API and Database docs must also be based on the design docs and specs in `openpowers/changes/<name>/`.
 
 ## Red Flags — STOP
 
@@ -114,8 +114,8 @@ The above is a starting guide. The final decision on whether to generate API and
 
 ## Output
 
-- `openspec/changes/<name>/api.yaml`
-- `openspec/changes/<name>/database.md`
+- `openpowers/changes/<name>/api.yaml`
+- `openpowers/changes/<name>/database.md`
 
 ## Completion
 

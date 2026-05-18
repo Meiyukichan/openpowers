@@ -59,7 +59,7 @@ const defaultConfigFixture = {
   project: {
     sourcecode: './',
     codebases: {
-      codebases: false,
+      enable: false,
       path: 'docs/codebases',
     },
     repositories: [],
@@ -79,8 +79,8 @@ const defaultConfigFixture = {
       'review-code': null as string | null,
     },
     coverage: '70%',
-    'save-token': true,
-    'plan-factor': 1.5,
+    budget: true,
+    factor: 1.5,
   },
 };
 

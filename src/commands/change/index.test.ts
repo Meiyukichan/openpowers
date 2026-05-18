@@ -17,7 +17,7 @@ describe('src/commands/change/index.ts', () => {
     expect(typeof registerChangeCommand).toBe('function');
   });
 
-  it('should register change as a parent command with four subcommands', async () => {
+  it('should register change as a parent command with five subcommands', async () => {
     const mod = await import('./index.js');
     registerChangeCommand = mod.registerChangeCommand;
     const program = new Command();
@@ -31,6 +31,7 @@ describe('src/commands/change/index.ts', () => {
     expect(subCommandNames).toContain('new');
     expect(subCommandNames).toContain('status');
     expect(subCommandNames).toContain('instruction');
+    expect(subCommandNames).toContain('feature');
   });
 
   it('should register new subcommand with required --desc option', async () => {

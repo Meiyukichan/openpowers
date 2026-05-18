@@ -30,7 +30,7 @@ const ProvidersSchema = z.object({
 });
 
 const CodebasesSchema = z.object({
-  codebases: z.boolean(),
+  enable: z.boolean(),
   path: z.string(),
 });
 
@@ -65,8 +65,8 @@ const ExperimentalSchema = z.object({
   review: ReviewSchema,
   prompt: PromptSchema,
   coverage: z.string(),
-  'save-token': z.boolean(),
-  'plan-factor': z.number(),
+  budget: z.boolean(),
+  factor: z.number(),
 });
 
 const EnhancementRulesSchema = z.object({

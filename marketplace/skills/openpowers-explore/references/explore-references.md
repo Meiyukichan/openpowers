@@ -18,9 +18,6 @@ references
 ### Current Project Path
 {current project path}
 
-### Script Path
-{${CLAUDE_PLUGIN_ROOT}/scripts/config.py}
-
 ### Explore Content
 {`explore_content`}
 
@@ -33,7 +30,7 @@ references
 Query the `reference materials configuration` required for the current exploration via the following script:
 
 ```bash
-python {script path} {current project path} project.references
+openpowers config show project.references
 ```
 
 **Reference materials configuration example**:
@@ -115,14 +112,14 @@ Exploration strategy (by priority):
 1. Precondition check:
    - If `path` is a file path, it must exist and be a markdown file; if `path` is a skill name, this skill must exist.
 
-2. Call the skill: use `path` to explore reference materials
+2. Call the skill: Read the `path` file or invoke skill `path` to explore reference materials
 
 ### Phase 4: Supplementary Exploration
 
 Query the `supplementary exploration configuration` required for the current exploration via the following script:
 
 ```bash
-python {script path} {current project path} experimental.websearch experimental.context7
+openpowers config show experimental.websearch experimental.context7
 ```
 
 Returns:

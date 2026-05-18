@@ -17,7 +17,7 @@ Run `git status -uall` to get all changes
 ## Review the Code
 Call the skill openpowers-review to review code, skill parameters:
   - Type: code
-  - Change directory: [`openspec/changes/<name>/`]
+  - Change directory: [`openpowers/changes/<name>/`]
   - Other parameters: [## Key Parameters content]
 
 ## Coverage Verification

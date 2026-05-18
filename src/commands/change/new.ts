@@ -25,6 +25,7 @@ export function runChangeNew(name: string, options: { desc: string }): void {
   // Validate name format
   const validation = validateChangeName(name);
   if (!validation.valid) {
+    process.stderr.write(`${validation.error}\n`);
     logger.error(validation.error);
     process.exit(1);
   }

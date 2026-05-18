@@ -27,7 +27,7 @@ If the user does not specify these explicitly, ask for confirmation.
 Query the plugin's required output language via the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current_project_path} language
+openpowers config show language
 ```
 
 Use the script's returned language as the default language for all user-facing responses and outputs in this skill invocation. If the script returns nothing or fails, fall back to English.

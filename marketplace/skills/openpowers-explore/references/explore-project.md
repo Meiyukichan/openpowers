@@ -19,9 +19,6 @@ project
 ### Current Project Path
 {current project path}
 
-### Script Path
-{${CLAUDE_PLUGIN_ROOT}/scripts/config.py}
-
 ### Explore Content
 {`explore_content`}
 
@@ -34,12 +31,12 @@ project
 Query the `key configuration` required for the current exploration via the following script:
 
 ```bash
-python {script path} {current project path} project.sourcecode project.codebases project.repositories
+openpowers config show project.sourcecode project.codebases project.repositories
 ```
 
 Returns three values in order:
   1. `project.sourcecode` — The `source code root path` of the current project. **Only explore source code under this path** (docs/, ./*.md, proposal.md, design.md, README.md, and other key project documents are exceptions)
-  2. `project.codebases` — The `codebases path` of the current project (e.g., `/path/to/codebases-project`)
+  2. `project.codebases` — Returns a JSON string, where `enable` is `whether codebase is enabled`; `path` is the `codebases path` of the current project
   3. `project.repositories` — `Reference project paths` that need supplementary exploration
 
 ### Phase 2: Understand Requirements
@@ -55,7 +52,8 @@ Understand the "Explore Content: {explore_content}" in your own words, translati
 
 1. Precondition check:
    - If `project.sourcecode` is None or an empty directory, proceed directly to `Phase 4`
-   - If `project.codebases` is None or an empty directory, proceed directly to `Phase 4`
+   - If `project.codebases.enable` is None or false, proceed directly to `Phase 4`
+   - If `project.codebases.path` is None or an empty directory, proceed directly to `Phase 4`
 
 2. Call Skill: openpowers-codebase-explorer to query:
    ```

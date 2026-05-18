@@ -3,11 +3,11 @@
     "version": "1.0.0",
     "description": "Brief plugin description",
     "author": {
-        "name": "Author Name",
-        "email": "author@example.com",
-        "url": "https://github.com/author"
+        "name": "Meiyukichan",
+        "email": "Meiyukichan@163.com",
+        "url": "https://github.com/Meiyukichan"
     },
-    "homepage": "https://docs.example.com/plugin",
-    "repository": "https://github.com/author/plugin",
+    "homepage": "https://github.com/Meiyukichan/openpowers",
+    "repository": "https://github.com/Meiyukichan/openpowers",
     "license": "MIT"
 }

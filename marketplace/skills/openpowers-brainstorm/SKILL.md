@@ -5,7 +5,7 @@ description: Enter brainstorm mode - a thinking partner for brainstorming ideas,
 
 Enter brainstorm mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
-**IMPORTANT: Brainstorm mode is for thinking, not implementing.** You may read files, search code, and investigate the codebase, but you must NEVER write code or implement features. If the user asks you to implement something, remind them to exit brainstorm mode first and create a change proposal. You MAY create OpenSpec artifacts (proposals, designs, specs) if the user asks—that's capturing thinking, not implementing.
+**IMPORTANT: Brainstorm mode is for thinking, not implementing.** You may read files, search code, and investigate the codebase, but you must NEVER write code or implement features. If the user asks you to implement something, remind them to exit brainstorm mode first and create a change proposal. You MAY create OpenPowers artifacts (proposals, designs, specs) if the user asks—that's capturing thinking, not implementing.
 
 **This is a stance, not a workflow.** There are no fixed steps, no required sequence, no mandatory outputs. You're a thinking partner helping the user brainstorm.
 
@@ -30,10 +30,10 @@ Enter brainstorm mode. Think deeply. Visualize freely. Follow the conversation w
 Query the plugin's required output language using the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current_project_path} language
+openpowers config show language
 ```
 
-Use the language returned by the script as the default language for all user-facing responses and outputs in this skill. If the script returns no output or fails, fall back to Chinese.
+- `language`: This skill **MUST** use the language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
 ## What You Might Do
 
@@ -48,7 +48,7 @@ Depending on what the user brings, you might:
 
 **Investigate the codebase**
 
-- Check `openspec/changes/<name>/exploration.md` first — it may already contain the context you need, dig deeper into the code if it doesn't
+- Check `openpowers/changes/<name>/exploration.md` first — it may already contain the context you need, dig deeper into the code if it doesn't
 - Map existing architecture relevant to the discussion
 - Find integration points
 - Identify patterns already in use
@@ -89,16 +89,16 @@ Depending on what the user brings, you might:
 
 ---
 
-## OpenSpec Awareness
+## OpenPowers Awareness
 
-You have full context of the OpenSpec system. Use it naturally, don't force it.
+You have full context of the OpenPowers system. Use it naturally, don't force it.
 
 ### Check for context
 
 At the start, quickly check what exists:
 
 ```bash
-openspec list --json
+openpowers change list
 ```
 
 This tells you:
@@ -119,14 +119,14 @@ Think freely. When insights crystallize, you might offer:
 If the user mentions a change or you detect one is relevant:
 
 1. **Read exploration.md first**
-   - `openspec/changes/<name>/exploration.md`
+   - `openpowers/changes/<name>/exploration.md`
 
    This file contains prior exploration context. Read it before doing anything else to understand existing background. **If exploration.md does not exist, stop executing this skill and remind the user to run skill: openpowers-explore first.** If it's not sufficient, naturally supplement with further exploration.
 
 2. **Read other existing artifacts for context**
-   - `openspec/changes/<name>/proposal.md`
-   - `openspec/changes/<name>/design.md`
-   - `openspec/changes/<name>/tasks.md`
+   - `openpowers/changes/<name>/proposal.md`
+   - `openpowers/changes/<name>/design.md`
+   - `openpowers/changes/<name>/specs/**/*.md`
    - etc.
 
 3. **Reference them naturally in conversation**
@@ -141,7 +141,6 @@ If the user mentions a change or you detect one is relevant:
    | Requirement changed        | `specs/<capability>/spec.md` |
    | Design decision made       | `design.md`                  |
    | Scope changed              | `proposal.md`                |
-   | New work identified        | `tasks.md`                   |
    | Assumption invalidated     | Relevant artifact            |
 
    Example offers:
@@ -303,7 +302,7 @@ But this summary is optional. Sometimes the thinking IS the value.
 
 ## Guardrails
 
-- **Don't implement** - Never write code or implement features. Creating OpenSpec artifacts is fine, writing application code is not.
+- **Don't implement** - Never write code or implement features. Creating OpenPowers artifacts is fine, writing application code is not.
 - **Don't fake understanding** - If something is unclear, dig deeper
 - **Don't guess — ask** - Whenever you need the user's opinion, preference, or decision, you **must** use `AskUserQuestion` with 2-3 candidate options. Let the user provide a custom answer too. Guessing wrong wastes more time than asking one more question. Welcome the user to correct or challenge anything you think you understand.
 - **Don't rush** - Brainstorming is thinking time, not task time

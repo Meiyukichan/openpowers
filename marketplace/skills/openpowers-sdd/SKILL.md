@@ -11,21 +11,21 @@ Execute a feature list by dispatching a fresh subagent for each Feature, with tw
 
 **Dependency order:** Features in the Feature array are pre-sorted in topological order (dependencies first, dependents later). Process in array order. Skip any feature whose dependencies are not yet completed — return to it once its dependencies are resolved.
 
-**Prerequisite:** Check if `openspec/changes/<name>/plan.json` exists. If not, stop execution and remind the user to first execute the skill `openpowers-plan` to generate `plan.json`.
+**Prerequisite:** Check if `openpowers/changes/<name>/plan.json` exists. If not, stop execution and remind the user to first execute the skill `openpowers-plan` to generate `plan.json`.
 
 ## Skill Configuration
 
 Query the `skill configuration` required by the plugin via the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current project path} language experimental.review.specs experimental.review.code
+openpowers config show language experimental.review.specs experimental.review.code
 ```
 
 Returns three values in order:
 
 1. `language` — Output language for all user-facing answers and output of this skill. If `None`, default to Chinese.
-2. `experimental.review.specs` — Toggle for dispatching the specification review subagent. When this value is not `True`, dispatching the specification review subagent is **not allowed** (this is a user-enforced configuration).
-3. `experimental.review.code` — Toggle for dispatching the code quality review subagent. When this value is not `True`, dispatching the code quality review subagent is **not allowed** (this is a user-enforced configuration).
+2. `experimental.review.specs` — Toggle for dispatching the specification review subagent. When this value is not `true`, dispatching the specification review subagent is **not allowed** (this is a user-enforced configuration).
+3. `experimental.review.code` — Toggle for dispatching the code quality review subagent. When this value is not `true`, dispatching the code quality review subagent is **not allowed** (this is a user-enforced configuration).
 
 ## SDD Process
 
@@ -59,7 +59,7 @@ digraph sdd {
 Execute the following command to check the current status of the SDD Plan:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py status openspec/changes/\<name\>/plan.json
+openpowers change feature \<name\> --status
 ```
 
 ### Get Next Feature from SDD Plan
@@ -67,7 +67,7 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py st
 Execute the following command to get the next Feature to process from the SDD Plan:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py next openspec/changes/\<name\>/plan.json
+openpowers change feature \<name\> --next
 ```
 
 ### Execute Feature Processing Flow
@@ -127,7 +127,7 @@ Below are the detailed execution steps for the Feature processing flow tasks:
 Execute the following command to mark the current Feature as 'in_progress':
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py start openspec/changes/\<name\>/plan.json \<feature-id\>
+openpowers change feature \<name\> --start \<feature-id\>
 ```
 
 #### Dispatch Reference Explorer Subagent
@@ -140,27 +140,26 @@ Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/refer
 
 #### Dispatch Spec Review Subagent
 
-- Prerequisite: `experimental.review.specs = True`; otherwise, dispatching the spec review subagent is **not allowed — skip this review**
+- Prerequisite: `experimental.review.specs = true`; otherwise, dispatching the spec review subagent is **not allowed — skip this review**
 - Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/references/specs-reviewer-prompt.md`, to dispatch the `spec review subagent`.
 
 #### Dispatch Code Quality Review Subagent
 
-- Prerequisite: `experimental.review.code = True`; otherwise, dispatching the code quality review subagent is **not allowed — skip this review**
+- Prerequisite: `experimental.review.code = true`; otherwise, dispatching the code quality review subagent is **not allowed — skip this review**
 - Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/references/quality-reviewer-prompt.md`, to dispatch the `code quality review subagent`.
 
 #### End Feature Processing Flow
 
 - Execute the following command to mark the currently processed Feature as 'done':
   ```bash
-  python ${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py complete openspec/changes/\<name\>/plan.json \<feature-id\>
+  openpowers change feature \<name\> --complete \<feature-id\>
   ```
-- In tasks.md, mark the Feature's corresponding task as [x]
 
 ## Feature Management
 
-**Use `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/scripts/feature-manager.py` instead of TodoWrite** for persistent, cross-session tracking.
+**Use `openpowers change feature \<name\>` commands instead of TodoWrite** for persistent, cross-session tracking.
 
-**Why:** TodoWrite is session-scoped and loses state across sessions. The feature list JSON is persistent and serves as the single source of truth.
+**Why:** TodoWrite is session-scoped and loses state across sessions. The feature list JSON managed by `openpowers change feature \<name\>` is persistent and serves as the single source of truth.
 
 ## Strategy and Benefits
 
@@ -187,7 +186,7 @@ You must first reference the example workflow in `${CLAUDE_PLUGIN_ROOT}/skills/o
 
 - Read project files beyond the templates and reference files cited by this skill (keep context clean; implementation work is done by subagents)
 - Begin implementation on the main/master branch without first asking the user for consent; otherwise, terminate execution
-- Skip enabled reviews (spec compliance or code quality) — when the config toggle is `True`, they must be executed
+- Skip enabled reviews (spec compliance or code quality) — when the config toggle is `true`, they must be executed
 - Skip dispatching the reference explorer
 - Continue with unresolved issues
 - Dispatch multiple implementation subagents in parallel (would conflict)

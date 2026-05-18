@@ -372,7 +372,7 @@ Never fix bugs without a test.
 
 ## Testing Anti-Patterns
 
-When adding mocks or test utilities, read `references/testing-anti-patterns.md` to avoid common pitfalls:
+When adding mocks or test utilities, read `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-tdd/references/testing-anti-patterns.md` to avoid common pitfalls:
 
 - Testing mock behavior instead of real behavior
 - Adding test-only methods to production classes

@@ -37,7 +37,7 @@ If there are no changed files (list is empty), output "No changed files detected
 Call the following script to get the `main source directory`:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current project path} project.sourcecode
+openpowers config show project.sourcecode
 ```
 
 For all files in the change list starting with the `main source directory`, group by the following rules:

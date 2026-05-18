@@ -18,6 +18,7 @@ interface Feature {
   function?: string;
   description?: string;
   acceptance_criteria?: string[];
+  tasks?: string[];
   files?: string[];
   dependencies?: string[];
   spec_refs?: string[];
@@ -164,29 +165,45 @@ function getNextFeature(features: Feature[]): Feature | undefined {
 
 /**
  * Prints full details of a feature to stdout.
+ * Format matches feature-manager.py cmd_next output.
  * @param feature - The feature to print
  */
 function printFeatureDetails(feature: Feature): void {
-  process.stdout.write(`\n`);
-  process.stdout.write(`  ID: ${feature.id}\n`);
-  if (feature.category) process.stdout.write(`  Category: ${feature.category}\n`);
-  if (feature.function) process.stdout.write(`  Function: ${feature.function}\n`);
-  if (feature.description) process.stdout.write(`  Description: ${feature.description}\n`);
-  if (feature.status) process.stdout.write(`  Status: ${feature.status}\n`);
+  process.stdout.write(`Next feature id: ${feature.id}\n`);
+  process.stdout.write(`  Category: ${feature.category}\n`);
+  process.stdout.write(`  Function: ${feature.function}\n`);
+  process.stdout.write(`  Description: ${feature.description}\n`);
+
+  process.stdout.write(`\nAcceptance Criteria:\n`);
   if (feature.acceptance_criteria && feature.acceptance_criteria.length > 0) {
-    process.stdout.write(`  Acceptance Criteria:\n`);
     feature.acceptance_criteria.forEach((ac, i) => {
-      process.stdout.write(`    ${i + 1}. ${ac}\n`);
+      process.stdout.write(`  ${i + 1}. ${ac}\n`);
     });
   }
-  if (feature.dependencies !== undefined) {
-    process.stdout.write(`  Dependencies: ${feature.dependencies.length > 0 ? feature.dependencies.join(', ') : '(none)'}\n`);
+
+  if (feature.tasks && feature.tasks.length > 0) {
+    process.stdout.write(`\nTasks:\n`);
+    feature.tasks.forEach((t) => {
+      process.stdout.write(`  - ${t}\n`);
+    });
   }
+
+  if (feature.dependencies && feature.dependencies.length > 0) {
+    process.stdout.write(`\nDependencies: ${feature.dependencies.join(', ')}\n`);
+  }
+
   if (feature.spec_refs && feature.spec_refs.length > 0) {
-    process.stdout.write(`  Spec Refs: ${feature.spec_refs.join(', ')}\n`);
+    process.stdout.write(`\nSpec Refs:\n`);
+    for (const ref of feature.spec_refs) {
+      process.stdout.write(`  - ${ref}\n`);
+    }
   }
+
   if (feature.files && feature.files.length > 0) {
-    process.stdout.write(`  Files: ${feature.files.join(', ')}\n`);
+    process.stdout.write(`\nFiles:\n`);
+    for (const file of feature.files) {
+      process.stdout.write(`  - ${file}\n`);
+    }
   }
 }
 
@@ -204,8 +221,8 @@ export function runFeatureStatus(changeName: string): void {
   const features = loadPlan(planPath);
 
   if (features.length === 0 && !fs.existsSync(planPath)) {
-    process.stdout.write(`No plan.json found for change '${changeName}'\n`);
-    return;
+    process.stderr.write(`Error: No plan.json found for change '${changeName}'\n`);
+    process.exit(1);
   }
 
   if (features.length === 0) {
@@ -228,32 +245,33 @@ export function runFeatureStatus(changeName: string): void {
       inProgress++;
       inProgressFeatures.push(f);
     } else if (f.status === 'pending') {
-      // Check if deps satisfied; if not, count as blocked (mutually exclusive)
+      pending++;
       if (!getDependenciesSatisfied(f, features)) {
         blocked++;
-      } else {
-        pending++;
       }
     } else if (f.status === 'skipped') {
       skipped++;
-    } else {
-      // Unknown status → blocked
-      blocked++;
     }
   }
 
   const progress = total > 0 ? (done / total) * 100 : 0;
 
-  process.stdout.write(`Feature Status for ${changeName}:\n`);
-  process.stdout.write(`Total: ${total} | Done: ${done} | In Progress: ${inProgress} | Pending: ${pending} | Blocked: ${blocked} | Skipped: ${skipped}\n`);
-  process.stdout.write(`Progress: ${progress.toFixed(1)}%\n`);
+  process.stdout.write(`Feature List Status: ${planPath}\n`);
+  process.stdout.write(`  Total: ${total}\n`);
+  process.stdout.write(`  Done: ${done}\n`);
+  process.stdout.write(`  In Progress: ${inProgress}\n`);
+  process.stdout.write(`  Pending: ${pending}\n`);
+  process.stdout.write(`  Blocked: ${blocked}\n`);
+  process.stdout.write(`  Skipped: ${skipped}\n`);
 
   if (inProgressFeatures.length > 0) {
-    process.stdout.write(`\nCurrently in progress:\n`);
+    process.stdout.write(`Currently in progress:\n`);
     for (const f of inProgressFeatures) {
-      process.stdout.write(`  - ${f.id}: ${f.description || '(no description)'}\n`);
+      process.stdout.write(`  - ${f.id}: ${f.function || '(no function)'}\n`);
     }
   }
+
+  process.stdout.write(`Progress: ${progress.toFixed(1)}%\n`);
 }
 
 /**
@@ -299,12 +317,6 @@ export function runFeatureNext(changeName: string): void {
     return;
   }
 
-  // If it's in_progress, just show it; if pending, show as next
-  if (next.status === 'in_progress') {
-    process.stdout.write(`Currently in progress:\n`);
-  } else {
-    process.stdout.write(`Next feature to work on:\n`);
-  }
   printFeatureDetails(next);
 }
 
@@ -386,26 +398,6 @@ export function runFeatureComplete(changeName: string, featureId: string): void 
   savePlan(planPath, features);
   process.stdout.write(`Completed feature: ${featureId}\n`);
   logger.info(`Feature '${featureId}' completed in change '${changeName}'`);
-
-  // Post-completion check: find next feature
-  const cycles = detectCycles(features);
-  if (cycles.length > 0) {
-    process.stdout.write('\nWarning: Circular dependencies detected in remaining features\n');
-    return;
-  }
-
-  const next = getNextFeature(features);
-  if (next) {
-    process.stdout.write('\nNext feature to work on:\n');
-    process.stdout.write(`  - ${next.id}: ${next.description || '(no description)'}\n`);
-  } else {
-    const remaining = features.filter((f) => f.status !== 'done' && f.status !== 'skipped');
-    if (remaining.length > 0) {
-      process.stdout.write(`\nWarning: ${remaining.length} feature(s) remaining but blocked by unmet dependencies\n`);
-    } else {
-      process.stdout.write('\nAll features completed!\n');
-    }
-  }
 }
 
 // Export internal helpers for testing

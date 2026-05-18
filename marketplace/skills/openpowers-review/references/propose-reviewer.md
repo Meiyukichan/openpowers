@@ -1,7 +1,7 @@
 You are reviewing a complete change proposal to ensure the quality of all artifacts is sufficient to support subsequent detailed planning.
 
 **Your task:**
-1. Review all proposal artifacts under the openspec change directory
+1. Review all proposal artifacts under the openpowers change directory
 2. Conduct deep inspection document by document
 3. Check cross-document consistency and completeness
 4. Classify issues according to ## Review Issue Severity Levels
@@ -11,17 +11,16 @@ You are reviewing a complete change proposal to ensure the quality of all artifa
 ## Language Adaptation
 Output language: {`language` or English}
 
-## openspec change
-{`openspec/changes/<name>/`}
+## openpowers change
+{`openpowers/changes/<name>/`}
 
 ## Review Scope
 
 You must read and review the following files (all files must be read):
 
-1. `openspec/changes/<name>/proposal.md` — Proposal: what to do & why
-2. `openspec/changes/<name>/design.md` — Design: how to do it, technical approach
-3. `openspec/changes/<name>/tasks.md` — Tasks: implementation step breakdown
-4. `openspec/changes/<name>/specs/**/*.md` — Detailed specifications for each functional module
+1. `openpowers/changes/<name>/proposal.md` — Proposal: what to do & why
+2. `openpowers/changes/<name>/design.md` — Design: how to do it, technical approach
+3. `openpowers/changes/<name>/specs/**/*.md` — Detailed specifications for each functional module
 
 ## Review Checklist
 
@@ -65,7 +64,7 @@ You must read and review the following files (all files must be read):
 - Are there ambiguous parts that would require guesswork to fill in?
 - Are there any clearly infeasible design decisions?
 
-### III. specs/**/*.md (Specification Documents)
+### III. specs/\*\*/*.md (Specification Documents)
 
 **Requirement Completeness:**
 - Does each spec cover all necessary scenarios for its functional module? Including normal flows, exception flows, and edge cases?
@@ -80,26 +79,10 @@ You must read and review the following files (all files must be read):
 - Are definitions of the same concept consistent across different specs? Is terminology used uniformly?
 - Are there contradictions between behaviors described in different specs?
 
-### IV. tasks.md (Task Document)
+### IV. Cross-Document Consistency
 
-**Task Breakdown:**
-- Is task granularity appropriate? Is each task independently testable with standalone value?
-- Are task descriptions clear enough that implementers can understand what to do without obstacles?
-- Is the breakdown too fine-grained (no standalone value) or too coarse (implementation timeline uncontrollable)?
-
-**Dependencies:**
-- Are dependencies between tasks correct? Are there any circular dependencies?
-- Is task ordering reasonable — earlier tasks don't depend on later ones?
-
-**Coverage:**
-- Do tasks cover all functionality described in specs and design?
-- Are there requirements that have no corresponding implementation task in tasks.md?
-
-### V. Cross-Document Consistency
-
-- Is the scope described in proposal.md consistent with the task breakdown in tasks.md? Do tasks cover the full scope?
+- Is proposal.md consistent with the technical approach in design.md?
 - Is the technical approach in design.md consistent with the interface/behavior definitions in specs?
-- Does functionality described in specs have corresponding implementation entries in tasks?
 - Are naming and definitions of the same entity consistent across different documents?
 
 ## Calibration
@@ -109,7 +92,6 @@ You must read and review the following files (all files must be read):
 Examples of issues:
 - Ambiguous requirements that would lead different implementers to different understandings
 - Design with obvious technical flaws or infeasibility
-- Tasks missing critical functionality (leading to incomplete implementation)
 - Contradictions between documents (design says use A, spec describes B)
 - Key edge cases not considered (e.g., empty data, concurrent conflicts, permissions, etc.)
 

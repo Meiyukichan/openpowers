@@ -12,18 +12,15 @@ You are reviewing code changes to ensure production readiness.
 ### Language Adaptation
 Output language: {`language` or Chinese}
 
-### Script Path
-{${CLAUDE_PLUGIN_ROOT}/scripts/config.py}
-
 ### User Review Focus Requirements
 Call the following script to get `User Review Focus Requirements`:
 
 ```bash
-python {Script Path} {Current Project Path} language experimental.prompt.review-code
+openpowers config show language experimental.prompt.review-code
 ```
 
 The script returns:
-   - `experimental.prompt.review-code`: User-defined code review prompt or skill. If the value is a path, it is a skill file — read its content as `User Review Focus Requirements`; if the value is a string, use it directly as `User Review Focus Requirements`.
+   - `experimental.prompt.review-code`: User-defined code review prompt or skill. If the value is a path, it is a skill file — read its content as `User Review Focus Requirements`; if the value is a skill name, invoke that skill as `User Review Focus Requirements`; if the value is a string, use it directly as `User Review Focus Requirements`.
 
 ### Current Project Path
 {Current Project Path}

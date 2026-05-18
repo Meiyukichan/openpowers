@@ -28,10 +28,10 @@ When required parameters are missing, you MUST use `AskUserQuestion` to ask the 
 Query the output language required by the plugin via the following script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/config.py {current project path} language
+openpowers config show language
 ```
 
-Use the language returned by the script as the default language for all user-facing responses and outputs in this skill. If the script has no output or fails, fall back to Chinese.
+- `language`: This skill **MUST** use the language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
 ## Execution Flow
 
@@ -51,9 +51,6 @@ Task tool (general-purpose):
 
     ## Current Project Path
     {current project path}
-
-    ## Script Path
-    {${CLAUDE_PLUGIN_ROOT}/scripts/config.py}
 
     ## Explore Content
     {`explore_content`}
