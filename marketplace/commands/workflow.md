@@ -98,7 +98,7 @@ digraph workflow {
 
 When multiple active changes exist, ask the user to choose which one to resume.
 
-**RED LAW: At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user) before follow phases**.
+**RED LAW: At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user) before follow phases**. `<name>` MUST satisfy `KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/`.
 
 **RED LAW: After completing each phase, immediately start the next phase — do NOT pause and ask the user to confirm. Do not output prompts like "Phase complete, continue?"**.
 

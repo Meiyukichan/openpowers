@@ -35,7 +35,7 @@ openpowers config show language
 
 ## Execution Flow
 
-Dispatch the `codebase explorer subagent` strictly in the following parameter format(**RED LAW**: DON not read `current explorer template document` before dispatching the subagent. The subagent will read the template document):
+You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format(**RED LAW**: Forbid openpowers-explore to read `current explorer template document` before dispatching the subagent. The subagent will read the template document):
 
 ```
 Task tool (general-purpose):
