@@ -9,11 +9,13 @@ import { runChangeList } from './list.js';
 import { runChangeNew } from './new.js';
 import { runChangeStatus } from './status.js';
 import { runChangeInstruction } from './instruction.js';
+import { runFeatureStatus, runFeatureNext, runFeatureStart, runFeatureComplete } from './feature.js';
 
 /**
  * Registers the `change` command and its subcommands on the given program.
  * Subcommands: list, new <name> --desc <description>, status <name>,
- * instruction <name> --proposal|--design|--specs
+ * instruction <name> --proposal|--design|--specs,
+ * feature <changeName> (status|next|start <featureId>|complete <featureId>)
  * @param program - The commander Command instance
  */
 export function registerChangeCommand(program: Command): void {
@@ -51,5 +53,42 @@ export function registerChangeCommand(program: Command): void {
     .option('--specs', 'Get specs generation instructions')
     .action((name: string, options: { proposal?: boolean; design?: boolean; specs?: boolean }) => {
       runChangeInstruction(name, options);
+    });
+
+  // Feature lifecycle management sub-subcommands
+  const featureCmd = changeCmd
+    .command('feature <changeName>')
+    .description('Manage features for a change');
+
+  featureCmd
+    .command('status')
+    .description('Display feature status summary')
+    .action((_opts: Record<string, unknown>, command: Command) => {
+      const changeName = command.parent?.processedArgs?.[0] as string;
+      runFeatureStatus(changeName);
+    });
+
+  featureCmd
+    .command('next')
+    .description('Find the next actionable feature')
+    .action((_opts: Record<string, unknown>, command: Command) => {
+      const changeName = command.parent?.processedArgs?.[0] as string;
+      runFeatureNext(changeName);
+    });
+
+  featureCmd
+    .command('start <featureId>')
+    .description('Start a pending feature')
+    .action((featureId: string, _opts: Record<string, unknown>, command: Command) => {
+      const changeName = command.parent?.processedArgs?.[0] as string;
+      runFeatureStart(changeName, featureId);
+    });
+
+  featureCmd
+    .command('complete <featureId>')
+    .description('Complete an in-progress feature')
+    .action((featureId: string, _opts: Record<string, unknown>, command: Command) => {
+      const changeName = command.parent?.processedArgs?.[0] as string;
+      runFeatureComplete(changeName, featureId);
     });
 }
