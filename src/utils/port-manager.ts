@@ -71,6 +71,7 @@ async function killPortWithCommand(
     const output = execSync(discoverCommand, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: process.cwd(),
     });
 
     if (!output.trim()) {
@@ -82,13 +83,15 @@ async function killPortWithCommand(
       try {
         execSync(buildKillCommand(pid), {
           stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: process.cwd(),
         });
         logger.info(`Killed process on port ${port} (PID: ${pid})`);
       } catch (err) {
         logger.error(`Failed to kill process on port ${port} (PID: ${pid}): ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-  } catch {
+  } catch (err) {
+    logger.warn(`Failed to discover processes on port ${port}: ${err instanceof Error ? err.message : String(err)}`);
     return;
   }
 }

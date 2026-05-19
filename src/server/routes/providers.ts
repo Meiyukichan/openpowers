@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import express from 'express';
+import * as express from 'express';
 import {
   loadProviders,
   createProvider,
@@ -21,7 +21,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Express router for provider CRUD API routes. */
-export const providersRouter = express.Router();
+export const providersRouter = express.default.Router();
 
 // ---------------------------------------------------------------------------
 // Helpers

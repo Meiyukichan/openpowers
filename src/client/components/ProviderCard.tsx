@@ -50,10 +50,10 @@ function ProviderIcon({ icon, color, size = 20 }: { icon?: string; color?: strin
 export function ProviderCard({ provider, onToggle, onEdit, onDelete }: ProviderCardProps): React.ReactElement {
   const [togglePending, setTogglePending] = useState(false);
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     setTogglePending(true);
     try {
-      onToggle(provider);
+      await onToggle(provider);
     } finally {
       setTogglePending(false);
     }

@@ -29,7 +29,7 @@ describe('Layout', () => {
         children: React.createElement('div', null, 'content'),
       }),
     );
-    expect(screen.getByText(/session management/i)).toBeInTheDocument();
+    expect(screen.getByText('会话管理')).toBeInTheDocument();
   });
 
   it('session management button click has no effect', async () => {
@@ -40,7 +40,7 @@ describe('Layout', () => {
         children: React.createElement('div', null, 'content'),
       }),
     );
-    const sessionBtn = screen.getByText(/session management/i);
+    const sessionBtn = screen.getByText('会话管理');
     await user.click(sessionBtn);
     // Button should still exist and not throw (placeholder)
     expect(sessionBtn).toBeInTheDocument();

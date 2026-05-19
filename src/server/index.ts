@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import express from 'express';
+import * as express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -25,8 +25,8 @@ const defaultClientDir = path.join(moduleDirname, '..', 'client');
  * @returns Configured Express application instance
  */
 export function createApp(options?: { clientDir?: string }): express.Application {
-  const app = express();
-  app.use(express.json());
+  const app = express.default();
+  app.use(express.default.json());
 
   // API routes
   app.use('/api/providers', providersRouter);
@@ -36,7 +36,7 @@ export function createApp(options?: { clientDir?: string }): express.Application
 
   // UI static files or missing-build message
   if (fs.existsSync(clientDir)) {
-    app.use('/ui', express.static(clientDir, { redirect: false }));
+    app.use('/ui', express.default.static(clientDir, { redirect: false }));
     // SPA fallback: serve index.html for any /ui subpath not matching a static file
     app.use('/ui', (_req, res) => {
       res.sendFile(path.join(clientDir, 'index.html'));

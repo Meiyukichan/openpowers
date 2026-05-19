@@ -86,7 +86,7 @@ export function Layout({ onAddProvider, children }: LayoutProps): React.ReactEle
               React.createElement('circle', { cx: '12', cy: '12', r: '10' }),
               React.createElement('polyline', { points: '12 6 12 12 16 14' }),
             ),
-            'Session Management',
+            '会话管理',
           ),
         ),
         // Right: add button

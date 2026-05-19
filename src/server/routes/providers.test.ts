@@ -4,7 +4,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import express from 'express';
+import * as express from 'express';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import request from 'supertest';
 
@@ -63,8 +63,8 @@ const sampleProvider = {
 };
 
 function createApp() {
-  const app = express();
-  app.use(express.json());
+  const app = express.default();
+  app.use(express.default.json());
   return app;
 }
 
