@@ -11,7 +11,9 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:client": "vite build",
     "dev": "tsc --watch",
+    "dev:client": "vite",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
@@ -19,7 +21,10 @@
     "chalk": "^5.5.0",
     "commander": "^14.0.0",
     "express": "^5.2.1",
+    "lucide-react": "^0.400.0",
     "ora": "^9.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
@@ -31,12 +36,23 @@
     "marketplace-dev/"
   ],
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/express": "^5.0.6",
     "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "@types/supertest": "^7.2.0",
+    "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^4.1.6",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^25.0.0",
+    "postcss": "^8.4.49",
     "supertest": "^7.2.2",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
+    "vite": "^6.0.0",
     "vitest": "^4.1.6"
   }
 }
