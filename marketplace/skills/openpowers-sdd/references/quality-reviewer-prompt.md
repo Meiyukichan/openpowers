@@ -13,7 +13,7 @@ Task tool (general-purpose):
     **Purpose:** Verify that the implementation is well-built (clean, tested, maintainable). **Dispatch only after spec compliance review has passed.**
 
     ## Language Adaptation
-    The language for this task output: {`language` or English}
+    The language for this task output: {`language` or Chinese}
 
     ## Current Project Path
     {current project path}

@@ -9,7 +9,7 @@ You are reviewing a complete change proposal to ensure the quality of all artifa
 6. Output review summary following ## Output Format
 
 ## Language Adaptation
-Output language: {`language` or English}
+Output language: {`language` or Chinese}
 
 ## openpowers change
 {`openpowers/changes/<name>/`}

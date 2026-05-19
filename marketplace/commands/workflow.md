@@ -132,7 +132,7 @@ Invoke Skill: openpowers-explore to explore the codebase, with parameters:
 Exploration time, not implementation time. Do not write code.
 
 ### Transition
-Exploration complete. Auto entering proposal.
+Exploration completed. Auto entering propose.
 
 ## Phase 2: Propose
 

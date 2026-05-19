@@ -30,7 +30,7 @@ Query the plugin's required output language via the following script:
 openpowers config show language
 ```
 
-Use the script's returned language as the default language for all user-facing responses and outputs in this skill invocation. If the script returns nothing or fails, fall back to English.
+Use the script's returned language as the default language for all user-facing responses and outputs in this skill invocation. If the script returns nothing or fails, fall back to Chinese.
 
 ## Document Collection Concepts
 

@@ -1,7 +1,7 @@
 ---
 name: openpowers-codebase-explorer
 description: >
-  Triggered only when the user explicitly says "use openpowers-codebase-explorer", "query with openpowers-codebase-explorer", or "/openpowers-codebase-explorer".
+  Triggered only when the user explicitly says "use openpowers-codebase-explorer skill", or "/openpowers-codebase-explorer".
   On top of the existing openpowers-codebase-generator document tree, query relevant implementations by business/feature/code keywords.
   Input: document tree path + query description (e.g., "tool registration module", "MCP implementation").
   Output: matched spec documents + relevant source code snippets.

@@ -9,7 +9,7 @@ Task tool (general-purpose):
     You are implementing feature {feature-id}: {feature name}
 
     ## Language Adaptation
-    The language for this task output: {`language` or English}
+    The language for this task output: {`language` or Chinese}
 
     ## Current Project Path
     {current project path}

@@ -11,7 +11,7 @@ Task tool (general-purpose):
     **Purpose:** Verify that the implementer built what the spec requires — no more, no less. Check against acceptance criteria.
 
     ## Language Adaptation
-    The language for this task output: {`language` or English}
+    The language for this task output: {`language` or Chinese}
 
     ## Current Project Path
     {current project path}
