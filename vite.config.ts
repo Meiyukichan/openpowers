@@ -11,6 +11,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/ui/',
   root: path.resolve(__dirname, 'src', 'client'),
   build: {
     outDir: path.resolve(__dirname, 'dist', 'client'),

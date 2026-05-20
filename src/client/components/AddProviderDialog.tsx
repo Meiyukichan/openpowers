@@ -13,7 +13,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, EyeOff, Sparkles, Cpu, Globe, Zap, Star, Cloud, Bot, Wrench } from 'lucide-react';
 import { claudeProviderPresets, type ProviderPreset } from '../data/presets.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 /** Props for the AddProviderDialog component. */
 interface AddProviderDialogProps {

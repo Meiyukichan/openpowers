@@ -53,21 +53,18 @@ function ProviderIcon({ icon, color, size = 20 }: { icon?: string; color?: strin
  */
 function getEnableButtonState(isActive: boolean): {
   disabled: boolean;
-  className: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   text: string;
 } {
   if (isActive) {
     return {
       disabled: true,
-      className: 'bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700',
       icon: Check,
       text: '已在用',
     };
   }
   return {
     disabled: false,
-    className: '',
     icon: Play,
     text: '启用',
   };

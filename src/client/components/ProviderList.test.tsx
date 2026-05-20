@@ -55,7 +55,7 @@ describe('ProviderList', () => {
 
     render(
       React.createElement(ProviderList, {
-        onToggle: vi.fn(),
+        onSetActive: vi.fn(),
         onEdit: vi.fn(),
         onDelete: vi.fn(),
         onAddProvider: vi.fn(),
@@ -75,7 +75,7 @@ describe('ProviderList', () => {
 
     render(
       React.createElement(ProviderList, {
-        onToggle: vi.fn(),
+        onSetActive: vi.fn(),
         onEdit: vi.fn(),
         onDelete: vi.fn(),
         onAddProvider: vi.fn(),
@@ -97,7 +97,7 @@ describe('ProviderList', () => {
 
     render(
       React.createElement(ProviderList, {
-        onToggle: vi.fn(),
+        onSetActive: vi.fn(),
         onEdit: vi.fn(),
         onDelete: vi.fn(),
         onAddProvider: vi.fn(),
@@ -117,7 +117,7 @@ describe('ProviderList', () => {
 
     render(
       React.createElement(ProviderList, {
-        onToggle: vi.fn(),
+        onSetActive: vi.fn(),
         onEdit: vi.fn(),
         onDelete: vi.fn(),
         onAddProvider: vi.fn(),
@@ -134,7 +134,7 @@ describe('ProviderList', () => {
 
     render(
       React.createElement(ProviderList, {
-        onToggle: vi.fn(),
+        onSetActive: vi.fn(),
         onEdit: vi.fn(),
         onDelete: vi.fn(),
         onAddProvider: vi.fn(),
@@ -144,5 +144,57 @@ describe('ProviderList', () => {
     await waitFor(() => {
       expect(screen.getByText(/Failed to load providers/i)).toBeInTheDocument();
     });
+  });
+
+  it('passes activeProviderId to ProviderCard as isActive', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockProviders),
+    } as Response);
+
+    render(
+      React.createElement(ProviderList, {
+        onSetActive: vi.fn(),
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+        onAddProvider: vi.fn(),
+        activeProviderId: 'id-1',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Provider One')).toBeInTheDocument();
+    });
+
+    // Provider One is active -> should show "已在用" text
+    expect(screen.getByText('已在用')).toBeInTheDocument();
+
+    // Provider Two is inactive -> should show "启用" text
+    expect(screen.getByText('启用')).toBeInTheDocument();
+  });
+
+  it('marks no provider as active when activeProviderId is null', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockProviders),
+    } as Response);
+
+    render(
+      React.createElement(ProviderList, {
+        onSetActive: vi.fn(),
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+        onAddProvider: vi.fn(),
+        activeProviderId: null,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Provider One')).toBeInTheDocument();
+    });
+
+    // Both providers should show "启用" when no provider is active
+    const enableButtons = screen.getAllByText('启用');
+    expect(enableButtons.length).toBe(2);
   });
 });

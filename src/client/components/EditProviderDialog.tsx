@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import type { Provider } from '../../server/providers-store.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 /** Props for the EditProviderDialog component. */
 interface EditProviderDialogProps {

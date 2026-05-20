@@ -6,14 +6,14 @@
  * @copyright 2026 Meiyuki
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layout } from './components/Layout.js';
 import { ProviderList } from './components/ProviderList.js';
 import { AddProviderDialog } from './components/AddProviderDialog.js';
 import { EditProviderDialog } from './components/EditProviderDialog.js';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog.js';
 import type { Provider } from '../server/providers-store.js';
-import { logger } from '../utils/logger.js';
+import { logger } from './utils/logger.js';
 
 /**
  * App is the root component that composes the Layout with the ProviderList.
@@ -24,10 +24,31 @@ export function App(): React.ReactElement {
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
+
+  /**
+   * Fetches the active provider ID from the server on mount and whenever
+   * refreshTrigger changes, so the UI stays in sync after enable/edit/delete.
+   */
+  useEffect(() => {
+    const fetchActiveProvider = async () => {
+      try {
+        const response = await fetch('/api/providers/active');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data: { activeProviderId: string | null } = await response.json();
+        setActiveProviderId(data.activeProviderId);
+      } catch (err) {
+        logger.error(`Failed to fetch active provider: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+    void fetchActiveProvider();
+  }, [refreshTrigger]);
 
   // --- Add dialog handlers ---
 
@@ -71,13 +92,25 @@ export function App(): React.ReactElement {
     triggerRefresh();
   };
 
-  // --- Toggle handler ---
+  // --- Set active handler ---
 
-  const handleToggle = async (provider: Provider) => {
+  /**
+   * Sets the specified provider as the active provider via PUT API,
+   * then refreshes the provider list and active state.
+   */
+  const handleSetActive = async (provider: Provider) => {
     try {
-      await fetch(`/api/providers/${provider.id}/toggle`, { method: 'PATCH' });
+      const response = await fetch('/api/providers/active', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ providerId: provider.id }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      triggerRefresh();
     } catch (err) {
-      logger.error(`Failed to toggle provider: ${err instanceof Error ? err.message : String(err)}`);
+      logger.error(`Failed to set active provider: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -90,10 +123,11 @@ export function App(): React.ReactElement {
       Layout,
       { onAddProvider: handleOpenAddDialog },
       React.createElement(ProviderList, {
-        onToggle: handleToggle,
         onEdit: handleOpenEditDialog,
         onDelete: handleOpenDeleteDialog,
         onAddProvider: handleOpenAddDialog,
+        onSetActive: handleSetActive,
+        activeProviderId,
         refreshTrigger,
       }),
     ),

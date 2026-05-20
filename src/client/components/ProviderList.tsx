@@ -12,10 +12,13 @@ import { ProviderCard } from './ProviderCard.js';
 
 /** Props for the ProviderList component. */
 interface ProviderListProps {
-  onToggle: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
   onAddProvider: () => void;
+  /** Callback to set a provider as the active provider */
+  onSetActive: (provider: Provider) => void;
+  /** The ID of the currently active provider, or null if none */
+  activeProviderId?: string | null;
   /** Incrementing this value triggers a re-fetch of the provider list */
   refreshTrigger?: number;
 }
@@ -122,7 +125,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
  * ProviderList fetches and displays providers from the API.
  * Handles loading, empty, and error states.
  */
-export function ProviderList({ onToggle, onEdit, onDelete, onAddProvider, refreshTrigger }: ProviderListProps): React.ReactElement {
+export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, activeProviderId, refreshTrigger }: ProviderListProps): React.ReactElement {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -185,9 +188,10 @@ export function ProviderList({ onToggle, onEdit, onDelete, onAddProvider, refres
       React.createElement(ProviderCard, {
         key: provider.id,
         provider,
-        onToggle,
         onEdit,
         onDelete,
+        onSetActive,
+        isActive: activeProviderId === provider.id,
       }),
     ),
   );
