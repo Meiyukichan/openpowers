@@ -60,7 +60,7 @@ function getEnableButtonState(isActive: boolean): {
     return {
       disabled: true,
       icon: Check,
-      text: '已在用',
+      text: '使用中',
     };
   }
   return {
@@ -91,12 +91,10 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
   return React.createElement(
     'div',
     {
-      className: `relative overflow-hidden rounded-xl border bg-card text-card-foreground p-4 transition-all duration-300 group min-h-[120px] ${
+      className: `relative overflow-hidden rounded-xl border bg-card text-card-foreground px-4 py-4 transition-all duration-300 group flex items-center ${
         isActive
           ? 'border-blue-500/60 shadow-sm shadow-blue-500/10'
-          : provider.enabled
-            ? 'border-border hover:border-blue-500/50'
-            : 'border-muted opacity-60 hover:border-blue-500/50'
+          : 'border-border hover:border-blue-500/50'
       }`,
     },
     // Gradient overlay for active provider blue background
@@ -107,7 +105,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
     }),
     React.createElement(
       'div',
-      { className: 'relative flex items-center justify-between gap-4' },
+      { className: 'relative flex items-center justify-between gap-4 w-full' },
       // Left side: icon and info
       React.createElement(
         'div',
@@ -130,24 +128,9 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           'div',
           { className: 'min-w-0' },
           React.createElement(
-            'div',
-            { className: 'flex items-center gap-2' },
-            React.createElement(
-              'h3',
-              { className: 'text-base font-semibold leading-none truncate' },
-              provider.name,
-            ),
-            React.createElement(
-              'span',
-              {
-                className: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                  provider.enabled
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                    : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                }`,
-              },
-              provider.enabled ? 'Enabled' : 'Disabled',
-            ),
+            'h3',
+            { className: 'text-base font-semibold leading-none truncate' },
+            provider.name,
           ),
           provider.notes &&
             React.createElement(
@@ -158,7 +141,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           provider.baseUrl &&
             React.createElement(
               'p',
-              { className: 'text-sm text-blue-500 dark:text-blue-400 truncate mt-0.5' },
+              { className: 'text-sm text-blue-500 dark:text-blue-400 truncate mt-1.5' },
               provider.baseUrl,
             ),
         ),
@@ -194,6 +177,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
             type: 'button',
             onClick: () => onEdit(provider),
             'aria-label': `Edit ${provider.name}`,
+            title: '编辑',
             className:
               'p-2 rounded-lg text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/40 transition-colors',
           },
@@ -206,6 +190,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
             type: 'button',
             onClick: () => onDelete(provider),
             'aria-label': `Delete ${provider.name}`,
+            title: '删除',
             className:
               'p-2 rounded-lg text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/40 transition-colors',
           },

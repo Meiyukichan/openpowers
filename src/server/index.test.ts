@@ -48,24 +48,24 @@ describe('src/server/index.ts', () => {
   });
 
   describe('API routes', () => {
-    it('should have /api/providers endpoint accessible', async () => {
+    it('should have /openpowers/api/providers endpoint accessible', async () => {
       const app = createApp({ clientDir: '/non/existent/path' });
-      const res = await request(app).get('/api/providers');
+      const res = await request(app).get('/openpowers/api/providers');
       expect(res.status).not.toBe(404);
     });
   });
 
   describe('UI static file serving - when clientDir exists', () => {
-    it('should serve index.html at /ui', async () => {
+    it('should serve index.html at /openpowers/ui', async () => {
       const app = createApp({ clientDir: tempDir });
-      const res = await request(app).get('/ui');
+      const res = await request(app).get('/openpowers/ui');
       expect(res.status).toBe(200);
       expect(res.text).toContain('Test Page');
     });
 
-    it('should serve SPA fallback for /ui/* subpaths (serve index.html)', async () => {
+    it('should serve SPA fallback for /openpowers/ui/* subpaths (serve index.html)', async () => {
       const app = createApp({ clientDir: tempDir });
-      const res = await request(app).get('/ui/some/sub/path');
+      const res = await request(app).get('/openpowers/ui/some/sub/path');
       expect(res.status).toBe(200);
       expect(res.text).toContain('Test Page');
     });
@@ -73,23 +73,23 @@ describe('src/server/index.ts', () => {
     it('should serve static assets from clientDir', async () => {
       fs.writeFileSync(path.join(tempDir, 'test.js'), 'console.log("hello");', 'utf-8');
       const app = createApp({ clientDir: tempDir });
-      const res = await request(app).get('/ui/test.js');
+      const res = await request(app).get('/openpowers/ui/test.js');
       expect(res.status).toBe(200);
       expect(res.text).toContain('hello');
     });
   });
 
   describe('UI static file serving - when clientDir does not exist', () => {
-    it('should return friendly message for /ui', async () => {
+    it('should return friendly message for /openpowers/ui', async () => {
       const app = createApp({ clientDir: '/non/existent/path' });
-      const res = await request(app).get('/ui');
+      const res = await request(app).get('/openpowers/ui');
       expect(res.status).toBe(200);
       expect(res.text).toContain('needs to be built');
     });
 
-    it('should return friendly message for /ui/* subpaths', async () => {
+    it('should return friendly message for /openpowers/ui/* subpaths', async () => {
       const app = createApp({ clientDir: '/non/existent/path' });
-      const res = await request(app).get('/ui/any/sub/path');
+      const res = await request(app).get('/openpowers/ui/any/sub/path');
       expect(res.status).toBe(200);
       expect(res.text).toContain('needs to be built');
     });

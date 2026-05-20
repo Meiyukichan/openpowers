@@ -20,7 +20,6 @@ const mockProviders = [
     baseUrl: 'https://api.one.example.com',
     icon: 'sparkles',
     iconColor: '#d97706',
-    enabled: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   },
   {
@@ -32,7 +31,6 @@ const mockProviders = [
     baseUrl: 'https://api.two.example.com',
     icon: 'cpu',
     iconColor: '#10a37f',
-    enabled: false,
     createdAt: '2026-01-02T00:00:00.000Z',
   },
 ];
@@ -166,8 +164,8 @@ describe('ProviderList', () => {
       expect(screen.getByText('Provider One')).toBeInTheDocument();
     });
 
-    // Provider One is active -> should show "已在用" text
-    expect(screen.getByText('已在用')).toBeInTheDocument();
+    // Provider One is active -> should show "使用中" text
+    expect(screen.getByText('使用中')).toBeInTheDocument();
 
     // Provider Two is inactive -> should show "启用" text
     expect(screen.getByText('启用')).toBeInTheDocument();

@@ -1,0 +1,30 @@
+{
+    "activeProviderId": "00000000-0000-0000-0000-000000000001",
+    "providers": [
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Anthropic",
+            "websiteUrl": "https://www.anthropic.com",
+            "apiKey": "1111222",
+            "baseUrl": "https://api.anthropic.com",
+            "icon": "sparkles",
+            "iconColor": "#d97706",
+            "createdAt": "2026-05-19T17:02:29.883Z"
+        },
+        {
+            "id": "95f639a9-65f1-48b5-8f30-eb17d14541ad",
+            "name": "Zhipu GLM en",
+            "websiteUrl": "https://z.ai",
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "createdAt": "2026-05-20T10:43:12.792Z"
+        },
+        {
+            "id": "cb5b0d24-9cf0-4ed2-938b-b1239a4bf9ca",
+            "name": "Kimi",
+            "apiKey": "sdasdas",
+            "websiteUrl": "https://platform.moonshot.cn/console",
+            "baseUrl": "https://api.moonshot.cn/anthropic",
+            "createdAt": "2026-05-20T12:51:41.517Z"
+        }
+    ]
+}

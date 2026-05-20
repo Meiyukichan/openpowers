@@ -57,7 +57,7 @@ export async function runUi(options: { restart?: boolean }): Promise<void> {
   const portInUse = await isPortInUse(port);
   if (portInUse) {
     logger.info('UI server already running, opening browser');
-    const url = `http://localhost:${port}/ui`;
+    const url = `http://localhost:${port}/openpowers/ui`;
     openBrowser(url);
     process.stdout.write(`UI server is already running at ${url}\n`);
     return;
@@ -80,10 +80,10 @@ export async function runUi(options: { restart?: boolean }): Promise<void> {
   });
 
   logger.info(`UI server started on port ${port}`);
-  process.stdout.write(`UI server started at http://localhost:${port}/ui\n`);
+  process.stdout.write(`UI server started at http://localhost:${port}/openpowers/ui\n`);
 
   // Open the browser
-  const uiUrl = `http://localhost:${port}/ui`;
+  const uiUrl = `http://localhost:${port}/openpowers/ui`;
   openBrowser(uiUrl);
 }
 

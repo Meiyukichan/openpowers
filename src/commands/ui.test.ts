@@ -131,7 +131,7 @@ describe('runUi', () => {
 
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
-    expect(args).toContain('http://localhost:3939/ui');
+    expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 
   it('should not restart when port is already occupied (without --restart)', async () => {
@@ -145,7 +145,7 @@ describe('runUi', () => {
     expect(mockListenFn).not.toHaveBeenCalled();
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
-    expect(args).toContain('http://localhost:3939/ui');
+    expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 
   it('should kill existing process on --restart before starting', async () => {

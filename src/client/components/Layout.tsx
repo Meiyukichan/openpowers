@@ -1,17 +1,18 @@
 /**
  * Layout component provides the main application shell.
- * Header with 'Claude' branding on the left,
+ * Header with 'OpenPowers' branding on the left,
  * and session management + circular orange '+' buttons on the right for adding providers.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
 
 import React from 'react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, RotateCcw } from 'lucide-react';
 
 /** Props for the Layout component. */
 interface LayoutProps {
   onAddProvider: () => void;
+  onReset: () => void;
   children: React.ReactNode;
 }
 
@@ -19,7 +20,7 @@ interface LayoutProps {
  * Layout renders the application shell with a fixed header and scrollable main content area.
  * The header contains branding, a placeholder session management button, and an add provider button.
  */
-export function Layout({ onAddProvider, children }: LayoutProps): React.ReactElement {
+export function Layout({ onAddProvider, onReset, children }: LayoutProps): React.ReactElement {
   const handleSessionClick = () => {
     // Placeholder - no effect
   };
@@ -51,12 +52,33 @@ export function Layout({ onAddProvider, children }: LayoutProps): React.ReactEle
           React.createElement(
             'h1',
             { className: 'text-xl font-semibold text-blue-500 dark:text-blue-400' },
-            'Claude',
+            'OpenPowers',
           ),
-          React.createElement(Settings, {
-            size: 18,
-            className: 'text-muted-foreground',
-          }),
+          React.createElement(
+            'button',
+            {
+              type: 'button',
+              'aria-label': 'Settings',
+              title: '设置',
+              className: 'p-1 rounded-md text-muted-foreground hover:text-muted-foreground transition-colors',
+            },
+            React.createElement(Settings, {
+              size: 18,
+              className: 'text-muted-foreground',
+            }),
+          ),
+          React.createElement(
+            'button',
+            {
+              type: 'button',
+              onClick: onReset,
+              'aria-label': 'Reset providers',
+              title: '还原Claude配置',
+              className:
+                'p-1 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors',
+            },
+            React.createElement(RotateCcw, { size: 16 }),
+          ),
         ),
         // Right: session management + add button
         React.createElement(

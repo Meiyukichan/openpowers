@@ -1,5 +1,5 @@
 /**
- * ProviderList component fetches providers from /api/providers and renders them.
+ * ProviderList component fetches providers from /openpowers/api/providers and renders them.
  * Shows a loading skeleton while fetching, an empty state when no providers exist,
  * and renders ProviderCard components for each provider.
  * @author Meiyuki <meiyukichan@163.com>
@@ -28,7 +28,7 @@ interface ProviderListProps {
  * Uses the current origin so the app works behind any host.
  */
 function getApiUrl(): string {
-  return '/api/providers';
+  return '/openpowers/api/providers';
 }
 
 /**

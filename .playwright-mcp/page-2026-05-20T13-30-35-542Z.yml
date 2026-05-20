@@ -1,0 +1,30 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - heading "OpenPowers" [level=1] [ref=e8]
+        - button "Settings" [ref=e9] [cursor=pointer]:
+          - img [ref=e10]
+        - button "Reset providers" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+      - generic [ref=e17]:
+        - button "会话管理" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - text: 会话管理
+        - button "Add provider" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+  - main [ref=e24]:
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - img [ref=e92]
+        - generic [ref=e95]:
+          - heading "DeepSeek" [level=3] [ref=e96]
+          - paragraph [ref=e97]: https://api.deepseek.com/anthropic
+      - generic [ref=e98]:
+        - button "Enable DeepSeek" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - text: 启用
+        - button "Edit DeepSeek" [ref=e102] [cursor=pointer]:
+          - img [ref=e103]
+        - button "Delete DeepSeek" [ref=e106] [cursor=pointer]:
+          - img [ref=e107]

@@ -1,6 +1,5 @@
 /**
- * Express router for /api/providers CRUD endpoints.
- * Handles create, read, update, delete, and toggle operations for Claude providers.
+ * Express router for /openpowers/api/providers CRUD endpoints and active provider management.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -12,9 +11,9 @@ import {
   createProvider,
   updateProvider,
   deleteProvider,
-  toggleProvider,
   getActiveProviderId,
   setActiveProviderId,
+  clearActiveProviderId,
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
@@ -58,7 +57,7 @@ const SetActiveProviderSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /**
- * GET /api/providers
+ * GET /openpowers/api/providers
  * Returns the full list of configured providers as a JSON array.
  */
 providersRouter.get('/', (_req, res) => {
@@ -67,7 +66,7 @@ providersRouter.get('/', (_req, res) => {
 });
 
 /**
- * GET /api/providers/active
+ * GET /openpowers/api/providers/active
  * Returns the currently active provider ID, or null if none is set.
  */
 providersRouter.get('/active', (_req, res) => {
@@ -76,7 +75,7 @@ providersRouter.get('/active', (_req, res) => {
 });
 
 /**
- * PUT /api/providers/active
+ * PUT /openpowers/api/providers/active
  * Sets the specified provider as the active provider. Validates the provider ID
  * exists before persisting the active state.
  */
@@ -95,9 +94,9 @@ providersRouter.put('/active', (req, res) => {
 });
 
 /**
- * POST /api/providers
- * Creates a new provider. Validates input with zod; generates UUID, enabled=true,
- * and createdAt on the server.
+ * POST /openpowers/api/providers
+ * Creates a new provider. Validates input with zod; generates UUID and
+ * createdAt on the server.
  */
 providersRouter.post('/', (req, res) => {
   const parsed = ProviderInputSchema.safeParse(req.body);
@@ -110,7 +109,7 @@ providersRouter.post('/', (req, res) => {
 });
 
 /**
- * PUT /api/providers/:id
+ * PUT /openpowers/api/providers/:id
  * Updates an existing provider. Only fields present in the body are modified.
  */
 providersRouter.put('/:id', (req, res) => {
@@ -128,7 +127,7 @@ providersRouter.put('/:id', (req, res) => {
 });
 
 /**
- * DELETE /api/providers/:id
+ * DELETE /openpowers/api/providers/:id
  * Removes a provider from the configuration.
  */
 providersRouter.delete('/:id', (req, res) => {
@@ -141,14 +140,11 @@ providersRouter.delete('/:id', (req, res) => {
 });
 
 /**
- * PATCH /api/providers/:id/toggle
- * Inverts the enabled field of the specified provider.
+ * POST /openpowers/api/providers/reset
+ * Clears the active provider (deactivates all providers).
  */
-providersRouter.patch('/:id/toggle', (req, res) => {
-  try {
-    const provider = toggleProvider(req.params.id);
-    res.status(200).json(provider);
-  } catch {
-    res.status(404).json({ error: `Provider not found: ${req.params.id}` });
-  }
+providersRouter.post('/reset', (_req, res) => {
+  clearActiveProviderId();
+  res.status(200).json({ activeProviderId: null });
 });
+

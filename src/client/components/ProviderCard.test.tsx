@@ -21,7 +21,6 @@ const baseProvider: Provider = {
   baseUrl: 'https://api.test.example.com',
   icon: 'sparkles',
   iconColor: '#d97706',
-  enabled: true,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -65,33 +64,6 @@ describe('ProviderCard', () => {
     expect(screen.getByText('https://api.test.example.com')).toBeInTheDocument();
   });
 
-  it('shows enabled badge when provider is enabled', () => {
-    render(
-      React.createElement(ProviderCard, {
-        provider: baseProvider,
-        onSetActive: vi.fn(),
-        isActive: false,
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-      }),
-    );
-    expect(screen.getByText(/enabled/i)).toBeInTheDocument();
-  });
-
-  it('shows disabled badge when provider is disabled', () => {
-    const disabledProvider = { ...baseProvider, enabled: false };
-    render(
-      React.createElement(ProviderCard, {
-        provider: disabledProvider,
-        onSetActive: vi.fn(),
-        isActive: false,
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-      }),
-    );
-    expect(screen.getByText(/disabled/i)).toBeInTheDocument();
-  });
-
   it('renders icon element when provider has an icon', () => {
     render(
       React.createElement(ProviderCard, {
@@ -107,7 +79,7 @@ describe('ProviderCard', () => {
     expect(iconContainer).toBeInTheDocument();
   });
 
-  it('shows grey disabled button with Check icon and "已在用" text when provider is active', () => {
+  it('shows grey disabled button with Check icon and "使用中" text when provider is active', () => {
     render(
       React.createElement(ProviderCard, {
         provider: baseProvider,
@@ -119,7 +91,7 @@ describe('ProviderCard', () => {
     );
     const enableButton = screen.getByRole('button', { name: /is active/i });
     expect(enableButton).toBeDisabled();
-    expect(screen.getByText('已在用')).toBeInTheDocument();
+    expect(screen.getByText('使用中')).toBeInTheDocument();
   });
 
   it('shows blue button with Play icon and "启用" text when provider is inactive', () => {
@@ -205,8 +177,8 @@ describe('ProviderCard', () => {
     expect(onDelete).toHaveBeenCalledWith(baseProvider);
   });
 
-  // Task 3.1: Minimum height
-  it('has minimum height of 120px on the root element', () => {
+  // Task 3.1: Padded card container
+  it('has padding on the root element', () => {
     const { container } = render(
       React.createElement(ProviderCard, {
         provider: baseProvider,
@@ -217,7 +189,7 @@ describe('ProviderCard', () => {
       }),
     );
     const rootElement = container.firstElementChild as HTMLElement;
-    expect(rootElement.className).toContain('min-h-[120px]');
+    expect(rootElement.className).toContain('px-4');
   });
 
   // Task 3.2: Active provider blue border and shadow

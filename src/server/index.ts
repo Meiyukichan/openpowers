@@ -1,6 +1,6 @@
 /**
  * Express server application entry point.
- * Mounts provider API routes at /api/* and serves React SPA build output at /ui/*.
+ * Mounts provider API routes at /openpowers/api/* and serves React SPA build output at /openpowers/ui/*.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -18,7 +18,7 @@ const defaultClientDir = path.join(moduleDirname, '..', 'client');
 
 /**
  * Creates and configures the Express application.
- * Mounts provider CRUD routes at /api/providers and the frontend SPA at /ui.
+ * Mounts provider CRUD routes at /openpowers/api/providers and the frontend SPA at /openpowers/ui.
  * @param options - Optional configuration
  * @param options.clientDir - Path to the frontend build output directory.
  *   Defaults to dist/client/ relative to the package root.
@@ -29,22 +29,22 @@ export function createApp(options?: { clientDir?: string }): express.Application
   app.use(express.default.json());
 
   // API routes
-  app.use('/api/providers', providersRouter);
+  app.use('/openpowers/api/providers', providersRouter);
 
   // Resolve client directory
   const clientDir = options?.clientDir ?? defaultClientDir;
 
   // UI static files or missing-build message
   if (fs.existsSync(clientDir)) {
-    app.use('/ui', express.default.static(clientDir, { redirect: false }));
-    // SPA fallback: serve index.html for any /ui subpath not matching a static file
-    app.use('/ui', (_req, res) => {
+    app.use('/openpowers/ui', express.default.static(clientDir, { redirect: false }));
+    // SPA fallback: serve index.html for any /openpowers/ui subpath not matching a static file
+    app.use('/openpowers/ui', (_req, res) => {
       res.sendFile(path.join(clientDir, 'index.html'));
     });
   } else {
     // Friendly message when the frontend has not been built yet
     const message = 'The UI needs to be built first. Please run the build command to generate the frontend assets.';
-    app.use('/ui', (_req, res) => {
+    app.use('/openpowers/ui', (_req, res) => {
       res.status(200).type('text/plain').send(message);
     });
   }

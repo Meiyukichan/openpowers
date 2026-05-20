@@ -1,0 +1,191 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "OpenPowers" [level=1] [ref=e8]
+          - button "Settings" [ref=e9] [cursor=pointer]:
+            - img [ref=e10]
+          - button "Reset providers" [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - generic [ref=e17]:
+          - button "会话管理" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+            - text: 会话管理
+          - button "Add provider" [active] [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+    - main [ref=e24]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - img [ref=e30]
+          - generic [ref=e33]:
+            - heading "DeepSeek" [level=3] [ref=e34]
+            - paragraph [ref=e35]: https://api.deepseek.com/anthropic
+        - generic [ref=e36]:
+          - button "Enable DeepSeek" [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+            - text: 启用
+          - button "Edit DeepSeek" [ref=e40] [cursor=pointer]:
+            - img [ref=e41]
+          - button "Delete DeepSeek" [ref=e44] [cursor=pointer]:
+            - img [ref=e45]
+  - generic [ref=e330]:
+    - generic "Close dialog" [ref=e331]
+    - dialog "Add provider dialog" [ref=e332]:
+      - heading "添加供应商" [level=2] [ref=e334]
+      - generic [ref=e335]:
+        - generic [ref=e336]:
+          - generic [ref=e337]: Preset Providers
+          - generic [ref=e338]:
+            - button "Claude Official" [ref=e339] [cursor=pointer]:
+              - img [ref=e341]
+              - generic [ref=e343]: Claude Official
+            - button "Shengsuanyun" [ref=e344] [cursor=pointer]:
+              - img [ref=e346]
+              - generic [ref=e348]: Shengsuanyun
+            - button "PatewayAI" [ref=e349] [cursor=pointer]:
+              - img [ref=e351]
+              - generic [ref=e354]: PatewayAI
+            - button "DeepSeek" [ref=e355] [cursor=pointer]:
+              - img [ref=e357]
+              - generic [ref=e360]: DeepSeek
+            - button "Zhipu GLM" [ref=e361] [cursor=pointer]:
+              - img [ref=e363]
+              - generic [ref=e366]: Zhipu GLM
+            - button "Zhipu GLM en" [ref=e367] [cursor=pointer]:
+              - img [ref=e369]
+              - generic [ref=e372]: Zhipu GLM en
+            - button "Baidu Qianfan Coding Plan" [ref=e373] [cursor=pointer]:
+              - img [ref=e375]
+              - generic [ref=e377]: Baidu Qianfan Coding Plan
+            - button "Bailian" [ref=e378] [cursor=pointer]:
+              - img [ref=e380]
+              - generic [ref=e382]: Bailian
+            - button "Bailian For Coding" [ref=e383] [cursor=pointer]:
+              - img [ref=e385]
+              - generic [ref=e387]: Bailian For Coding
+            - button "Kimi" [ref=e388] [cursor=pointer]:
+              - img [ref=e390]
+              - generic [ref=e392]: Kimi
+            - button "Kimi For Coding" [ref=e393] [cursor=pointer]:
+              - img [ref=e395]
+              - generic [ref=e397]: Kimi For Coding
+            - button "StepFun" [ref=e398] [cursor=pointer]:
+              - img [ref=e400]
+              - generic [ref=e402]: StepFun
+            - button "StepFun en" [ref=e403] [cursor=pointer]:
+              - img [ref=e405]
+              - generic [ref=e407]: StepFun en
+            - button "ModelScope" [ref=e408] [cursor=pointer]:
+              - img [ref=e410]
+              - generic [ref=e413]: ModelScope
+            - button "Longcat" [ref=e414] [cursor=pointer]:
+              - img [ref=e416]
+              - generic [ref=e419]: Longcat
+            - button "MiniMax" [ref=e420] [cursor=pointer]:
+              - img [ref=e422]
+              - generic [ref=e424]: MiniMax
+            - button "MiniMax en" [ref=e425] [cursor=pointer]:
+              - img [ref=e427]
+              - generic [ref=e429]: MiniMax en
+            - button "BaiLing" [ref=e430] [cursor=pointer]:
+              - img [ref=e432]
+              - generic [ref=e434]: BaiLing
+            - button "AiHubMix" [ref=e435] [cursor=pointer]:
+              - img [ref=e437]
+              - generic [ref=e440]: AiHubMix
+            - button "SiliconFlow" [ref=e441] [cursor=pointer]:
+              - img [ref=e443]
+              - generic [ref=e445]: SiliconFlow
+            - button "SiliconFlow en" [ref=e446] [cursor=pointer]:
+              - img [ref=e448]
+              - generic [ref=e450]: SiliconFlow en
+            - button "DMXAPI" [ref=e451] [cursor=pointer]:
+              - img [ref=e453]
+              - generic [ref=e456]: DMXAPI
+            - button "PackyCode" [ref=e457] [cursor=pointer]:
+              - img [ref=e459]
+              - generic [ref=e462]: PackyCode
+            - button "ClaudeAPI" [ref=e463] [cursor=pointer]:
+              - img [ref=e465]
+              - generic [ref=e467]: ClaudeAPI
+            - button "ClaudeCN" [ref=e468] [cursor=pointer]:
+              - img [ref=e470]
+              - generic [ref=e472]: ClaudeCN
+            - button "RunAPI" [ref=e473] [cursor=pointer]:
+              - img [ref=e475]
+              - generic [ref=e478]: RunAPI
+            - button "RelaxyCode" [ref=e479] [cursor=pointer]:
+              - img [ref=e481]
+              - generic [ref=e484]: RelaxyCode
+            - button "Cubence" [ref=e485] [cursor=pointer]:
+              - img [ref=e487]
+              - generic [ref=e490]: Cubence
+            - button "AIGoCode" [ref=e491] [cursor=pointer]:
+              - img [ref=e493]
+              - generic [ref=e496]: AIGoCode
+            - button "RightCode" [ref=e497] [cursor=pointer]:
+              - img [ref=e499]
+              - generic [ref=e502]: RightCode
+            - button "AICodeMirror" [ref=e503] [cursor=pointer]:
+              - img [ref=e505]
+              - generic [ref=e508]: AICodeMirror
+            - button "AICoding" [ref=e509] [cursor=pointer]:
+              - img [ref=e511]
+              - generic [ref=e514]: AICoding
+            - button "CrazyRouter" [ref=e515] [cursor=pointer]:
+              - img [ref=e517]
+              - generic [ref=e520]: CrazyRouter
+            - button "SSSAiCode" [ref=e521] [cursor=pointer]:
+              - img [ref=e523]
+              - generic [ref=e526]: SSSAiCode
+            - button "Compshare" [ref=e527] [cursor=pointer]:
+              - img [ref=e529]
+              - generic [ref=e531]: Compshare
+            - button "Compshare Coding Plan" [ref=e532] [cursor=pointer]:
+              - img [ref=e534]
+              - generic [ref=e536]: Compshare Coding Plan
+            - button "Micu" [ref=e537] [cursor=pointer]:
+              - img [ref=e539]
+              - generic [ref=e542]: Micu
+            - button "CTok.ai" [ref=e543] [cursor=pointer]:
+              - img [ref=e545]
+              - generic [ref=e548]: CTok.ai
+            - button "E-FlowCode" [ref=e549] [cursor=pointer]:
+              - img [ref=e551]
+              - generic [ref=e553]: E-FlowCode
+            - button "OpenRouter" [ref=e554] [cursor=pointer]:
+              - img [ref=e556]
+              - generic [ref=e559]: OpenRouter
+            - button "TheRouter" [ref=e560] [cursor=pointer]:
+              - img [ref=e562]
+              - generic [ref=e565]: TheRouter
+            - button "Novita AI" [ref=e566] [cursor=pointer]:
+              - img [ref=e568]
+              - generic [ref=e571]: Novita AI
+            - button "LemonData" [ref=e572] [cursor=pointer]:
+              - img [ref=e574]
+              - generic [ref=e577]: LemonData
+            - button "PIPELLM" [ref=e578] [cursor=pointer]:
+              - img [ref=e580]
+              - generic [ref=e583]: PIPELLM
+            - button "Xiaomi MiMo" [ref=e584] [cursor=pointer]:
+              - img [ref=e586]
+              - generic [ref=e588]: Xiaomi MiMo
+            - button "Xiaomi MiMo Token Plan (China)" [ref=e589] [cursor=pointer]:
+              - img [ref=e591]
+              - generic [ref=e593]: Xiaomi MiMo Token Plan (China)
+        - textbox "Provider name" [ref=e595]
+        - textbox "Notes" [ref=e597]:
+          - /placeholder: Notes (optional)
+        - textbox "Website URL" [ref=e599]:
+          - /placeholder: Website URL (optional)
+        - generic [ref=e601]:
+          - textbox "API Key" [ref=e602]
+          - button "Show API key" [ref=e603] [cursor=pointer]:
+            - img [ref=e604]
+        - textbox "Base URL" [ref=e608]:
+          - /placeholder: Base URL (optional)
+        - generic [ref=e609]:
+          - button "取消" [ref=e610] [cursor=pointer]
+          - button "添加" [ref=e611] [cursor=pointer]

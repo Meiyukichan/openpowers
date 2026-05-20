@@ -1,0 +1,31 @@
+[      47ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[      47ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[      50ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/favicon.ico:0
+[   10591ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   10591ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   11636ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   11636ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   11801ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   11801ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   11978ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   11979ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   12779ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) @ http://localhost:3939/ui:0
+[   18819ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3939/ui:0
+[   23466ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3939/ui:0
+[   25966ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3939/ui:0
+[   43978ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   43978ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   84501ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   84502ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   84672ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   84672ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   84845ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   84845ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   94762ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   94762ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   95264ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   95264ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   95578ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   95578ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131
+[   95936ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   95936ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-D2DhhJTU.js:131

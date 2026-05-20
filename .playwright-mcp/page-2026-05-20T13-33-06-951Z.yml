@@ -1,0 +1,56 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "OpenPowers" [level=1] [ref=e8]
+          - button "Settings" [ref=e9] [cursor=pointer]:
+            - img [ref=e10]
+          - button "Reset providers" [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - generic [ref=e17]:
+          - button "会话管理" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+            - text: 会话管理
+          - button "Add provider" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+    - main [ref=e24]:
+      - generic [ref=e29]:
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - img [ref=e34]
+            - generic [ref=e37]:
+              - heading "DeepSeek" [level=3] [ref=e38]
+              - paragraph [ref=e39]: https://api.deepseek.com/anthropic
+          - generic [ref=e40]:
+            - button "Enable DeepSeek" [ref=e41] [cursor=pointer]:
+              - img [ref=e42]
+              - text: 启用
+            - button "Edit DeepSeek" [ref=e44] [cursor=pointer]:
+              - img [ref=e45]
+            - button "Delete DeepSeek" [active] [ref=e48] [cursor=pointer]:
+              - img [ref=e49]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - img [ref=e56]
+            - generic [ref=e59]:
+              - heading "Bailian" [level=3] [ref=e60]
+              - paragraph [ref=e61]: https://dashscope.aliyuncs.com/apps/anthropic
+          - generic [ref=e62]:
+            - button "Enable Bailian" [ref=e63] [cursor=pointer]:
+              - img [ref=e64]
+              - text: 启用
+            - button "Edit Bailian" [ref=e66] [cursor=pointer]:
+              - img [ref=e67]
+            - button "Delete Bailian" [ref=e70] [cursor=pointer]:
+              - img [ref=e71]
+  - generic [ref=e74]:
+    - generic "Close dialog" [ref=e75]
+    - dialog "Delete confirmation dialog" [ref=e76]:
+      - generic [ref=e77]:
+        - img [ref=e79]
+        - heading "确定要删除该供应商吗？" [level=3] [ref=e82]
+        - paragraph [ref=e83]: "\"DeepSeek\" will be permanently removed. This action cannot be undone."
+        - generic [ref=e84]:
+          - button "取消" [ref=e85] [cursor=pointer]
+          - button "确认删除" [ref=e86] [cursor=pointer]

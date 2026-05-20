@@ -25,9 +25,17 @@ export function App(): React.ReactElement {
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
   }, []);
 
   /**
@@ -37,7 +45,7 @@ export function App(): React.ReactElement {
   useEffect(() => {
     const fetchActiveProvider = async () => {
       try {
-        const response = await fetch('/api/providers/active');
+        const response = await fetch('/openpowers/api/providers/active');
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -90,6 +98,21 @@ export function App(): React.ReactElement {
 
   const handleDeleteSuccess = () => {
     triggerRefresh();
+    showToast('已删除供应商');
+  };
+
+  // --- Reset handler ---
+
+  const handleReset = async () => {
+    try {
+      const response = await fetch('/openpowers/api/providers/reset', { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      triggerRefresh();
+    } catch (err) {
+      logger.error(`Failed to reset providers: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   // --- Set active handler ---
@@ -100,7 +123,7 @@ export function App(): React.ReactElement {
    */
   const handleSetActive = async (provider: Provider) => {
     try {
-      const response = await fetch('/api/providers/active', {
+      const response = await fetch('/openpowers/api/providers/active', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ providerId: provider.id }),
@@ -121,7 +144,7 @@ export function App(): React.ReactElement {
     null,
     React.createElement(
       Layout,
-      { onAddProvider: handleOpenAddDialog },
+      { onAddProvider: handleOpenAddDialog, onReset: handleReset },
       React.createElement(ProviderList, {
         onEdit: handleOpenEditDialog,
         onDelete: handleOpenDeleteDialog,
@@ -151,5 +174,15 @@ export function App(): React.ReactElement {
       onClose: handleCloseDeleteDialog,
       onSuccess: handleDeleteSuccess,
     }),
+    // Toast notification
+    toastMessage &&
+      React.createElement(
+        'div',
+        {
+          className:
+            'fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-green-100/95 px-6 py-3 text-base font-medium text-green-700 shadow-md transition-opacity duration-300',
+        },
+        toastMessage,
+      ),
   );
 }

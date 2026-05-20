@@ -1,0 +1,18 @@
+[      25ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[      25ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[     625ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[     625ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[     863ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[     863ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   22019ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   22019ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   22895ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   22895ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   23102ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   23102ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   23291ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   23291ms] [ERROR] Failed to set active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   35506ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   35507ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131
+[   36292ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3939/api/providers/active:0
+[   36292ms] [ERROR] Failed to fetch active provider: HTTP 404 @ http://localhost:3939/ui/assets/index-BfIsgjML.js:131

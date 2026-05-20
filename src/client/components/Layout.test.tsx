@@ -11,21 +11,26 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Layout } from './Layout.js';
 
+const defaultProps = {
+  onAddProvider: vi.fn(),
+  onReset: vi.fn(),
+};
+
 describe('Layout', () => {
-  it('renders the brand name Claude', () => {
+  it('renders the brand name OpenPowers', () => {
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
-    expect(screen.getByText('Claude')).toBeInTheDocument();
+    expect(screen.getByText('OpenPowers')).toBeInTheDocument();
   });
 
   it('renders session management placeholder button', () => {
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
@@ -36,7 +41,7 @@ describe('Layout', () => {
     const user = userEvent.setup();
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
@@ -49,7 +54,7 @@ describe('Layout', () => {
   it('renders add button with orange background', () => {
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
@@ -63,6 +68,7 @@ describe('Layout', () => {
     render(
       React.createElement(Layout, {
         onAddProvider,
+        onReset: vi.fn(),
         children: React.createElement('div', null, 'content'),
       }),
     );
@@ -74,7 +80,7 @@ describe('Layout', () => {
   it('session management button is adjacent to add button in right-side group', () => {
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
@@ -89,10 +95,35 @@ describe('Layout', () => {
   it('renders children content', () => {
     render(
       React.createElement(Layout, {
-        onAddProvider: vi.fn(),
+        ...defaultProps,
         children: React.createElement('div', { 'data-testid': 'child' }, 'child content'),
       }),
     );
     expect(screen.getByTestId('child')).toBeInTheDocument();
+  });
+
+  it('renders reset button', () => {
+    render(
+      React.createElement(Layout, {
+        ...defaultProps,
+        children: React.createElement('div', null, 'content'),
+      }),
+    );
+    expect(screen.getByLabelText(/reset providers/i)).toBeInTheDocument();
+  });
+
+  it('calls onReset when reset button is clicked', async () => {
+    const onReset = vi.fn();
+    const user = userEvent.setup();
+    render(
+      React.createElement(Layout, {
+        onAddProvider: vi.fn(),
+        onReset,
+        children: React.createElement('div', null, 'content'),
+      }),
+    );
+    const resetBtn = screen.getByLabelText(/reset providers/i);
+    await user.click(resetBtn);
+    expect(onReset).toHaveBeenCalledOnce();
   });
 });

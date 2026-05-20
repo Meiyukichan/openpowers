@@ -110,7 +110,7 @@ describe('DeleteConfirmDialog', () => {
       expect(onSuccess).toHaveBeenCalledOnce();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/providers/test-id-1',
+      '/openpowers/api/providers/test-id-1',
       expect.objectContaining({ method: 'DELETE' }),
     );
   });

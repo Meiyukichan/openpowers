@@ -1,0 +1,46 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - heading "OpenPowers" [level=1] [ref=e8]
+        - img [ref=e9]
+        - button "Reset providers" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+      - generic [ref=e16]:
+        - button "会话管理" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - text: 会话管理
+        - button "Add provider" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - img [ref=e29]
+          - generic [ref=e31]:
+            - heading "Anthropic" [level=3] [ref=e32]
+            - paragraph [ref=e33]: Official Anthropic API
+            - paragraph [ref=e34]: https://api.anthropic.com
+        - generic [ref=e35]:
+          - button "Enable Anthropic" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+            - text: 启用
+          - button "Edit Anthropic" [ref=e39] [cursor=pointer]:
+            - img [ref=e40]
+          - button "Delete Anthropic" [ref=e43] [cursor=pointer]:
+            - img [ref=e44]
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - img [ref=e51]
+          - generic [ref=e54]:
+            - heading "OpenAI" [level=3] [ref=e55]
+            - paragraph [ref=e56]: OpenAI compatible API
+            - paragraph [ref=e57]: https://api.openai.com
+        - generic [ref=e58]:
+          - button "Enable OpenAI" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - text: 启用
+          - button "Edit OpenAI" [ref=e62] [cursor=pointer]:
+            - img [ref=e63]
+          - button "Delete OpenAI" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]

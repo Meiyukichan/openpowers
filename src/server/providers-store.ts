@@ -1,7 +1,7 @@
 /**
  * JSON file store for provider configurations.
- * Stores provider data in ~/.openpowers/providers.json with sync file operations.
- * Provides CRUD operations and zod validation schemas for provider data models.
+ * Stores provider data and active provider state in a single JSON file
+ * at ~/.openpowers/providers.json with sync file operations.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -21,9 +21,6 @@ import { logger } from '../utils/logger.js';
 const DATA_DIR = path.join(os.homedir(), '.openpowers');
 const PROVIDERS_FILE = path.join(DATA_DIR, 'providers.json');
 
-// Active provider state file path
-const ACTIVE_PROVIDER_FILE = path.join(DATA_DIR, 'active-provider.json');
-
 // ---------------------------------------------------------------------------
 // Zod schemas
 // ---------------------------------------------------------------------------
@@ -38,23 +35,39 @@ export const ProviderSchema = z.object({
   baseUrl: z.string().optional(),
   icon: z.string().optional(),
   iconColor: z.string().optional(),
-  enabled: z.boolean(),
+  defaultModel: z.string().default(''),
+  sonnetModel: z.string().default(''),
+  opusModel: z.string().default(''),
+  haikuModel: z.string().default(''),
   createdAt: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 /** Inferred TypeScript type for a provider. */
 export type Provider = z.infer<typeof ProviderSchema>;
 
+/** Zod schema for the combined store file. */
+const StoreDataSchema = z.object({
+  activeProviderId: z.string().nullable(),
+  providers: z.array(ProviderSchema),
+});
+
+/** Inferred type for the store file content. */
+type StoreData = z.infer<typeof StoreDataSchema>;
+
 /** Zod schema for creating a new provider (client input). */
 export const ProviderInputSchema = z.object({
   name: z.string(),
   apiKey: z.string(),
+  defaultModel: z.string(),
+  sonnetModel: z.string(),
+  opusModel: z.string(),
+  haikuModel: z.string(),
   notes: z.string().optional(),
   websiteUrl: z.string().optional(),
   baseUrl: z.string().optional(),
   icon: z.string().optional(),
   iconColor: z.string().optional(),
-  enabled: z.boolean().optional(),
 });
 
 /** Inferred TypeScript type for provider creation input. */
@@ -64,6 +77,10 @@ export type ProviderInput = z.infer<typeof ProviderInputSchema>;
 export const ProviderUpdateSchema = z.object({
   name: z.string().optional(),
   apiKey: z.string().optional(),
+  defaultModel: z.string().optional(),
+  sonnetModel: z.string().optional(),
+  opusModel: z.string().optional(),
+  haikuModel: z.string().optional(),
   notes: z.string().optional(),
   websiteUrl: z.string().optional(),
   baseUrl: z.string().optional(),
@@ -78,37 +95,81 @@ export type ProviderUpdate = z.infer<typeof ProviderUpdateSchema>;
 // Sample data
 // ---------------------------------------------------------------------------
 
-/** Sample providers created when providers.json does not exist. */
-const SAMPLE_PROVIDERS: Provider[] = [
-  {
-    id: '00000000-0000-0000-0000-000000000001',
-    name: 'Anthropic',
-    notes: 'Official Anthropic API',
-    websiteUrl: 'https://www.anthropic.com',
-    apiKey: '',
-    baseUrl: 'https://api.anthropic.com',
-    icon: 'sparkles',
-    iconColor: '#d97706',
-    enabled: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000002',
-    name: 'OpenAI',
-    notes: 'OpenAI compatible API',
-    websiteUrl: 'https://openai.com',
-    apiKey: '',
-    baseUrl: 'https://api.openai.com',
-    icon: 'cpu',
-    iconColor: '#10a37f',
-    enabled: false,
-    createdAt: new Date().toISOString(),
-  },
-];
+/** Default store data when providers.json does not exist. */
+const DEFAULT_STORE_DATA: StoreData = {
+  activeProviderId: null,
+  providers: [
+    {
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Anthropic',
+      notes: 'Official Anthropic API',
+      websiteUrl: 'https://www.anthropic.com',
+      apiKey: '',
+      baseUrl: 'https://api.anthropic.com',
+      icon: 'sparkles',
+      iconColor: '#d97706',
+      defaultModel: '',
+      sonnetModel: '',
+      opusModel: '',
+      haikuModel: '',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000002',
+      name: 'OpenAI',
+      notes: 'OpenAI compatible API',
+      websiteUrl: 'https://openai.com',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com',
+      icon: 'cpu',
+      iconColor: '#10a37f',
+      defaultModel: '',
+      sonnetModel: '',
+      opusModel: '',
+      haikuModel: '',
+      createdAt: new Date().toISOString(),
+    },
+  ],
+};
 
 // ---------------------------------------------------------------------------
 // File store operations
 // ---------------------------------------------------------------------------
+
+/**
+ * Reads the entire store file and returns parsed store data.
+ * Returns default data if the file does not exist or is corrupt.
+ * @returns The parsed store data object
+ */
+function readStoreData(): StoreData {
+  if (!fs.existsSync(PROVIDERS_FILE)) {
+    return { ...DEFAULT_STORE_DATA, activeProviderId: null, providers: [] };
+  }
+  try {
+    const raw = fs.readFileSync(PROVIDERS_FILE, 'utf-8');
+    const parsed: unknown = JSON.parse(raw);
+    const result = StoreDataSchema.safeParse(parsed);
+    if (!result.success) {
+      logger.warn('providers.json contains invalid data, returning defaults');
+      return { ...DEFAULT_STORE_DATA, activeProviderId: null, providers: [] };
+    }
+    return result.data;
+  } catch (err) {
+    logger.error(`Failed to read providers.json: ${err instanceof Error ? err.message : String(err)}`);
+    return { ...DEFAULT_STORE_DATA, activeProviderId: null, providers: [] };
+  }
+}
+
+/**
+ * Writes store data to the JSON file with formatted output (indent=2).
+ * @param data - The store data to persist
+ */
+function writeStoreData(data: StoreData): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  fs.writeFileSync(PROVIDERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
 
 /**
  * Ensures the providers.json file exists. If it does not exist, creates the
@@ -119,47 +180,27 @@ export function ensureProvidersFile(): void {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(PROVIDERS_FILE)) {
-    saveProviders(SAMPLE_PROVIDERS);
+    writeStoreData(DEFAULT_STORE_DATA);
     logger.info('Created providers.json with sample data');
   }
 }
 
 /**
  * Loads all providers from the JSON file.
- * Ensures the file exists before reading, creating it with sample data if needed.
  * @returns Array of provider objects
  */
 export function loadProviders(): Provider[] {
-  ensureProvidersFile();
-  try {
-    const raw = fs.readFileSync(PROVIDERS_FILE, 'utf-8');
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      logger.warn('providers.json is not an array, returning empty list');
-      return [];
-    }
-    const result = z.array(ProviderSchema).safeParse(parsed);
-    if (!result.success) {
-      logger.warn('providers.json contains invalid data, returning empty list');
-      return [];
-    }
-    return result.data;
-  } catch (err) {
-    logger.error(`Failed to read providers.json: ${err instanceof Error ? err.message : String(err)}`);
-    return [];
-  }
+  return readStoreData().providers;
 }
 
 /**
- * Saves an array of providers to the JSON file with formatted output (indent=2).
- * Uses synchronous write for serialization safety.
+ * Saves an array of providers to the JSON file, preserving the active provider ID.
  * @param providers - The provider array to persist
  */
 export function saveProviders(providers: Provider[]): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(PROVIDERS_FILE, JSON.stringify(providers, null, 2), 'utf-8');
+  const data = readStoreData();
+  data.providers = providers;
+  writeStoreData(data);
 }
 
 /**
@@ -173,8 +214,8 @@ export function getProviderById(id: string): Provider | undefined {
 }
 
 /**
- * Creates a new provider. The server generates a UUID, sets enabled=true,
- * and sets createdAt to the current ISO timestamp.
+ * Creates a new provider. The server generates a UUID and sets createdAt
+ * to the current ISO timestamp.
  * @param input - The provider input data (name and apiKey required)
  * @returns The newly created provider object
  */
@@ -184,18 +225,21 @@ export function createProvider(input: ProviderInput): Provider {
     id: crypto.randomUUID(),
     name: input.name,
     apiKey: input.apiKey,
+    defaultModel: input.defaultModel,
+    sonnetModel: input.sonnetModel,
+    opusModel: input.opusModel,
+    haikuModel: input.haikuModel,
     notes: input.notes,
     websiteUrl: input.websiteUrl,
     baseUrl: input.baseUrl,
     icon: input.icon,
     iconColor: input.iconColor,
-    enabled: true,
     createdAt: now,
   };
 
-  const providers = loadProviders();
-  providers.push(provider);
-  saveProviders(providers);
+  const data = readStoreData();
+  data.providers.push(provider);
+  writeStoreData(data);
   logger.info(`Provider created: ${provider.name} (${provider.id})`);
 
   return provider;
@@ -203,23 +247,23 @@ export function createProvider(input: ProviderInput): Provider {
 
 /**
  * Updates an existing provider's fields. Only the fields present in the update
- * object are modified; other fields remain unchanged.
+ * object are modified; other fields remain unchanged. Sets updatedAt timestamp.
  * @param id - The UUID of the provider to update
  * @param update - The partial update object with fields to change
  * @returns The updated provider object
  * @throws Error if the provider is not found
  */
 export function updateProvider(id: string, update: ProviderUpdate): Provider {
-  const providers = loadProviders();
-  const index = providers.findIndex((p) => p.id === id);
+  const data = readStoreData();
+  const index = data.providers.findIndex((p) => p.id === id);
   if (index === -1) {
     throw new Error(`Provider not found: ${id}`);
   }
 
-  const existing = providers[index];
-  const updated: Provider = { ...existing, ...update };
-  providers[index] = updated;
-  saveProviders(providers);
+  const existing = data.providers[index];
+  const updated: Provider = { ...existing, ...update, updatedAt: new Date().toISOString() };
+  data.providers[index] = updated;
+  writeStoreData(data);
   logger.info(`Provider updated: ${updated.name} (${updated.id})`);
 
   return updated;
@@ -232,43 +276,24 @@ export function updateProvider(id: string, update: ProviderUpdate): Provider {
  * @returns true if the provider was found and deleted, false if not found
  */
 export function deleteProvider(id: string): boolean {
-  const providers = loadProviders();
-  const index = providers.findIndex((p) => p.id === id);
+  const data = readStoreData();
+  const index = data.providers.findIndex((p) => p.id === id);
   if (index === -1) {
     return false;
   }
 
-  const deleted = providers[index];
-  providers.splice(index, 1);
-  saveProviders(providers);
-  logger.info(`Provider deleted: ${deleted.name} (${deleted.id})`);
+  const deleted = data.providers[index];
+  data.providers.splice(index, 1);
 
   // Cascade: clear active provider if the deleted provider was active
-  if (getActiveProviderId() === id) {
-    clearActiveProviderId();
+  if (data.activeProviderId === id) {
+    data.activeProviderId = null;
   }
+
+  writeStoreData(data);
+  logger.info(`Provider deleted: ${deleted.name} (${deleted.id})`);
 
   return true;
-}
-
-/**
- * Toggles the enabled state of a provider (true becomes false, false becomes true).
- * @param id - The UUID of the provider to toggle
- * @returns The updated provider with the new enabled state
- * @throws Error if the provider is not found
- */
-export function toggleProvider(id: string): Provider {
-  const providers = loadProviders();
-  const index = providers.findIndex((p) => p.id === id);
-  if (index === -1) {
-    throw new Error(`Provider not found: ${id}`);
-  }
-
-  providers[index].enabled = !providers[index].enabled;
-  saveProviders(providers);
-  logger.info(`Provider toggled: ${providers[index].name} (${id}) enabled=${providers[index].enabled}`);
-
-  return providers[index];
 }
 
 // ---------------------------------------------------------------------------
@@ -276,29 +301,12 @@ export function toggleProvider(id: string): Provider {
 // ---------------------------------------------------------------------------
 
 /**
- * Reads the currently active provider ID from active-provider.json.
- * Returns null if the file does not exist, is corrupt, or has no active provider.
+ * Reads the currently active provider ID from the store.
+ * Returns null if no active provider is set.
  * @returns The active provider UUID string, or null if none is set
  */
 export function getActiveProviderId(): string | null {
-  if (!fs.existsSync(ACTIVE_PROVIDER_FILE)) {
-    return null;
-  }
-  try {
-    const raw = fs.readFileSync(ACTIVE_PROVIDER_FILE, 'utf-8');
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      typeof parsed === 'object'
-      && parsed !== null
-      && 'activeProviderId' in parsed
-      && typeof (parsed as { activeProviderId: unknown }).activeProviderId === 'string'
-    ) {
-      return (parsed as { activeProviderId: string }).activeProviderId;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  return readStoreData().activeProviderId;
 }
 
 /**
@@ -307,32 +315,23 @@ export function getActiveProviderId(): string | null {
  * @throws Error if the provider ID does not exist
  */
 export function setActiveProviderId(providerId: string): void {
-  const provider = getProviderById(providerId);
+  const data = readStoreData();
+  const provider = data.providers.find((p) => p.id === providerId);
   if (!provider) {
     throw new Error(`Provider not found: ${providerId}`);
   }
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(
-    ACTIVE_PROVIDER_FILE,
-    JSON.stringify({ activeProviderId: providerId }, null, 2),
-    'utf-8',
-  );
+  data.activeProviderId = providerId;
+  writeStoreData(data);
   logger.info(`Active provider set: ${providerId}`);
 }
 
 /**
- * Clears the active provider ID by writing null to active-provider.json.
+ * Clears the active provider ID by setting it to null.
  */
 export function clearActiveProviderId(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(
-    ACTIVE_PROVIDER_FILE,
-    JSON.stringify({ activeProviderId: null }, null, 2),
-    'utf-8',
-  );
+  const data = readStoreData();
+  data.activeProviderId = null;
+  writeStoreData(data);
   logger.info('Active provider cleared');
 }
+
