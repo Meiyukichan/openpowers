@@ -1,7 +1,7 @@
 /**
  * EditProviderDialog component renders a modal dialog for editing an existing provider.
  * Pre-fills form fields with current provider data (name, notes, websiteUrl, apiKey,
- * baseUrl). Does not show the preset selector. Submits via PUT /api/providers/:id.
+ * baseUrl). Does not show the preset selector. Submits via PUT /openpowers/api/providers/:id.
  * Styled with Tailwind CSS following cc-switch patterns.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -28,6 +28,10 @@ interface FormValues {
   websiteUrl: string;
   apiKey: string;
   baseUrl: string;
+  defaultModel: string;
+  sonnetModel: string;
+  opusModel: string;
+  haikuModel: string;
 }
 
 /**
@@ -41,6 +45,10 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
     websiteUrl: '',
     apiKey: '',
     baseUrl: '',
+    defaultModel: '',
+    sonnetModel: '',
+    opusModel: '',
+    haikuModel: '',
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,6 +63,10 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
         websiteUrl: provider.websiteUrl || '',
         apiKey: provider.apiKey || '',
         baseUrl: provider.baseUrl || '',
+        defaultModel: provider.defaultModel || '',
+        sonnetModel: provider.sonnetModel || '',
+        opusModel: provider.opusModel || '',
+        haikuModel: provider.haikuModel || '',
       });
       setShowApiKey(false);
       setErrors({});
@@ -113,12 +125,16 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/providers/${provider.id}`, {
+      const response = await fetch(`/openpowers/api/providers/${provider.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name.trim(),
           apiKey: form.apiKey.trim(),
+          defaultModel: form.defaultModel.trim(),
+          sonnetModel: form.sonnetModel.trim(),
+          opusModel: form.opusModel.trim(),
+          haikuModel: form.haikuModel.trim(),
           notes: form.notes.trim() || undefined,
           websiteUrl: form.websiteUrl.trim() || undefined,
           baseUrl: form.baseUrl.trim() || undefined,
@@ -247,6 +263,58 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
               onChange: handleChange('baseUrl'),
               className: inputClass,
               'aria-label': 'Base URL',
+            }),
+          ),
+          // Default Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Default Model',
+              value: form.defaultModel,
+              onChange: handleChange('defaultModel'),
+              className: inputClass,
+              'aria-label': 'Default Model',
+            }),
+          ),
+          // Sonnet Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Sonnet Model',
+              value: form.sonnetModel,
+              onChange: handleChange('sonnetModel'),
+              className: inputClass,
+              'aria-label': 'Sonnet Model',
+            }),
+          ),
+          // Opus Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Opus Model',
+              value: form.opusModel,
+              onChange: handleChange('opusModel'),
+              className: inputClass,
+              'aria-label': 'Opus Model',
+            }),
+          ),
+          // Haiku Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Haiku Model',
+              value: form.haikuModel,
+              onChange: handleChange('haikuModel'),
+              className: inputClass,
+              'aria-label': 'Haiku Model',
             }),
           ),
           // Footer buttons

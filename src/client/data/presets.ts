@@ -18,6 +18,14 @@ export interface ProviderPreset {
   icon: string;
   /** Icon color (hex) */
   iconColor: string;
+  /** Default model name for general use (optional) */
+  defaultModel?: string;
+  /** Default Sonnet-tier model name (optional) */
+  sonnetModel?: string;
+  /** Default Opus-tier model name (optional) */
+  opusModel?: string;
+  /** Default Haiku-tier model name (optional) */
+  haikuModel?: string;
 }
 
 /**
@@ -27,6 +35,12 @@ export interface ProviderPreset {
  * fields are pre-filled with these values.
  */
 export const claudeProviderPresets: ProviderPreset[] = [
+  {
+    name: '自定义配置',
+    baseUrl: '',
+    icon: 'wrench',
+    iconColor: '#6b7280',
+  },
   {
     name: 'Claude Official',
     websiteUrl: 'https://www.anthropic.com/claude-code',
@@ -54,6 +68,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.deepseek.com/anthropic',
     icon: 'cpu',
     iconColor: '#1E88E5',
+    defaultModel: 'deepseek-v4-pro',
+    sonnetModel: 'deepseek-v4-pro',
+    opusModel: 'deepseek-v4-pro',
+    haikuModel: 'deepseek-v4-flash',
   },
   {
     name: 'Zhipu GLM',
@@ -61,6 +79,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://open.bigmodel.cn/api/anthropic',
     icon: 'bot',
     iconColor: '#0F62FE',
+    defaultModel: 'glm-5',
+    sonnetModel: 'glm-5',
+    opusModel: 'glm-5',
+    haikuModel: 'glm-5',
   },
   {
     name: 'Zhipu GLM en',
@@ -68,6 +90,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.z.ai/api/anthropic',
     icon: 'bot',
     iconColor: '#0F62FE',
+    defaultModel: 'glm-5',
+    sonnetModel: 'glm-5',
+    opusModel: 'glm-5',
+    haikuModel: 'glm-5',
   },
   {
     name: 'Baidu Qianfan Coding Plan',
@@ -75,6 +101,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://qianfan.baidubce.com/anthropic/coding',
     icon: 'cloud',
     iconColor: '#2932E1',
+    defaultModel: 'qianfan-code-latest',
+    sonnetModel: 'qianfan-code-latest',
+    opusModel: 'qianfan-code-latest',
+    haikuModel: 'qianfan-code-latest',
   },
   {
     name: 'Bailian',
@@ -96,6 +126,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.moonshot.cn/anthropic',
     icon: 'star',
     iconColor: '#6366F1',
+    defaultModel: 'kimi-k2.6',
+    sonnetModel: 'kimi-k2.6',
+    opusModel: 'kimi-k2.6',
+    haikuModel: 'kimi-k2.6',
   },
   {
     name: 'Kimi For Coding',
@@ -110,6 +144,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.stepfun.com/step_plan',
     icon: 'zap',
     iconColor: '#16D6D2',
+    defaultModel: 'step-3.5-flash-2603',
+    sonnetModel: 'step-3.5-flash-2603',
+    opusModel: 'step-3.5-flash-2603',
+    haikuModel: 'step-3.5-flash-2603',
   },
   {
     name: 'StepFun en',
@@ -117,6 +155,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.stepfun.ai/step_plan',
     icon: 'zap',
     iconColor: '#16D6D2',
+    defaultModel: 'step-3.5-flash-2603',
+    sonnetModel: 'step-3.5-flash-2603',
+    opusModel: 'step-3.5-flash-2603',
+    haikuModel: 'step-3.5-flash-2603',
   },
   {
     name: 'ModelScope',
@@ -124,6 +166,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api-inference.modelscope.cn',
     icon: 'globe',
     iconColor: '#624AFF',
+    defaultModel: 'ZhipuAI/GLM-5',
+    sonnetModel: 'ZhipuAI/GLM-5',
+    opusModel: 'ZhipuAI/GLM-5',
+    haikuModel: 'ZhipuAI/GLM-5',
   },
   {
     name: 'Longcat',
@@ -131,6 +177,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.longcat.chat/anthropic',
     icon: 'bot',
     iconColor: '#29E154',
+    defaultModel: 'LongCat-Flash-Chat',
+    sonnetModel: 'LongCat-Flash-Chat',
+    opusModel: 'LongCat-Flash-Chat',
+    haikuModel: 'LongCat-Flash-Chat',
   },
   {
     name: 'MiniMax',
@@ -138,6 +188,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.minimaxi.com/anthropic',
     icon: 'sparkles',
     iconColor: '#FF6B6B',
+    defaultModel: 'MiniMax-M2.7',
+    sonnetModel: 'MiniMax-M2.7',
+    opusModel: 'MiniMax-M2.7',
+    haikuModel: 'MiniMax-M2.7',
   },
   {
     name: 'MiniMax en',
@@ -145,6 +199,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.minimax.io/anthropic',
     icon: 'sparkles',
     iconColor: '#FF6B6B',
+    defaultModel: 'MiniMax-M2.7',
+    sonnetModel: 'MiniMax-M2.7',
+    opusModel: 'MiniMax-M2.7',
+    haikuModel: 'MiniMax-M2.7',
   },
   {
     name: 'BaiLing',
@@ -152,6 +210,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.tbox.cn/api/anthropic',
     icon: 'wrench',
     iconColor: '#6366f1',
+    defaultModel: 'Ling-2.5-1T',
+    sonnetModel: 'Ling-2.5-1T',
+    opusModel: 'Ling-2.5-1T',
+    haikuModel: 'Ling-2.5-1T',
   },
   {
     name: 'AiHubMix',
@@ -166,6 +228,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.siliconflow.cn',
     icon: 'zap',
     iconColor: '#6E29F6',
+    defaultModel: 'Pro/MiniMaxAI/MiniMax-M2.7',
+    sonnetModel: 'Pro/MiniMaxAI/MiniMax-M2.7',
+    opusModel: 'Pro/MiniMaxAI/MiniMax-M2.7',
+    haikuModel: 'Pro/MiniMaxAI/MiniMax-M2.7',
   },
   {
     name: 'SiliconFlow en',
@@ -173,6 +239,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.siliconflow.com',
     icon: 'zap',
     iconColor: '#000000',
+    defaultModel: 'MiniMaxAI/MiniMax-M2.7',
+    sonnetModel: 'MiniMaxAI/MiniMax-M2.7',
+    opusModel: 'MiniMaxAI/MiniMax-M2.7',
+    haikuModel: 'MiniMaxAI/MiniMax-M2.7',
   },
   {
     name: 'DMXAPI',
@@ -306,6 +376,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://openrouter.ai/api',
     icon: 'globe',
     iconColor: '#6566F1',
+    defaultModel: 'anthropic/claude-sonnet-4.6',
+    sonnetModel: 'anthropic/claude-sonnet-4.6',
+    opusModel: 'anthropic/claude-opus-4.7',
+    haikuModel: 'anthropic/claude-haiku-4.5',
   },
   {
     name: 'TheRouter',
@@ -313,6 +387,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.therouter.ai',
     icon: 'globe',
     iconColor: '#3b82f6',
+    defaultModel: 'anthropic/claude-sonnet-4.6',
+    sonnetModel: 'anthropic/claude-sonnet-4.6',
+    opusModel: 'anthropic/claude-opus-4.7',
+    haikuModel: 'anthropic/claude-haiku-4.5',
   },
   {
     name: 'Novita AI',
@@ -320,6 +398,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.novita.ai/anthropic',
     icon: 'globe',
     iconColor: '#000000',
+    defaultModel: 'zai-org/glm-5',
+    sonnetModel: 'zai-org/glm-5',
+    opusModel: 'zai-org/glm-5',
+    haikuModel: 'zai-org/glm-5',
   },
   {
     name: 'LemonData',
@@ -334,6 +416,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://cc-api.pipellm.ai',
     icon: 'bot',
     iconColor: '#3b82f6',
+    defaultModel: 'claude-opus-4-7',
+    sonnetModel: 'claude-sonnet-4-6',
+    opusModel: 'claude-opus-4-7',
+    haikuModel: 'claude-haiku-4-5-20251001',
   },
   {
     name: 'Xiaomi MiMo',
@@ -341,6 +427,10 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://api.xiaomimimo.com/anthropic',
     icon: 'sparkles',
     iconColor: '#000000',
+    defaultModel: 'mimo-v2.5-pro',
+    sonnetModel: 'mimo-v2.5-pro',
+    opusModel: 'mimo-v2.5-pro',
+    haikuModel: 'mimo-v2.5-pro',
   },
   {
     name: 'Xiaomi MiMo Token Plan (China)',
@@ -348,5 +438,9 @@ export const claudeProviderPresets: ProviderPreset[] = [
     baseUrl: 'https://token-plan-cn.xiaomimimo.com/anthropic',
     icon: 'sparkles',
     iconColor: '#000000',
+    defaultModel: 'mimo-v2.5-pro',
+    sonnetModel: 'mimo-v2.5-pro',
+    opusModel: 'mimo-v2.5-pro',
+    haikuModel: 'mimo-v2.5-pro',
   },
 ];

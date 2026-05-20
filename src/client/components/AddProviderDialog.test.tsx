@@ -42,7 +42,7 @@ describe('AddProviderDialog', () => {
     expect(screen.queryByText('添加供应商')).not.toBeInTheDocument();
   });
 
-  it('shows form fields: name, notes, websiteUrl, apiKey, baseUrl', () => {
+  it('shows form fields: name, notes, websiteUrl, apiKey, baseUrl, and model fields', () => {
     render(
       React.createElement(AddProviderDialog, {
         isOpen: true,
@@ -55,6 +55,10 @@ describe('AddProviderDialog', () => {
     expect(screen.getByPlaceholderText(/website url/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/api key/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/base url/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/default model/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/sonnet model/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/opus model/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/haiku model/i)).toBeInTheDocument();
   });
 
   it('shows preset selector grid with provider names', () => {
@@ -69,7 +73,7 @@ describe('AddProviderDialog', () => {
     expect(screen.getByText('DeepSeek')).toBeInTheDocument();
   });
 
-  it('pre-fills name and baseUrl when a preset is selected', async () => {
+  it('pre-fills name, baseUrl, and model fields when a preset is selected', async () => {
     const user = userEvent.setup();
     render(
       React.createElement(AddProviderDialog, {
@@ -83,8 +87,16 @@ describe('AddProviderDialog', () => {
 
     const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;
     const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
     expect(nameInput.value).toBe('DeepSeek');
     expect(baseUrlInput.value).toBe('https://api.deepseek.com/anthropic');
+    expect(defaultModelInput.value).toBe('deepseek-v4-pro');
+    expect(sonnetModelInput.value).toBe('deepseek-v4-pro');
+    expect(opusModelInput.value).toBe('deepseek-v4-pro');
+    expect(haikuModelInput.value).toBe('deepseek-v4-flash');
   });
 
   it('shows validation errors when submitting with empty required fields', async () => {
@@ -104,6 +116,10 @@ describe('AddProviderDialog', () => {
       expect(screen.getByText(/name is required/i)).toBeInTheDocument();
     });
     expect(screen.getByText(/api key is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/default model is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/sonnet model is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/opus model is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/haiku model is required/i)).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -122,7 +138,7 @@ describe('AddProviderDialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('submits provider data via POST and calls onSuccess', async () => {
+  it('submits provider data via POST including model fields and calls onSuccess', async () => {
     const user = userEvent.setup();
     const onSuccess = vi.fn();
     const onClose = vi.fn();
@@ -142,6 +158,10 @@ describe('AddProviderDialog', () => {
     await user.type(screen.getByPlaceholderText(/provider name/i), 'My Provider');
     await user.type(screen.getByPlaceholderText(/api key/i), 'test-key-123');
     await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.example.com');
+    await user.type(screen.getByPlaceholderText(/default model/i), 'claude-sonnet-4.6');
+    await user.type(screen.getByPlaceholderText(/sonnet model/i), 'claude-sonnet-4.6');
+    await user.type(screen.getByPlaceholderText(/opus model/i), 'claude-opus-4.7');
+    await user.type(screen.getByPlaceholderText(/haiku model/i), 'claude-haiku-4.5');
 
     const submitButton = screen.getByText('添加');
     await user.click(submitButton);
@@ -150,10 +170,19 @@ describe('AddProviderDialog', () => {
       expect(onSuccess).toHaveBeenCalledOnce();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/providers',
+      '/openpowers/api/providers',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'My Provider',
+          apiKey: 'test-key-123',
+          defaultModel: 'claude-sonnet-4.6',
+          sonnetModel: 'claude-sonnet-4.6',
+          opusModel: 'claude-opus-4.7',
+          haikuModel: 'claude-haiku-4.5',
+          baseUrl: 'https://api.example.com',
+        }),
       }),
     );
   });
@@ -215,10 +244,18 @@ describe('AddProviderDialog', () => {
     const websiteUrlInput = screen.getByPlaceholderText(/website url/i) as HTMLInputElement;
     const apiKeyInput = screen.getByPlaceholderText(/api key/i) as HTMLInputElement;
     const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
     expect(nameInput.value).toBe('');
     expect(notesInput.value).toBe('');
     expect(websiteUrlInput.value).toBe('');
     expect(apiKeyInput.value).toBe('');
     expect(baseUrlInput.value).toBe('');
+    expect(defaultModelInput.value).toBe('');
+    expect(sonnetModelInput.value).toBe('');
+    expect(opusModelInput.value).toBe('');
+    expect(haikuModelInput.value).toBe('');
   });
 });

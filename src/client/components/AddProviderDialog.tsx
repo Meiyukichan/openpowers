@@ -2,7 +2,7 @@
  * AddProviderDialog component renders a modal dialog for creating a new provider.
  * Includes a preset selector grid above form fields (name, notes, websiteUrl,
  * apiKey with visibility toggle, baseUrl). Validates required fields before
- * submitting via POST /api/providers.
+ * submitting via POST /openpowers/api/providers.
  * Styled with Tailwind CSS following cc-switch patterns: backdrop overlay,
  * rounded-xl, shadows, smooth transitions.
  * @author Meiyuki <meiyukichan@163.com>
@@ -29,6 +29,10 @@ interface FormValues {
   websiteUrl: string;
   apiKey: string;
   baseUrl: string;
+  defaultModel: string;
+  sonnetModel: string;
+  opusModel: string;
+  haikuModel: string;
 }
 
 /** Initial empty form values. */
@@ -38,6 +42,10 @@ const EMPTY_FORM: FormValues = {
   websiteUrl: '',
   apiKey: '',
   baseUrl: '',
+  defaultModel: '',
+  sonnetModel: '',
+  opusModel: '',
+  haikuModel: '',
 };
 
 // Map of icon names to Lucide React components
@@ -110,12 +118,20 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
 
   const handlePresetSelect = (preset: ProviderPreset) => {
     setSelectedPreset(preset.name);
-    setForm((prev) => ({
-      ...prev,
-      name: preset.name,
-      baseUrl: preset.baseUrl,
-      websiteUrl: preset.websiteUrl || prev.websiteUrl,
-    }));
+    if (preset.name === '自定义配置') {
+      setForm(EMPTY_FORM);
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        name: preset.name,
+        baseUrl: preset.baseUrl,
+        websiteUrl: preset.websiteUrl || prev.websiteUrl,
+        defaultModel: preset.defaultModel || '',
+        sonnetModel: preset.sonnetModel || '',
+        opusModel: preset.opusModel || '',
+        haikuModel: preset.haikuModel || '',
+      }));
+    }
     setErrors({});
   };
 
@@ -127,6 +143,18 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
     if (!form.apiKey.trim()) {
       newErrors.apiKey = 'API Key is required';
     }
+    if (!form.defaultModel.trim()) {
+      newErrors.defaultModel = 'Default model is required';
+    }
+    if (!form.sonnetModel.trim()) {
+      newErrors.sonnetModel = 'Sonnet model is required';
+    }
+    if (!form.opusModel.trim()) {
+      newErrors.opusModel = 'Opus model is required';
+    }
+    if (!form.haikuModel.trim()) {
+      newErrors.haikuModel = 'Haiku model is required';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -137,12 +165,16 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/providers', {
+      const response = await fetch('/openpowers/api/providers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name.trim(),
           apiKey: form.apiKey.trim(),
+          defaultModel: form.defaultModel.trim(),
+          sonnetModel: form.sonnetModel.trim(),
+          opusModel: form.opusModel.trim(),
+          haikuModel: form.haikuModel.trim(),
           notes: form.notes.trim() || undefined,
           websiteUrl: form.websiteUrl.trim() || undefined,
           baseUrl: form.baseUrl.trim() || undefined,
@@ -188,7 +220,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
           'aria-modal': true,
           'aria-label': 'Add provider dialog',
           className:
-            'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto transition-all duration-200',
+            'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto transition-all duration-200',
         },
         // Header
         React.createElement(
@@ -215,27 +247,27 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
                     key: preset.name,
                     type: 'button',
                     onClick: () => handlePresetSelect(preset),
-                    className: `flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs transition-colors ${
+                    className: `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
                       selectedPreset === preset.name
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:bg-muted'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 hover:bg-gray-200 text-foreground'
                     }`,
                   },
                   React.createElement(
                     'div',
                     {
-                      className: 'h-7 w-7 rounded-md flex items-center justify-center',
+                      className: 'h-6 w-6 rounded flex items-center justify-center flex-shrink-0',
                       style: { backgroundColor: preset.iconColor + '20' },
                     },
                     (() => {
                       const IconComponent = ICON_MAP[preset.icon];
                       if (IconComponent) {
-                        return React.createElement(IconComponent, { size: 14, style: { color: preset.iconColor } });
+                        return React.createElement(IconComponent, { size: 12, style: { color: preset.iconColor } });
                       }
                       return React.createElement('span', { style: { color: preset.iconColor } }, preset.name.charAt(0));
                     })(),
                   ),
-                  React.createElement('span', { className: 'truncate w-full text-center' }, preset.name),
+                  React.createElement('span', { className: 'truncate text-left' }, preset.name),
                 ),
               ),
             ),
@@ -316,6 +348,62 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
               className: inputClass,
               'aria-label': 'Base URL',
             }),
+          ),
+          // Default Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Default Model',
+              value: form.defaultModel,
+              onChange: handleChange('defaultModel'),
+              className: `${inputClass} ${errors.defaultModel ? 'border-destructive' : ''}`,
+              'aria-label': 'Default Model',
+            }),
+            errors.defaultModel && React.createElement('p', { className: errorClass }, errors.defaultModel),
+          ),
+          // Sonnet Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Sonnet Model',
+              value: form.sonnetModel,
+              onChange: handleChange('sonnetModel'),
+              className: `${inputClass} ${errors.sonnetModel ? 'border-destructive' : ''}`,
+              'aria-label': 'Sonnet Model',
+            }),
+            errors.sonnetModel && React.createElement('p', { className: errorClass }, errors.sonnetModel),
+          ),
+          // Opus Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Opus Model',
+              value: form.opusModel,
+              onChange: handleChange('opusModel'),
+              className: `${inputClass} ${errors.opusModel ? 'border-destructive' : ''}`,
+              'aria-label': 'Opus Model',
+            }),
+            errors.opusModel && React.createElement('p', { className: errorClass }, errors.opusModel),
+          ),
+          // Haiku Model field
+          React.createElement(
+            'div',
+            null,
+            React.createElement('input', {
+              type: 'text',
+              placeholder: 'Haiku Model',
+              value: form.haikuModel,
+              onChange: handleChange('haikuModel'),
+              className: `${inputClass} ${errors.haikuModel ? 'border-destructive' : ''}`,
+              'aria-label': 'Haiku Model',
+            }),
+            errors.haikuModel && React.createElement('p', { className: errorClass }, errors.haikuModel),
           ),
           // Footer buttons
           React.createElement(

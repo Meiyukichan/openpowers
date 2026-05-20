@@ -22,6 +22,10 @@ const baseProvider: Provider = {
   icon: 'sparkles',
   iconColor: '#d97706',
   enabled: true,
+  defaultModel: 'claude-sonnet-4.6',
+  sonnetModel: 'claude-sonnet-4.6',
+  opusModel: 'claude-opus-4.7',
+  haikuModel: 'claude-haiku-4.5',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -58,7 +62,7 @@ describe('EditProviderDialog', () => {
     expect(screen.queryByText('编辑供应商')).not.toBeInTheDocument();
   });
 
-  it('pre-fills form fields with current provider data', () => {
+  it('pre-fills form fields including model fields with current provider data', () => {
     render(
       React.createElement(EditProviderDialog, {
         isOpen: true,
@@ -72,12 +76,20 @@ describe('EditProviderDialog', () => {
     const websiteUrlInput = screen.getByPlaceholderText(/website url/i) as HTMLInputElement;
     const apiKeyInput = screen.getByPlaceholderText(/api key/i) as HTMLInputElement;
     const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
 
     expect(nameInput.value).toBe('Test Provider');
     expect(notesInput.value).toBe('A test note');
     expect(websiteUrlInput.value).toBe('https://example.com');
     expect(apiKeyInput.value).toBe('sk-test-123');
     expect(baseUrlInput.value).toBe('https://api.example.com');
+    expect(defaultModelInput.value).toBe('claude-sonnet-4.6');
+    expect(sonnetModelInput.value).toBe('claude-sonnet-4.6');
+    expect(opusModelInput.value).toBe('claude-opus-4.7');
+    expect(haikuModelInput.value).toBe('claude-haiku-4.5');
   });
 
   it('does not show preset selector', () => {
@@ -151,10 +163,21 @@ describe('EditProviderDialog', () => {
       expect(onSuccess).toHaveBeenCalledOnce();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/providers/test-id-1',
+      '/openpowers/api/providers/test-id-1',
       expect.objectContaining({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Updated Provider',
+          apiKey: 'sk-test-123',
+          defaultModel: 'claude-sonnet-4.6',
+          sonnetModel: 'claude-sonnet-4.6',
+          opusModel: 'claude-opus-4.7',
+          haikuModel: 'claude-haiku-4.5',
+          notes: 'A test note',
+          websiteUrl: 'https://example.com',
+          baseUrl: 'https://api.example.com',
+        }),
       }),
     );
   });
