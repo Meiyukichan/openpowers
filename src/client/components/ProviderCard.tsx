@@ -9,14 +9,17 @@
 
 import React, { useState } from 'react';
 import type { Provider } from '../../server/providers-store.js';
-import { Sparkles, Cpu, Globe, Zap, Star, Cloud, Bot, Wrench, Power, PowerOff, Pencil, Trash2 } from 'lucide-react';
+import { Sparkles, Cpu, Globe, Zap, Star, Cloud, Bot, Wrench, Play, Check, Pencil, Trash2 } from 'lucide-react';
 
 /** Props for the ProviderCard component. */
 interface ProviderCardProps {
   provider: Provider;
-  onToggle: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
+  /** Callback to set this provider as the active provider */
+  onSetActive: (provider: Provider) => void;
+  /** Whether this provider is the currently active provider */
+  isActive: boolean;
 }
 
 // Map of icon names to Lucide React components
@@ -44,31 +47,70 @@ function ProviderIcon({ icon, color, size = 20 }: { icon?: string; color?: strin
 }
 
 /**
+ * Returns the button state configuration based on whether the provider is active.
+ * Active provider: grey disabled button with Check icon and "已在用" text.
+ * Inactive provider: blue button with Play icon and "启用" text.
+ */
+function getEnableButtonState(isActive: boolean): {
+  disabled: boolean;
+  className: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  text: string;
+} {
+  if (isActive) {
+    return {
+      disabled: true,
+      className: 'bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700',
+      icon: Check,
+      text: '已在用',
+    };
+  }
+  return {
+    disabled: false,
+    className: '',
+    icon: Play,
+    text: '启用',
+  };
+}
+
+/**
  * ProviderCard renders a card for a single provider.
  * Shows provider details and reveals action buttons on hover via group opacity transition.
  */
-export function ProviderCard({ provider, onToggle, onEdit, onDelete }: ProviderCardProps): React.ReactElement {
-  const [togglePending, setTogglePending] = useState(false);
+export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive }: ProviderCardProps): React.ReactElement {
+  const [enablePending, setEnablePending] = useState(false);
+  const buttonState = getEnableButtonState(isActive);
 
-  const handleToggle = async () => {
-    setTogglePending(true);
+  const handleEnable = async () => {
+    if (isActive) return;
+    setEnablePending(true);
     try {
-      await onToggle(provider);
+      await onSetActive(provider);
     } finally {
-      setTogglePending(false);
+      setEnablePending(false);
     }
   };
 
   return React.createElement(
     'div',
     {
-      className: `relative overflow-hidden rounded-xl border bg-card text-card-foreground p-4 transition-all duration-300 group ${
-        provider.enabled ? 'border-border' : 'border-muted opacity-60'
+      className: `relative overflow-hidden rounded-xl border bg-card text-card-foreground p-4 transition-all duration-300 group min-h-[120px] ${
+        isActive
+          ? 'border-blue-500/60 shadow-sm shadow-blue-500/10'
+          : provider.enabled
+            ? 'border-border hover:border-blue-500/50'
+            : 'border-muted opacity-60 hover:border-blue-500/50'
       }`,
     },
+    // Gradient overlay for active provider blue background
+    React.createElement('div', {
+      className: `absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none ${
+        isActive ? 'opacity-100' : 'opacity-0'
+      }`,
+    }),
     React.createElement(
       'div',
-      { className: 'flex items-center justify-between gap-4' },
+      { className: 'relative flex items-center justify-between gap-4' },
       // Left side: icon and info
       React.createElement(
         'div',
@@ -131,21 +173,22 @@ export function ProviderCard({ provider, onToggle, onEdit, onDelete }: ProviderC
           className:
             'flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
         },
-        // Toggle button
+        // Enable button
         React.createElement(
           'button',
           {
             type: 'button',
-            onClick: handleToggle,
-            disabled: togglePending,
-            'aria-label': `Toggle ${provider.name}`,
-            className: `p-2 rounded-lg transition-colors ${
-              provider.enabled
-                ? 'text-yellow-600 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/40'
-                : 'text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/40'
+            onClick: handleEnable,
+            disabled: buttonState.disabled || enablePending,
+            'aria-label': isActive ? `${provider.name} is active` : `Enable ${provider.name}`,
+            className: `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              buttonState.disabled
+                ? 'bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`,
           },
-          React.createElement(provider.enabled ? Power : PowerOff, { size: 16 }),
+          React.createElement(buttonState.icon, { size: 14 }),
+          buttonState.text,
         ),
         // Edit button
         React.createElement(
