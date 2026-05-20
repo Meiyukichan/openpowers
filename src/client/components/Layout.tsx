@@ -1,7 +1,7 @@
 /**
  * Layout component provides the main application shell.
- * Header with 'Claude' branding on the left, 'Session Management' placeholder in center,
- * and a circular orange '+' button on the right for adding providers.
+ * Header with 'Claude' branding on the left,
+ * and session management + circular orange '+' buttons on the right for adding providers.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -58,10 +58,10 @@ export function Layout({ onAddProvider, children }: LayoutProps): React.ReactEle
             className: 'text-muted-foreground',
           }),
         ),
-        // Center: session management placeholder
+        // Right: session management + add button
         React.createElement(
           'div',
-          { className: 'flex-1 flex items-center justify-center' },
+          { className: 'flex items-center gap-1.5' },
           React.createElement(
             'button',
             {
@@ -88,11 +88,6 @@ export function Layout({ onAddProvider, children }: LayoutProps): React.ReactEle
             ),
             '会话管理',
           ),
-        ),
-        // Right: add button
-        React.createElement(
-          'div',
-          { className: 'flex items-center' },
           React.createElement(
             'button',
             {

@@ -71,6 +71,21 @@ describe('Layout', () => {
     expect(onAddProvider).toHaveBeenCalledOnce();
   });
 
+  it('session management button is adjacent to add button in right-side group', () => {
+    render(
+      React.createElement(Layout, {
+        onAddProvider: vi.fn(),
+        children: React.createElement('div', null, 'content'),
+      }),
+    );
+    const sessionBtn = screen.getByText('会话管理').closest('button');
+    const addButton = screen.getByLabelText(/add provider/i);
+    // Both buttons should share the same parent container (right-side button group)
+    expect(sessionBtn?.parentElement).toBe(addButton.parentElement);
+    // Session button should be the previous sibling of the add button
+    expect(addButton.previousElementSibling).toBe(sessionBtn);
+  });
+
   it('renders children content', () => {
     render(
       React.createElement(Layout, {
