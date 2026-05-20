@@ -6,12 +6,15 @@
  */
 
 import * as express from 'express';
+import { z } from 'zod';
 import {
   loadProviders,
   createProvider,
   updateProvider,
   deleteProvider,
   toggleProvider,
+  getActiveProviderId,
+  setActiveProviderId,
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
@@ -32,18 +35,23 @@ export const providersRouter = express.default.Router();
  * @param error - The ZodError from safeParse
  * @returns An object with error message and field-level details
  */
-function formatZodError(error: { issues: Array<{ path: (string | number)[]; message: string }> }): {
+function formatZodError(error: { issues: Array<{ path: readonly (string | number | symbol)[]; message: string }> }): {
   error: string;
   details: Array<{ field: string; message: string }>;
 } {
   return {
     error: 'Validation failed',
     details: error.issues.map((issue) => ({
-      field: issue.path.join('.'),
+      field: issue.path.map(String).join('.'),
       message: issue.message,
     })),
   };
 }
+
+/** Zod schema for setting the active provider (client input). */
+const SetActiveProviderSchema = z.object({
+  providerId: z.string(),
+});
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -56,6 +64,34 @@ function formatZodError(error: { issues: Array<{ path: (string | number)[]; mess
 providersRouter.get('/', (_req, res) => {
   const providers = loadProviders();
   res.status(200).json(providers);
+});
+
+/**
+ * GET /api/providers/active
+ * Returns the currently active provider ID, or null if none is set.
+ */
+providersRouter.get('/active', (_req, res) => {
+  const activeProviderId = getActiveProviderId();
+  res.status(200).json({ activeProviderId });
+});
+
+/**
+ * PUT /api/providers/active
+ * Sets the specified provider as the active provider. Validates the provider ID
+ * exists before persisting the active state.
+ */
+providersRouter.put('/active', (req, res) => {
+  const parsed = SetActiveProviderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(formatZodError(parsed.error));
+    return;
+  }
+  try {
+    setActiveProviderId(parsed.data.providerId);
+    res.status(200).json({ activeProviderId: parsed.data.providerId });
+  } catch {
+    res.status(404).json({ error: `Provider not found: ${parsed.data.providerId}` });
+  }
 });
 
 /**

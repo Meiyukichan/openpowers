@@ -17,6 +17,8 @@ const {
   deleteProviderMock,
   toggleProviderMock,
   ensureProvidersFileMock,
+  getActiveProviderIdMock,
+  setActiveProviderIdMock,
 } = vi.hoisted(() => ({
   loadProvidersMock: vi.fn(),
   createProviderMock: vi.fn(),
@@ -24,6 +26,8 @@ const {
   deleteProviderMock: vi.fn(),
   toggleProviderMock: vi.fn(),
   ensureProvidersFileMock: vi.fn(),
+  getActiveProviderIdMock: vi.fn(),
+  setActiveProviderIdMock: vi.fn(),
 }));
 
 const { loggerMock } = vi.hoisted(() => ({
@@ -49,6 +53,8 @@ vi.mock('../providers-store.js', async (importOriginal) => {
     deleteProvider: deleteProviderMock,
     toggleProvider: toggleProviderMock,
     ensureProvidersFile: ensureProvidersFileMock,
+    getActiveProviderId: getActiveProviderIdMock,
+    setActiveProviderId: setActiveProviderIdMock,
   };
 });
 
@@ -250,6 +256,74 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app).patch('/api/providers/non-existent/toggle');
+
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('error');
+    });
+  });
+
+  // ---- GET /api/providers/active ----
+
+  describe('GET /api/providers/active', () => {
+    it('should return activeProviderId when set', async () => {
+      getActiveProviderIdMock.mockReturnValue(
+        '550e8400-e29b-41d4-a716-446655440000',
+      );
+
+      const res = await request(app).get('/api/providers/active');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        activeProviderId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+    });
+
+    it('should return null when no active provider is set', async () => {
+      getActiveProviderIdMock.mockReturnValue(null);
+
+      const res = await request(app).get('/api/providers/active');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ activeProviderId: null });
+    });
+  });
+
+  // ---- PUT /api/providers/active ----
+
+  describe('PUT /api/providers/active', () => {
+    it('should set active provider and return 200', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+
+      const res = await request(app)
+        .put('/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        activeProviderId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+      expect(setActiveProviderIdMock).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+      );
+    });
+
+    it('should return 400 when providerId is missing', async () => {
+      const res = await request(app)
+        .put('/api/providers/active')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should return 404 when provider ID does not exist', async () => {
+      setActiveProviderIdMock.mockImplementation(() => {
+        throw new Error('Provider not found: non-existent');
+      });
+
+      const res = await request(app)
+        .put('/api/providers/active')
+        .send({ providerId: 'non-existent' });
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');

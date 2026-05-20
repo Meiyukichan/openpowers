@@ -409,3 +409,140 @@ describe('ProviderSchema', () => {
     expect(result.success).toBe(false);
   });
 });
+
+// ---- Active Provider Tests ----
+
+const ACTIVE_PROVIDER_FILE = path.join('/mock/home', '.openpowers', 'active-provider.json');
+
+describe('getActiveProviderId', () => {
+  it('should return null when active-provider.json does not exist', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const result = mod.getActiveProviderId();
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null when active-provider.json contains null', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify({ activeProviderId: null }));
+
+    const result = mod.getActiveProviderId();
+
+    expect(result).toBeNull();
+  });
+
+  it('should return provider ID when active-provider.json contains a valid ID', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      JSON.stringify({ activeProviderId: '550e8400-e29b-41d4-a716-446655440000' }),
+    );
+
+    const result = mod.getActiveProviderId();
+
+    expect(result).toBe('550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('should return null when active-provider.json has invalid JSON', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue('invalid-json');
+
+    const result = mod.getActiveProviderId();
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('setActiveProviderId', () => {
+  it('should write provider ID to active-provider.json with indent=2', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify(sampleProviderList));
+
+    mod.setActiveProviderId('550e8400-e29b-41d4-a716-446655440000');
+
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [filePath, content] = writeFileSyncMock.mock.calls[0];
+    expect(filePath).toBe(ACTIVE_PROVIDER_FILE);
+    const parsed = JSON.parse(content);
+    expect(parsed).toEqual({ activeProviderId: '550e8400-e29b-41d4-a716-446655440000' });
+    // Verify indent=2 formatting
+    expect(content).toContain('\n');
+  });
+
+  it('should throw error when provider ID does not exist', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify(sampleProviderList));
+
+    expect(() => mod.setActiveProviderId('non-existent-id')).toThrow('not found');
+  });
+});
+
+describe('clearActiveProviderId', () => {
+  it('should write null to active-provider.json', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    mod.clearActiveProviderId();
+
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [filePath, content] = writeFileSyncMock.mock.calls[0];
+    expect(filePath).toBe(ACTIVE_PROVIDER_FILE);
+    const parsed = JSON.parse(content);
+    expect(parsed).toEqual({ activeProviderId: null });
+    // Verify indent=2 formatting
+    expect(content).toContain('\n');
+  });
+});
+
+describe('deleteProvider cascade', () => {
+  it('should clear active provider when deleting the active provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    // First read: providers.json for deleteProvider
+    // Second read: active-provider.json for getActiveProviderId (inside deleteProvider)
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify(sampleProviderList))
+      .mockReturnValueOnce(
+        JSON.stringify({ activeProviderId: '550e8400-e29b-41d4-a716-446655440000' }),
+      );
+
+    const result = mod.deleteProvider('550e8400-e29b-41d4-a716-446655440000');
+
+    expect(result).toBe(true);
+    // Should write twice: once for providers.json, once for active-provider.json
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(2);
+    const [, activeContent] = writeFileSyncMock.mock.calls[1];
+    const activeParsed = JSON.parse(activeContent);
+    expect(activeParsed).toEqual({ activeProviderId: null });
+  });
+
+  it('should not clear active provider when deleting a non-active provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    const otherProvider = {
+      ...sampleProvider,
+      id: 'other-id',
+    };
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify([sampleProvider, otherProvider]))
+      .mockReturnValueOnce(
+        JSON.stringify({ activeProviderId: '550e8400-e29b-41d4-a716-446655440000' }),
+      );
+
+    const result = mod.deleteProvider('other-id');
+
+    expect(result).toBe(true);
+    // Should write only once: providers.json (no need to clear active)
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not attempt to clear active when no active provider is set', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify(sampleProviderList))
+      .mockReturnValueOnce(JSON.stringify({ activeProviderId: null }));
+
+    const result = mod.deleteProvider('550e8400-e29b-41d4-a716-446655440000');
+
+    expect(result).toBe(true);
+    // Should write only once: providers.json
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+  });
+});

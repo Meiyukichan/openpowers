@@ -21,6 +21,9 @@ import { logger } from '../utils/logger.js';
 const DATA_DIR = path.join(os.homedir(), '.openpowers');
 const PROVIDERS_FILE = path.join(DATA_DIR, 'providers.json');
 
+// Active provider state file path
+const ACTIVE_PROVIDER_FILE = path.join(DATA_DIR, 'active-provider.json');
+
 // ---------------------------------------------------------------------------
 // Zod schemas
 // ---------------------------------------------------------------------------
@@ -223,7 +226,8 @@ export function updateProvider(id: string, update: ProviderUpdate): Provider {
 }
 
 /**
- * Deletes a provider by its ID.
+ * Deletes a provider by its ID. If the deleted provider is the currently active
+ * provider, the active provider state is cleared (cascade).
  * @param id - The UUID of the provider to delete
  * @returns true if the provider was found and deleted, false if not found
  */
@@ -238,6 +242,11 @@ export function deleteProvider(id: string): boolean {
   providers.splice(index, 1);
   saveProviders(providers);
   logger.info(`Provider deleted: ${deleted.name} (${deleted.id})`);
+
+  // Cascade: clear active provider if the deleted provider was active
+  if (getActiveProviderId() === id) {
+    clearActiveProviderId();
+  }
 
   return true;
 }
@@ -260,4 +269,70 @@ export function toggleProvider(id: string): Provider {
   logger.info(`Provider toggled: ${providers[index].name} (${id}) enabled=${providers[index].enabled}`);
 
   return providers[index];
+}
+
+// ---------------------------------------------------------------------------
+// Active provider operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads the currently active provider ID from active-provider.json.
+ * Returns null if the file does not exist, is corrupt, or has no active provider.
+ * @returns The active provider UUID string, or null if none is set
+ */
+export function getActiveProviderId(): string | null {
+  if (!fs.existsSync(ACTIVE_PROVIDER_FILE)) {
+    return null;
+  }
+  try {
+    const raw = fs.readFileSync(ACTIVE_PROVIDER_FILE, 'utf-8');
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === 'object'
+      && parsed !== null
+      && 'activeProviderId' in parsed
+      && typeof (parsed as { activeProviderId: unknown }).activeProviderId === 'string'
+    ) {
+      return (parsed as { activeProviderId: string }).activeProviderId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sets the active provider ID. Validates that the provider exists before saving.
+ * @param providerId - The UUID of the provider to set as active
+ * @throws Error if the provider ID does not exist
+ */
+export function setActiveProviderId(providerId: string): void {
+  const provider = getProviderById(providerId);
+  if (!provider) {
+    throw new Error(`Provider not found: ${providerId}`);
+  }
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  fs.writeFileSync(
+    ACTIVE_PROVIDER_FILE,
+    JSON.stringify({ activeProviderId: providerId }, null, 2),
+    'utf-8',
+  );
+  logger.info(`Active provider set: ${providerId}`);
+}
+
+/**
+ * Clears the active provider ID by writing null to active-provider.json.
+ */
+export function clearActiveProviderId(): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  fs.writeFileSync(
+    ACTIVE_PROVIDER_FILE,
+    JSON.stringify({ activeProviderId: null }, null, 2),
+    'utf-8',
+  );
+  logger.info('Active provider cleared');
 }
