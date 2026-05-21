@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { Layout } from './components/Layout.js';
 import { ProviderList } from './components/ProviderList.js';
 import { AddProviderDialog } from './components/AddProviderDialog.js';
@@ -14,6 +15,8 @@ import { EditProviderDialog } from './components/EditProviderDialog.js';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog.js';
 import type { Provider } from '../server/providers-store.js';
 import { logger } from './utils/logger.js';
+
+type ToastType = 'success' | 'error';
 
 /**
  * App is the root component that composes the Layout with the ProviderList.
@@ -25,17 +28,18 @@ export function App(): React.ReactElement {
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [enableOpenpowersProxy, setEnableOpenpowersProxy] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: ToastType } | null>(null);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  const showToast = useCallback((message: string) => {
-    setToastMessage(message);
+  const showToast = useCallback((text: string, type: ToastType = 'success') => {
+    setToastMessage({ text, type });
     setTimeout(() => {
       setToastMessage(null);
-    }, 3000);
+    }, 2500);
   }, []);
 
   /**
@@ -58,6 +62,21 @@ export function App(): React.ReactElement {
     void fetchActiveProvider();
   }, [refreshTrigger]);
 
+  // Fetch proxy state on mount
+  useEffect(() => {
+    const fetchProxyState = async () => {
+      try {
+        const response = await fetch('/openpowers/api/providers/proxy');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data: { enableOpenpowersProxy: boolean } = await response.json();
+        setEnableOpenpowersProxy(data.enableOpenpowersProxy);
+      } catch (err) {
+        logger.error(`Failed to fetch proxy state: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+    void fetchProxyState();
+  }, []);
+
   // --- Add dialog handlers ---
 
   const handleOpenAddDialog = () => {
@@ -70,6 +89,7 @@ export function App(): React.ReactElement {
 
   const handleAddSuccess = () => {
     triggerRefresh();
+    showToast('已添加供应商');
   };
 
   // --- Edit dialog handlers ---
@@ -84,6 +104,7 @@ export function App(): React.ReactElement {
 
   const handleEditSuccess = () => {
     triggerRefresh();
+    showToast('已保存供应商');
   };
 
   // --- Delete dialog handlers ---
@@ -110,8 +131,11 @@ export function App(): React.ReactElement {
         throw new Error(`HTTP ${response.status}`);
       }
       triggerRefresh();
+      showToast('已还原Claude配置');
     } catch (err) {
-      logger.error(`Failed to reset providers: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to reset providers: ${message}`);
+      showToast(`还原配置失败: ${message}`, 'error');
     }
   };
 
@@ -132,8 +156,29 @@ export function App(): React.ReactElement {
         throw new Error(`HTTP ${response.status}`);
       }
       triggerRefresh();
+      showToast(`已切换至 ${provider.name}`);
     } catch (err) {
-      logger.error(`Failed to set active provider: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to set active provider: ${message}`);
+      showToast(`切换供应商失败: ${message}`, 'error');
+    }
+  };
+
+  const handleToggleProxy = async () => {
+    const nextState = !enableOpenpowersProxy;
+    try {
+      const response = await fetch('/openpowers/api/providers/proxy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enableOpenpowersProxy: nextState }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      setEnableOpenpowersProxy(nextState);
+      showToast(nextState ? '已开启本地代理路由' : '已关闭本地代理路由');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to toggle proxy: ${message}`);
+      showToast(`操作失败: ${message}`, 'error');
     }
   };
 
@@ -144,7 +189,13 @@ export function App(): React.ReactElement {
     null,
     React.createElement(
       Layout,
-      { onAddProvider: handleOpenAddDialog, onReset: handleReset },
+      {
+        onAddProvider: handleOpenAddDialog,
+        onReset: handleReset,
+        showToast,
+        enableOpenpowersProxy,
+        onToggleProxy: handleToggleProxy,
+      },
       React.createElement(ProviderList, {
         onEdit: handleOpenEditDialog,
         onDelete: handleOpenDeleteDialog,
@@ -159,6 +210,7 @@ export function App(): React.ReactElement {
       isOpen: isAddDialogOpen,
       onClose: handleCloseAddDialog,
       onSuccess: handleAddSuccess,
+      showToast,
     }),
     // Edit provider dialog
     React.createElement(EditProviderDialog, {
@@ -166,6 +218,7 @@ export function App(): React.ReactElement {
       provider: editingProvider,
       onClose: handleCloseEditDialog,
       onSuccess: handleEditSuccess,
+      showToast,
     }),
     // Delete confirmation dialog
     React.createElement(DeleteConfirmDialog, {
@@ -173,16 +226,24 @@ export function App(): React.ReactElement {
       provider: deletingProvider,
       onClose: handleCloseDeleteDialog,
       onSuccess: handleDeleteSuccess,
+      showToast,
     }),
     // Toast notification
     toastMessage &&
       React.createElement(
         'div',
         {
-          className:
-            'fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-green-100/95 px-6 py-3 text-base font-medium text-green-700 shadow-md transition-opacity duration-300',
+          className: `fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-xl px-6 py-3 text-base font-medium shadow-md transition-all duration-300 flex items-center gap-2 ${
+            toastMessage.type === 'error'
+              ? 'bg-red-100/95 text-red-700'
+              : 'bg-emerald-100/95 text-emerald-700'
+          }`,
         },
-        toastMessage,
+        React.createElement(
+          toastMessage.type === 'error' ? XCircle : CheckCircle,
+          { size: 18 },
+        ),
+        toastMessage.text,
       ),
   );
 }

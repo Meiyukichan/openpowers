@@ -4,7 +4,9 @@
         "enable": false,
         "default": "mimo",
         "switch": {
+            "main": "mimo",
             "explore": "minimax",
+            "propose": "glm",
             "plan": "glm",
             "review": "deepseek",
             "coding": "minimax",

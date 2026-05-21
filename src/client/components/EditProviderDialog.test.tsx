@@ -45,6 +45,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText('编辑供应商')).toBeInTheDocument();
@@ -57,6 +58,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.queryByText('编辑供应商')).not.toBeInTheDocument();
@@ -69,6 +71,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;
@@ -99,6 +102,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.queryByText('Preset Providers')).not.toBeInTheDocument();
@@ -112,6 +116,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText('取消')).toBeInTheDocument();
@@ -127,6 +132,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const cancelButton = screen.getByText('取消');
@@ -149,6 +155,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess,
+        showToast: vi.fn(),
       }),
     );
 
@@ -193,6 +200,7 @@ describe('EditProviderDialog', () => {
         provider: providerWithEmptyName,
         onClose: vi.fn(),
         onSuccess,
+        showToast: vi.fn(),
       }),
     );
 
@@ -214,6 +222,7 @@ describe('EditProviderDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const backdrop = document.querySelector('.fixed.inset-0')?.firstChild as HTMLElement;

@@ -20,6 +20,7 @@ interface AddProviderDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  showToast: (text: string, type?: 'success' | 'error') => void;
 }
 
 /** Form field values for the add provider form. */
@@ -64,12 +65,12 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
  * AddProviderDialog renders a modal dialog with a preset selector grid
  * and form fields for creating a new Claude provider.
  */
-export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDialogProps): React.ReactElement | null {
+export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: AddProviderDialogProps): React.ReactElement | null {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [showApiKey, setShowApiKey] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>('自定义配置');
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Reset form when dialog opens
@@ -78,7 +79,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
       setForm(EMPTY_FORM);
       setShowApiKey(false);
       setErrors({});
-      setSelectedPreset(null);
+      setSelectedPreset('自定义配置');
     }
   }, [isOpen]);
 
@@ -186,7 +187,9 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
       onSuccess();
       onClose();
     } catch (err) {
-      logger.error(`Failed to add provider: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to add provider: ${message}`);
+      showToast(`添加供应商失败: ${message}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -194,6 +197,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
 
   if (!isOpen) return null;
 
+  const labelClass = 'block text-sm font-medium text-foreground mb-1';
   const inputClass =
     'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors';
   const errorClass = 'text-xs text-destructive mt-1';
@@ -202,26 +206,37 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
     React.createElement(
       'div',
       {
-        className: 'fixed inset-0 z-50 flex items-center justify-center',
+        className: 'fixed inset-0 z-50 overflow-y-auto',
       },
-      // Backdrop overlay
-      React.createElement('div', {
-        className: 'absolute inset-0 bg-black/50 transition-opacity duration-200',
-        onClick: onClose,
-        'aria-label': 'Close dialog',
-      }),
-      // Dialog panel
+      // Centering wrapper (clicking empty space closes dialog)
       React.createElement(
         'div',
         {
-          ref: dialogRef,
-          onClick: (e: React.MouseEvent) => e.stopPropagation(),
-          role: 'dialog',
-          'aria-modal': true,
-          'aria-label': 'Add provider dialog',
-          className:
-            'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto transition-all duration-200',
+          className: 'min-h-full flex items-center justify-center p-4',
+          onClick: (e: React.MouseEvent) => {
+            // Close only if clicking the wrapper itself, not child elements
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          },
         },
+        // Backdrop overlay (visual only)
+        React.createElement('div', {
+          className: 'fixed inset-0 bg-black/50 transition-opacity duration-200 pointer-events-none',
+          'aria-hidden': true,
+        }),
+        // Dialog panel
+        React.createElement(
+          'div',
+          {
+            ref: dialogRef,
+            onClick: (e: React.MouseEvent) => e.stopPropagation(),
+            role: 'dialog',
+            'aria-modal': true,
+            'aria-label': 'Add provider dialog',
+            className:
+              'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto transition-all duration-200',
+          },
         // Header
         React.createElement(
           'div',
@@ -246,6 +261,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
                   {
                     key: preset.name,
                     type: 'button',
+                    title: preset.name,
                     onClick: () => handlePresetSelect(preset),
                     className: `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
                       selectedPreset === preset.name
@@ -273,33 +289,41 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
             ),
           ),
           // Form fields
-          // Name field
+          // Name + Notes row
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Provider name',
-              value: form.name,
-              onChange: handleChange('name'),
-              className: `${inputClass} ${errors.name ? 'border-destructive' : ''}`,
-              'aria-label': 'Provider name',
-            }),
-            errors.name && React.createElement('p', { className: errorClass }, errors.name),
-          ),
-          // Notes field
-          React.createElement('div', null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Notes (optional)',
-              value: form.notes,
-              onChange: handleChange('notes'),
-              className: inputClass,
-              'aria-label': 'Notes',
-            }),
+            { className: 'grid grid-cols-2 gap-4' },
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '供应商名称'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Provider name',
+                value: form.name,
+                onChange: handleChange('name'),
+                className: `${inputClass} ${errors.name ? 'border-destructive' : ''}`,
+                'aria-label': 'Provider name',
+              }),
+              errors.name && React.createElement('p', { className: errorClass }, errors.name),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '备注'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Notes (optional)',
+                value: form.notes,
+                onChange: handleChange('notes'),
+                className: inputClass,
+                'aria-label': 'Notes',
+              }),
+            ),
           ),
           // Website URL field
           React.createElement('div', null,
+            React.createElement('label', { className: labelClass }, '官网链接'),
             React.createElement('input', {
               type: 'url',
               placeholder: 'Website URL (optional)',
@@ -313,6 +337,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
           React.createElement(
             'div',
             null,
+            React.createElement('label', { className: labelClass }, 'API Key'),
             React.createElement(
               'div',
               { className: 'relative' },
@@ -340,6 +365,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
           ),
           // Base URL field
           React.createElement('div', null,
+            React.createElement('label', { className: labelClass }, '请求地址'),
             React.createElement('input', {
               type: 'url',
               placeholder: 'Base URL (optional)',
@@ -349,61 +375,72 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
               'aria-label': 'Base URL',
             }),
           ),
-          // Default Model field
+          // Model fields - compact 2x2 grid
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Default Model',
-              value: form.defaultModel,
-              onChange: handleChange('defaultModel'),
-              className: `${inputClass} ${errors.defaultModel ? 'border-destructive' : ''}`,
-              'aria-label': 'Default Model',
-            }),
-            errors.defaultModel && React.createElement('p', { className: errorClass }, errors.defaultModel),
+            { className: 'grid grid-cols-2 gap-4' },
+            // Row 1: Default Model + Sonnet
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '默认模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Default Model',
+                value: form.defaultModel,
+                onChange: handleChange('defaultModel'),
+                className: `${inputClass} ${errors.defaultModel ? 'border-destructive' : ''}`,
+                'aria-label': 'Default Model',
+              }),
+              errors.defaultModel && React.createElement('p', { className: errorClass }, errors.defaultModel),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Sonnet 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Sonnet Model',
+                value: form.sonnetModel,
+                onChange: handleChange('sonnetModel'),
+                className: `${inputClass} ${errors.sonnetModel ? 'border-destructive' : ''}`,
+                'aria-label': 'Sonnet Model',
+              }),
+              errors.sonnetModel && React.createElement('p', { className: errorClass }, errors.sonnetModel),
+            ),
           ),
-          // Sonnet Model field
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Sonnet Model',
-              value: form.sonnetModel,
-              onChange: handleChange('sonnetModel'),
-              className: `${inputClass} ${errors.sonnetModel ? 'border-destructive' : ''}`,
-              'aria-label': 'Sonnet Model',
-            }),
-            errors.sonnetModel && React.createElement('p', { className: errorClass }, errors.sonnetModel),
-          ),
-          // Opus Model field
-          React.createElement(
-            'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Opus Model',
-              value: form.opusModel,
-              onChange: handleChange('opusModel'),
-              className: `${inputClass} ${errors.opusModel ? 'border-destructive' : ''}`,
-              'aria-label': 'Opus Model',
-            }),
-            errors.opusModel && React.createElement('p', { className: errorClass }, errors.opusModel),
-          ),
-          // Haiku Model field
-          React.createElement(
-            'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Haiku Model',
-              value: form.haikuModel,
-              onChange: handleChange('haikuModel'),
-              className: `${inputClass} ${errors.haikuModel ? 'border-destructive' : ''}`,
-              'aria-label': 'Haiku Model',
-            }),
-            errors.haikuModel && React.createElement('p', { className: errorClass }, errors.haikuModel),
+            { className: 'grid grid-cols-2 gap-4' },
+            // Row 2: Opus + Haiku
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Opus 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Opus Model',
+                value: form.opusModel,
+                onChange: handleChange('opusModel'),
+                className: `${inputClass} ${errors.opusModel ? 'border-destructive' : ''}`,
+                'aria-label': 'Opus Model',
+              }),
+              errors.opusModel && React.createElement('p', { className: errorClass }, errors.opusModel),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Haiku 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Haiku Model',
+                value: form.haikuModel,
+                onChange: handleChange('haikuModel'),
+                className: `${inputClass} ${errors.haikuModel ? 'border-destructive' : ''}`,
+                'aria-label': 'Haiku Model',
+              }),
+              errors.haikuModel && React.createElement('p', { className: errorClass }, errors.haikuModel),
+            ),
           ),
           // Footer buttons
           React.createElement(
@@ -421,17 +458,32 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess }: AddProviderDia
               '取消',
             ),
             React.createElement(
-              'button',
-              {
-                type: 'submit',
-                disabled: submitting,
-                className:
-                  'inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50',
-              },
-              submitting ? 'Adding...' : '添加',
+              'div',
+              { className: 'flex items-center gap-2' },
+              React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  disabled: submitting,
+                  className:
+                    'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted',
+                },
+                '添加为模板',
+              ),
+              React.createElement(
+                'button',
+                {
+                  type: 'submit',
+                  disabled: submitting,
+                  className:
+                    'inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50',
+                },
+                submitting ? 'Adding...' : '添加',
+              ),
             ),
           ),
         ),
+      ),
       ),
     ),
     document.body,

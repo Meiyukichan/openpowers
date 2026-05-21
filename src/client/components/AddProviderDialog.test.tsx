@@ -26,6 +26,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText('添加供应商')).toBeInTheDocument();
@@ -37,6 +38,7 @@ describe('AddProviderDialog', () => {
         isOpen: false,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.queryByText('添加供应商')).not.toBeInTheDocument();
@@ -48,6 +50,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByPlaceholderText(/provider name/i)).toBeInTheDocument();
@@ -67,6 +70,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText('Claude Official')).toBeInTheDocument();
@@ -80,6 +84,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const presetButton = screen.getByText('DeepSeek');
@@ -107,6 +112,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess,
+        showToast: vi.fn(),
       }),
     );
     const submitButton = screen.getByText('添加');
@@ -131,6 +137,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const cancelButton = screen.getByText('取消');
@@ -152,6 +159,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose,
         onSuccess,
+        showToast: vi.fn(),
       }),
     );
 
@@ -195,6 +203,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const backdrop = document.querySelector('.fixed.inset-0')?.firstChild as HTMLElement;
@@ -209,6 +218,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.queryByText(/model selector/i)).not.toBeInTheDocument();
@@ -222,6 +232,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     // All visible preset names should be from the Claude-specific presets list
@@ -237,6 +248,7 @@ describe('AddProviderDialog', () => {
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;

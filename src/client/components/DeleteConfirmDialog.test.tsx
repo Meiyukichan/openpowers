@@ -41,6 +41,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText('确定要删除该供应商吗？')).toBeInTheDocument();
@@ -53,6 +54,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.getByText(/Test Provider/)).toBeInTheDocument();
@@ -65,6 +67,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     expect(screen.queryByText('确定要删除该供应商吗？')).not.toBeInTheDocument();
@@ -79,6 +82,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const cancelButton = screen.getByText('取消');
@@ -100,6 +104,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess,
+        showToast: vi.fn(),
       }),
     );
 
@@ -124,6 +129,7 @@ describe('DeleteConfirmDialog', () => {
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
+        showToast: vi.fn(),
       }),
     );
     const backdrop = document.querySelector('.fixed.inset-0')?.firstChild as HTMLElement;

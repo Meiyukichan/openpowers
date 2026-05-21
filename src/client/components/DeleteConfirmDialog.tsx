@@ -19,13 +19,14 @@ interface DeleteConfirmDialogProps {
   provider: Provider | null;
   onClose: () => void;
   onSuccess: () => void;
+  showToast: (text: string, type?: 'success' | 'error') => void;
 }
 
 /**
  * DeleteConfirmDialog renders a modal confirmation dialog for deleting a provider.
  * Includes the provider name in the warning message and confirm/cancel buttons.
  */
-export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess }: DeleteConfirmDialogProps): React.ReactElement | null {
+export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, showToast }: DeleteConfirmDialogProps): React.ReactElement | null {
   const [deleting, setDeleting] = useState(false);
 
   // ESC key closes the dialog
@@ -64,7 +65,9 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess }: De
       onSuccess();
       onClose();
     } catch (err) {
-      logger.error(`Failed to delete provider: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to delete provider: ${message}`);
+      showToast(`删除供应商失败: ${message}`, 'error');
     } finally {
       setDeleting(false);
     }

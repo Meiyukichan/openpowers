@@ -6,13 +6,17 @@
  * @copyright 2026 Meiyuki
  */
 
-import React from 'react';
-import { Plus, Settings, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Settings, RotateCcw, Radio } from 'lucide-react';
+import { ConfirmResetDialog } from './ConfirmResetDialog.js';
 
 /** Props for the Layout component. */
 interface LayoutProps {
   onAddProvider: () => void;
   onReset: () => void;
+  showToast: (text: string, type?: 'success' | 'error') => void;
+  enableOpenpowersProxy: boolean;
+  onToggleProxy: () => void;
   children: React.ReactNode;
 }
 
@@ -20,9 +24,24 @@ interface LayoutProps {
  * Layout renders the application shell with a fixed header and scrollable main content area.
  * The header contains branding, a placeholder session management button, and an add provider button.
  */
-export function Layout({ onAddProvider, onReset, children }: LayoutProps): React.ReactElement {
+export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProxy, onToggleProxy, children }: LayoutProps): React.ReactElement {
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
+
   const handleSessionClick = () => {
     // Placeholder - no effect
+  };
+
+  const handleResetClick = () => {
+    setShowConfirmReset(true);
+  };
+
+  const handleResetConfirm = () => {
+    setShowConfirmReset(false);
+    onReset();
+  };
+
+  const handleResetCancel = () => {
+    setShowConfirmReset(false);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -71,13 +90,44 @@ export function Layout({ onAddProvider, onReset, children }: LayoutProps): React
             'button',
             {
               type: 'button',
-              onClick: onReset,
+              onClick: handleResetClick,
               'aria-label': 'Reset providers',
               title: '还原Claude配置',
               className:
                 'p-1 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors',
             },
             React.createElement(RotateCcw, { size: 16 }),
+          ),
+          React.createElement(
+            'div',
+            {
+              title: enableOpenpowersProxy
+                ? 'Claude Desktop local routing is running - 127.0.0.1:15721'
+                : 'Turn on Claude Desktop local routing for providers that need model mapping or format conversion. Configured address: 127.0.0.1:15721',
+              className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
+            },
+            React.createElement(Radio, {
+              size: 14,
+              className: enableOpenpowersProxy ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground',
+            }),
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                role: 'switch',
+                'aria-checked': enableOpenpowersProxy,
+                'aria-label': 'Toggle Claude Desktop local routing',
+                onClick: onToggleProxy,
+                className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'
+                }`,
+              },
+              React.createElement('span', {
+                className: `inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                  enableOpenpowersProxy ? 'translate-x-5' : 'translate-x-0.5'
+                }`,
+              }),
+            ),
           ),
         ),
         // Right: session management + add button
@@ -131,5 +181,12 @@ export function Layout({ onAddProvider, onReset, children }: LayoutProps): React
       { className: 'flex-1 px-6 py-8 mx-auto w-full max-w-5xl' },
       children,
     ),
+    React.createElement(ConfirmResetDialog, {
+      isOpen: showConfirmReset,
+      title: '确认还原',
+      message: '是否还原Claude配置？',
+      onConfirm: handleResetConfirm,
+      onCancel: handleResetCancel,
+    }),
   );
 }

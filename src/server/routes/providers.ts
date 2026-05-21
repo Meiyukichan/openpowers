@@ -14,6 +14,8 @@ import {
   getActiveProviderId,
   setActiveProviderId,
   clearActiveProviderId,
+  getEnableOpenpowersProxy,
+  setEnableOpenpowersProxy,
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
@@ -109,6 +111,34 @@ providersRouter.post('/', (req, res) => {
 });
 
 /**
+ * GET /openpowers/api/providers/proxy
+ * Returns the current enableOpenpowersProxy state.
+ */
+providersRouter.get('/proxy', (_req, res) => {
+  const enabled = getEnableOpenpowersProxy();
+  res.status(200).json({ enableOpenpowersProxy: enabled });
+});
+
+/** Zod schema for setting the proxy enabled state. */
+const SetProxySchema = z.object({
+  enableOpenpowersProxy: z.boolean(),
+});
+
+/**
+ * PUT /openpowers/api/providers/proxy
+ * Sets the enableOpenpowersProxy flag.
+ */
+providersRouter.put('/proxy', (req, res) => {
+  const parsed = SetProxySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(formatZodError(parsed.error));
+    return;
+  }
+  setEnableOpenpowersProxy(parsed.data.enableOpenpowersProxy);
+  res.status(200).json({ enableOpenpowersProxy: parsed.data.enableOpenpowersProxy });
+});
+
+/**
  * PUT /openpowers/api/providers/:id
  * Updates an existing provider. Only fields present in the body are modified.
  */
@@ -147,4 +177,5 @@ providersRouter.post('/reset', (_req, res) => {
   clearActiveProviderId();
   res.status(200).json({ activeProviderId: null });
 });
+
 

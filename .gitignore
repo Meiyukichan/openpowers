@@ -17,3 +17,4 @@ docs/
 build/
 CLAUDE.md
 full_coverage.txt
+.playwright-mcp/

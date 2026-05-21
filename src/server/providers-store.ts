@@ -49,6 +49,7 @@ export type Provider = z.infer<typeof ProviderSchema>;
 /** Zod schema for the combined store file. */
 const StoreDataSchema = z.object({
   activeProviderId: z.string().nullable(),
+  enableOpenpowersProxy: z.boolean().nullable().default(false),
   providers: z.array(ProviderSchema),
 });
 
@@ -98,6 +99,7 @@ export type ProviderUpdate = z.infer<typeof ProviderUpdateSchema>;
 /** Default store data when providers.json does not exist. */
 const DEFAULT_STORE_DATA: StoreData = {
   activeProviderId: null,
+  enableOpenpowersProxy: false,
   providers: [
     {
       id: '00000000-0000-0000-0000-000000000001',
@@ -333,5 +335,28 @@ export function clearActiveProviderId(): void {
   data.activeProviderId = null;
   writeStoreData(data);
   logger.info('Active provider cleared');
+}
+
+// ---------------------------------------------------------------------------
+// OpenPowers proxy operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads the enableOpenpowersProxy flag from the store.
+ * @returns The current proxy enabled state, or false if not set
+ */
+export function getEnableOpenpowersProxy(): boolean {
+  return readStoreData().enableOpenpowersProxy ?? false;
+}
+
+/**
+ * Sets the enableOpenpowersProxy flag.
+ * @param enabled - The new enabled state
+ */
+export function setEnableOpenpowersProxy(enabled: boolean): void {
+  const data = readStoreData();
+  data.enableOpenpowersProxy = enabled;
+  writeStoreData(data);
+  logger.info(`OpenPowers proxy ${enabled ? 'enabled' : 'disabled'}`);
 }
 

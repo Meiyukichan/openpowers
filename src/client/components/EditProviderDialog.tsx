@@ -19,6 +19,7 @@ interface EditProviderDialogProps {
   provider: Provider | null;
   onClose: () => void;
   onSuccess: () => void;
+  showToast: (text: string, type?: 'success' | 'error') => void;
 }
 
 /** Form field values for the edit provider form. */
@@ -38,7 +39,7 @@ interface FormValues {
  * EditProviderDialog renders a modal dialog with pre-filled form fields
  * for editing an existing provider. Same fields as add dialog without preset selector.
  */
-export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: EditProviderDialogProps): React.ReactElement | null {
+export function EditProviderDialog({ isOpen, provider, onClose, onSuccess, showToast }: EditProviderDialogProps): React.ReactElement | null {
   const [form, setForm] = useState<FormValues>({
     name: '',
     notes: '',
@@ -146,7 +147,9 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
       onSuccess();
       onClose();
     } catch (err) {
-      logger.error(`Failed to update provider: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to update provider: ${message}`);
+      showToast(`保存供应商失败: ${message}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -154,6 +157,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
 
   if (!isOpen || !provider) return null;
 
+  const labelClass = 'block text-sm font-medium text-foreground mb-1';
   const inputClass =
     'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors';
   const errorClass = 'text-xs text-destructive mt-1';
@@ -161,24 +165,34 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
   return createPortal(
     React.createElement(
       'div',
-      { className: 'fixed inset-0 z-50 flex items-center justify-center' },
-      // Backdrop overlay
-      React.createElement('div', {
-        className: 'absolute inset-0 bg-black/50 transition-opacity duration-200',
-        onClick: onClose,
-        'aria-label': 'Close dialog',
-      }),
-      // Dialog panel
+      { className: 'fixed inset-0 z-50 overflow-y-auto' },
+      // Centering wrapper (clicking empty space closes dialog)
       React.createElement(
         'div',
         {
-          role: 'dialog',
-          'aria-modal': true,
-          'aria-label': 'Edit provider dialog',
-          onClick: (e: React.MouseEvent) => e.stopPropagation(),
-          className:
-            'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto transition-all duration-200',
+          className: 'min-h-full flex items-center justify-center p-4',
+          onClick: (e: React.MouseEvent) => {
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          },
         },
+        // Backdrop overlay (visual only)
+        React.createElement('div', {
+          className: 'fixed inset-0 bg-black/50 transition-opacity duration-200 pointer-events-none',
+          'aria-hidden': true,
+        }),
+        // Dialog panel
+        React.createElement(
+          'div',
+          {
+            role: 'dialog',
+            'aria-modal': true,
+            'aria-label': 'Edit provider dialog',
+            onClick: (e: React.MouseEvent) => e.stopPropagation(),
+            className:
+              'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transition-all duration-200',
+          },
         // Header
         React.createElement(
           'div',
@@ -189,33 +203,41 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
         React.createElement(
           'form',
           { onSubmit: handleSubmit, className: 'px-6 py-4 space-y-4' },
-          // Name field
+          // Name + Notes row
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Provider name',
-              value: form.name,
-              onChange: handleChange('name'),
-              className: `${inputClass} ${errors.name ? 'border-destructive' : ''}`,
-              'aria-label': 'Provider name',
-            }),
-            errors.name && React.createElement('p', { className: errorClass }, errors.name),
-          ),
-          // Notes field
-          React.createElement('div', null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Notes (optional)',
-              value: form.notes,
-              onChange: handleChange('notes'),
-              className: inputClass,
-              'aria-label': 'Notes',
-            }),
+            { className: 'grid grid-cols-2 gap-4' },
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '供应商名称'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Provider name',
+                value: form.name,
+                onChange: handleChange('name'),
+                className: `${inputClass} ${errors.name ? 'border-destructive' : ''}`,
+                'aria-label': 'Provider name',
+              }),
+              errors.name && React.createElement('p', { className: errorClass }, errors.name),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '备注'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Notes (optional)',
+                value: form.notes,
+                onChange: handleChange('notes'),
+                className: inputClass,
+                'aria-label': 'Notes',
+              }),
+            ),
           ),
           // Website URL field
           React.createElement('div', null,
+            React.createElement('label', { className: labelClass }, '官网链接'),
             React.createElement('input', {
               type: 'url',
               placeholder: 'Website URL (optional)',
@@ -229,6 +251,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
           React.createElement(
             'div',
             null,
+            React.createElement('label', { className: labelClass }, 'API Key'),
             React.createElement(
               'div',
               { className: 'relative' },
@@ -256,6 +279,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
           ),
           // Base URL field
           React.createElement('div', null,
+            React.createElement('label', { className: labelClass }, '请求地址'),
             React.createElement('input', {
               type: 'url',
               placeholder: 'Base URL (optional)',
@@ -265,57 +289,68 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
               'aria-label': 'Base URL',
             }),
           ),
-          // Default Model field
+          // Model fields - compact 2x2 grid
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Default Model',
-              value: form.defaultModel,
-              onChange: handleChange('defaultModel'),
-              className: inputClass,
-              'aria-label': 'Default Model',
-            }),
+            { className: 'grid grid-cols-2 gap-4' },
+            // Row 1: Default Model + Sonnet
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, '默认模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Default Model',
+                value: form.defaultModel,
+                onChange: handleChange('defaultModel'),
+                className: inputClass,
+                'aria-label': 'Default Model',
+              }),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Sonnet 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Sonnet Model',
+                value: form.sonnetModel,
+                onChange: handleChange('sonnetModel'),
+                className: inputClass,
+                'aria-label': 'Sonnet Model',
+              }),
+            ),
           ),
-          // Sonnet Model field
           React.createElement(
             'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Sonnet Model',
-              value: form.sonnetModel,
-              onChange: handleChange('sonnetModel'),
-              className: inputClass,
-              'aria-label': 'Sonnet Model',
-            }),
-          ),
-          // Opus Model field
-          React.createElement(
-            'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Opus Model',
-              value: form.opusModel,
-              onChange: handleChange('opusModel'),
-              className: inputClass,
-              'aria-label': 'Opus Model',
-            }),
-          ),
-          // Haiku Model field
-          React.createElement(
-            'div',
-            null,
-            React.createElement('input', {
-              type: 'text',
-              placeholder: 'Haiku Model',
-              value: form.haikuModel,
-              onChange: handleChange('haikuModel'),
-              className: inputClass,
-              'aria-label': 'Haiku Model',
-            }),
+            { className: 'grid grid-cols-2 gap-4' },
+            // Row 2: Opus + Haiku
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Opus 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Opus Model',
+                value: form.opusModel,
+                onChange: handleChange('opusModel'),
+                className: inputClass,
+                'aria-label': 'Opus Model',
+              }),
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { className: labelClass }, 'Haiku 模型'),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'Haiku Model',
+                value: form.haikuModel,
+                onChange: handleChange('haikuModel'),
+                className: inputClass,
+                'aria-label': 'Haiku Model',
+              }),
+            ),
           ),
           // Footer buttons
           React.createElement(
@@ -344,6 +379,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess }: Edi
             ),
           ),
         ),
+      ),
       ),
     ),
     document.body,
