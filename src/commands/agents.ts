@@ -340,9 +340,18 @@ export function registerAgentsCommand(program: Command): void {
   agentsCmd
     .command('switch <name>')
     .description('Switch current provider for a session')
-    .requiredOption('--session <id>', 'Session ID')
-    .action((name: string, options: { session: string }) => {
-      runAgentsSwitch(name, options.session);
+    .option('--session <id>', 'Session ID')
+    .option('--mark', 'Mark the switch')
+    .action((name: string, options: { session?: string; mark?: boolean }) => {
+      if (!options.session && !options.mark) {
+        process.stderr.write('Either --session or --mark is required\n');
+        process.exit(1);
+      }
+      if (options.mark) {
+        process.stdout.write('Marked\n');
+        return;
+      }
+      runAgentsSwitch(name, options.session!);
     });
 
   agentsCmd

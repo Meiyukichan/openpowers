@@ -441,7 +441,7 @@ describe('src/commands/agents.ts', () => {
   // Acceptance Criteria 9: agents switch without --session
   // -----------------------------------------------------------------------
 
-  it('agents switch <name> without --session should output error', async () => {
+  it('agents switch <name> without --session or --mark should output error', async () => {
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
     const program = new Command();
@@ -454,7 +454,23 @@ describe('src/commands/agents.ts', () => {
     }
 
     const output = stderrCalls.join('');
-    expect(output).toContain('--session');
+    expect(output).toContain('--session or --mark');
+  });
+
+  it('agents switch <name> --mark should output Marked', async () => {
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'switch', 'explore', '--mark'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    const output = stdoutCalls.join('');
+    expect(output).toContain('Marked');
   });
 
   // -----------------------------------------------------------------------
