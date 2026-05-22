@@ -1,17 +1,13 @@
 {
     "language": "chinese",
-    "providers": {
-        "enable": false,
-        "default": "mimo",
-        "switch": {
-            "main": "mimo",
-            "explore": "minimax",
-            "propose": "glm",
-            "plan": "glm",
-            "review": "deepseek",
-            "coding": "minimax",
-            "finalize": "deepseek"
-        }
+    "switchProviders": {
+        "workflow": "default",
+        "explore": "default",
+        "propose": "default",
+        "plan": "default",
+        "review": "default",
+        "coding": "default",
+        "finalize": "default"
     },
     "project": {
         "sourcecode": "./",
@@ -38,7 +34,7 @@
             "acceptance": true
         },
         "prompt": {
-            "review-code": null
+            "reviewCode": null
         },
         "coverage": "70%",
         "budget": true,

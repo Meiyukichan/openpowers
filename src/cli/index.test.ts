@@ -18,10 +18,10 @@ describe('src/cli/index.ts', () => {
     expect(program.version()).toBe('1.0.0');
   });
 
-  it('should register all 8 subcommands (init, ui, remove, recover, change, config, enable, disable)', async () => {
+  it('should register all 9 subcommands (init, ui, remove, recover, change, config, enable, disable, agents)', async () => {
     const { program } = await import('./index.js');
     const names = program.commands.map((cmd) => cmd.name());
-    expect(names.length).toBe(8);
+    expect(names.length).toBe(9);
     expect(names).toContain('init');
     expect(names).toContain('ui');
     expect(names).toContain('remove');
@@ -30,5 +30,6 @@ describe('src/cli/index.ts', () => {
     expect(names).toContain('config');
     expect(names).toContain('enable');
     expect(names).toContain('disable');
+    expect(names).toContain('agents');
   });
 });

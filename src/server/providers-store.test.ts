@@ -611,3 +611,134 @@ describe('deleteProvider cascade', () => {
     expect(parsed.providers).toHaveLength(0);
   });
 });
+
+// ---- getDefaultProvider ----
+
+describe('getDefaultProvider', () => {
+  it('should return full provider object when activeProviderId is set', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000'),
+    );
+
+    const result = mod.getDefaultProvider();
+
+    expect(result).toEqual(sampleProvider);
+  });
+
+  it('should return null when activeProviderId is null', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null));
+
+    const result = mod.getDefaultProvider();
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null when providers file does not exist', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const result = mod.getDefaultProvider();
+
+    expect(result).toBeNull();
+  });
+});
+
+// ---- getProviderByModels ----
+
+describe('getProviderByModels', () => {
+  it('should return provider when model matches defaultModel', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels(['test-default-model']);
+
+    expect(result).toEqual({ 'test-default-model': sampleProvider });
+  });
+
+  it('should return provider when model matches sonnetModel', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels(['test-sonnet-model']);
+
+    expect(result).toEqual({ 'test-sonnet-model': sampleProvider });
+  });
+
+  it('should return provider when model matches opusModel', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels(['test-opus-model']);
+
+    expect(result).toEqual({ 'test-opus-model': sampleProvider });
+  });
+
+  it('should return provider when model matches haikuModel', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels(['test-haiku-model']);
+
+    expect(result).toEqual({ 'test-haiku-model': sampleProvider });
+  });
+
+  it('should return null when model does not exist in any provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels(['nonexistent-model']);
+
+    expect(result).toEqual({ 'nonexistent-model': null });
+  });
+
+  it('should support batch query returning mapping for all model names', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels([
+      'test-default-model',
+      'nonexistent-model',
+      'test-sonnet-model',
+    ]);
+
+    expect(result).toEqual({
+      'test-default-model': sampleProvider,
+      'nonexistent-model': null,
+      'test-sonnet-model': sampleProvider,
+    });
+  });
+
+  it('should return empty object when models array is empty', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
+
+    const result = mod.getProviderByModels([]);
+
+    expect(result).toEqual({});
+  });
+
+  it('should match model across multiple providers returning first match', () => {
+    existsSyncMock.mockReturnValue(true);
+    const provider2 = {
+      ...sampleProvider,
+      id: 'provider-2-id',
+      name: 'Provider 2',
+      defaultModel: 'shared-model',
+    };
+    const provider3 = {
+      ...sampleProvider,
+      id: 'provider-3-id',
+      name: 'Provider 3',
+      defaultModel: 'shared-model',
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([sampleProvider, provider2, provider3]),
+    );
+
+    const result = mod.getProviderByModels(['shared-model']);
+
+    // Should return the first provider that matches
+    expect(result).toEqual({ 'shared-model': provider2 });
+  });
+});

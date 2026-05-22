@@ -360,3 +360,50 @@ export function setEnableOpenpowersProxy(enabled: boolean): void {
   logger.info(`OpenPowers proxy ${enabled ? 'enabled' : 'disabled'}`);
 }
 
+// ---------------------------------------------------------------------------
+// Provider query operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the full provider object for the currently active provider.
+ * @returns The active provider object, or null if no provider is active
+ */
+export function getDefaultProvider(): Provider | null {
+  const activeId = getActiveProviderId();
+  if (activeId === null) {
+    return null;
+  }
+  return getProviderById(activeId) ?? null;
+}
+
+// Model field names used by getProviderByModels for matching
+const MODEL_FIELDS = ['defaultModel', 'sonnetModel', 'opusModel', 'haikuModel'] as const;
+
+/**
+ * Takes a list of model names and returns a mapping of each model name
+ * to the provider that contains it. Searches across defaultModel, sonnetModel,
+ * opusModel, and haikuModel fields of all providers.
+ * @param models - Array of model names to search for
+ * @returns A record mapping each model name to its found provider, or null if not found
+ */
+export function getProviderByModels(models: string[]): Record<string, Provider | null> {
+  const providers = loadProviders();
+  const result: Record<string, Provider | null> = {};
+
+  for (const model of models) {
+    let found: Provider | null = null;
+    for (const provider of providers) {
+      for (const field of MODEL_FIELDS) {
+        if (provider[field] === model) {
+          found = provider;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    result[model] = found;
+  }
+
+  return result;
+}
+

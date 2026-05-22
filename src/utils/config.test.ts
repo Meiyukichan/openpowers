@@ -76,7 +76,7 @@ const defaultConfigFixture = {
       acceptance: true,
     },
     prompt: {
-      'review-code': null as string | null,
+      reviewCode: null as string | null,
     },
     coverage: '70%',
     budget: true,

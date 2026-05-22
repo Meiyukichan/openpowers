@@ -16,11 +16,11 @@ Output language: {`language` or Chinese}
 Call the following script to get `User Review Focus Requirements`:
 
 ```bash
-openpowers config show language experimental.prompt.review-code
+openpowers config show language experimental.prompt.reviewCode
 ```
 
 The script returns:
-   - `experimental.prompt.review-code`: User-defined code review prompt or skill. If the value is a path, it is a skill file — read its content as `User Review Focus Requirements`; if the value is a skill name, invoke that skill as `User Review Focus Requirements`; if the value is a string, use it directly as `User Review Focus Requirements`.
+   - `experimental.prompt.reviewCode`: User-defined code review prompt or skill. If the value is a path, it is a skill file — read its content as `User Review Focus Requirements`; if the value is a skill name, invoke that skill as `User Review Focus Requirements`; if the value is a string, use it directly as `User Review Focus Requirements`.
 
 ### Current Project Path
 {Current Project Path}

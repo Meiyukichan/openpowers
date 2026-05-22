@@ -14,6 +14,7 @@ import { registerChangeCommand } from '../commands/change/index.js';
 import { registerConfigCommand } from '../commands/config.js';
 import { registerEnableCommand } from '../commands/enable.js';
 import { registerDisableCommand } from '../commands/disable.js';
+import { registerAgentsCommand } from '../commands/agents.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
@@ -33,5 +34,6 @@ registerChangeCommand(program);
 registerConfigCommand(program);
 registerEnableCommand(program);
 registerDisableCommand(program);
+registerAgentsCommand(program);
 
 export { program };

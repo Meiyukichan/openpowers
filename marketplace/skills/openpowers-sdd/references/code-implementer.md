@@ -23,7 +23,7 @@ You will work with the following files (these are only the likely files involved
 
 ## Feature Reference Documents and Related Implementations
 
-The feature reference document is: `openpowers/changes/<name>/reference/{feature-id}.md`. If it exists, you must read it and use it as a reference when writing code.
+The feature reference document is: `{cwd}/openpowers/changes/<name>/reference/{feature-id}.md`. If it exists, you must read it and use it as a reference when writing code.
 
 ## Spec References
 

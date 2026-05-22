@@ -119,14 +119,14 @@ In this phase, you must strictly and accurately follow these steps:
 Invoke Skill: openpowers-explore to explore the codebase, with parameters:
   - Exploration type: project
   - Exploration content: $ARGUMENTS
-  - Output file path: `openpowers/changes/<name>/exploration.md`
+  - Output file path: `{cwd}/openpowers/changes/<name>/exploration.md`
 
 #### 3. Post-Execution
 
 - None
 
 ### Output
-`openpowers/changes/<name>/exploration.md`
+`{cwd}/openpowers/changes/<name>/exploration.md`
 
 ### Principle
 Exploration time, not implementation time. Do not write code.

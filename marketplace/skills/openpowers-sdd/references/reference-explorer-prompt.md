@@ -19,5 +19,5 @@ Task tool (general-purpose):
     1. Invoke the skill `openpowers-explore` to obtain the feature's reference documentation or implementation, with the following skill parameters:
         - Exploration type: references
         - Exploration content: {exploration content}
-        - Output file path: `openpowers/changes/<name>/reference/{feature-id}.md`
+        - Output file path: `{cwd}/openpowers/changes/<name>/reference/{feature-id}.md`
 ```

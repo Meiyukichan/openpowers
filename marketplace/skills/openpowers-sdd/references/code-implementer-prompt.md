@@ -36,7 +36,7 @@ Task tool (general-purpose):
     {feature.files — one per line, using bullet points — these are only the likely files involved, not a complete list}
 
     ## Feature Reference Documents
-    {`openpowers/changes/<name>/reference/{feature-id}.md`}
+    {`{cwd}/openpowers/changes/<name>/reference/{feature-id}.md`}
 
     ## Execution Flow
     Follow these steps strictly and accurately:

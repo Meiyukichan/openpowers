@@ -56,7 +56,7 @@ const ReviewSchema = z.object({
 });
 
 const PromptSchema = z.object({
-  'review-code': z.string().nullable(),
+  reviewCode: z.string().nullable(),
 });
 
 const ExperimentalSchema = z.object({
