@@ -115,7 +115,7 @@ describe('src/commands/agents.ts', () => {
         return true;
       },
     );
-    vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
+    vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
       throw new Error(`process.exit(${code})`);
     });
     vi.clearAllMocks();
@@ -213,14 +213,25 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents list --session <id> should output stage/model table', async () => {
-    const { loadProviders, getDefaultProvider } = await import('../server/providers-store.js');
+    const { loadProviders, getDefaultProvider, getProviderByModels, getEnableOpenpowersProxy } = await import('../server/providers-store.js');
+    const { loadConfig } = await import('../utils/config.js');
     vi.mocked(loadProviders).mockReturnValue(mockProviders);
     vi.mocked(getDefaultProvider).mockReturnValue(mockDefaultProvider);
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({
+      'claude-sonnet-4-20250514': mockDefaultProvider,
+      'gpt-4-turbo': mockDefaultProvider,
+    });
 
     mockReadSessionSettings.mockReturnValue({
       sessionId: 'test-session',
       cwd: '/test',
       currentProvider: 'default',
+      switchProviders: {},
+    });
+
+    vi.mocked(loadConfig).mockReturnValue({
       switchProviders: {
         workflow: 'default',
         explore: 'claude-sonnet-4-20250514',
@@ -230,7 +241,7 @@ describe('src/commands/agents.ts', () => {
         coding: 'default',
         finalize: 'default',
       },
-    });
+    } as unknown as ReturnType<typeof loadConfig>);
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -376,10 +387,21 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents switch <name> --session <id> should update currentProvider and output success', async () => {
+    const { getProviderByModels, getEnableOpenpowersProxy } = await import('../server/providers-store.js');
+    const { loadConfig } = await import('../utils/config.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({
+      'claude-sonnet-4-20250514': mockDefaultProvider,
+    });
     const sessionSettings: SessionSettings = {
       sessionId: 'test-session',
       cwd: '/test',
       currentProvider: 'default',
+      switchProviders: {},
+    };
+
+    vi.mocked(loadConfig).mockReturnValue({
       switchProviders: {
         workflow: 'default',
         explore: 'claude-sonnet-4-20250514',
@@ -389,7 +411,7 @@ describe('src/commands/agents.ts', () => {
         coding: 'default',
         finalize: 'default',
       },
-    };
+    } as unknown as ReturnType<typeof loadConfig>);
 
     mockReadSessionSettings.mockReturnValue({ ...sessionSettings });
     mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/test-session/settings.json');
@@ -555,7 +577,7 @@ describe('src/commands/agents.ts', () => {
     }
 
     const output = stderrCalls.join('');
-    expect(output).toContain('代理未开启');
+    expect(output).toContain('Proxy is not enabled');
   });
 
   // -----------------------------------------------------------------------
@@ -620,7 +642,7 @@ describe('src/commands/agents.ts', () => {
         coding: 'default',
         finalize: 'default',
       },
-    } as unknown as Record<string, unknown>);
+    } as unknown as ReturnType<typeof loadConfig>);
 
     // Valid model found, invalid model not found
     vi.mocked(getProviderByModels).mockReturnValue({

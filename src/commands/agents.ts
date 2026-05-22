@@ -33,6 +33,69 @@ function isValidStage(name: string): boolean {
 }
 
 /**
+ * Validates switchProviders values against existing providers.
+ * Model names not found in any provider are replaced with 'default'.
+ * @param rawSwitchProviders - The raw stage-to-model mapping
+ * @returns The validated mapping with invalid models replaced by 'default'
+ */
+function validateSwitchProviders(rawSwitchProviders: Record<string, string>): Record<string, string> {
+  const modelNames = Object.values(rawSwitchProviders).filter((v) => v !== 'default');
+
+  if (modelNames.length === 0) {
+    return { ...rawSwitchProviders };
+  }
+
+  const providerByModels = getProviderByModels(modelNames);
+  const validated: Record<string, string> = {};
+
+  for (const [stage, modelValue] of Object.entries(rawSwitchProviders)) {
+    if (modelValue === 'default') {
+      validated[stage] = 'default';
+    } else if (providerByModels[modelValue] !== null && providerByModels[modelValue] !== undefined) {
+      validated[stage] = modelValue;
+    } else {
+      validated[stage] = 'default';
+      logger.warn(`Model '${modelValue}' for stage '${stage}' not found in providers, replaced with 'default'`);
+    }
+  }
+
+  return validated;
+}
+
+/**
+ * Reads session settings, reloads switchProviders from project config,
+ * validates model names, and writes back the updated settings.
+ * Checks proxy is enabled and cwd directory exists before proceeding.
+ * @param sessionId - The session identifier
+ * @returns The session settings with refreshed switchProviders, or null if not found
+ */
+function loadAndValidateSessionSettings(sessionId: string): ReturnType<typeof readSessionSettings> {
+  const settings = readSessionSettings(sessionId);
+  if (!settings) return null;
+
+  // Check proxy is enabled
+  if (!getEnableOpenpowersProxy()) {
+    process.stderr.write('Proxy is not enabled, this feature is not supported\n');
+    process.exit(1);
+  }
+
+  // Check cwd directory exists
+  if (!fs.existsSync(settings.cwd)) {
+    process.stderr.write(`Directory does not exist: ${settings.cwd}\n`);
+    process.exit(1);
+  }
+
+  const config = loadConfig(settings.cwd);
+  const rawSwitchProviders: Record<string, string> = (config as Record<string, unknown>).switchProviders as Record<string, string> || {};
+
+  const validated = validateSwitchProviders(rawSwitchProviders);
+  settings.switchProviders = validated;
+  writeSessionSettings(sessionId, settings);
+
+  return settings;
+}
+
+/**
  * Outputs the provider table with columns Name, default, sonnet, opus, haiku.
  * Column widths are dynamically calculated from the data.
  */
@@ -94,7 +157,7 @@ function resolveModelValue(modelValue: string): string {
  * @param sessionId - The session identifier
  */
 function runAgentsListSession(sessionId: string): void {
-  const settings = readSessionSettings(sessionId);
+  const settings = loadAndValidateSessionSettings(sessionId);
   if (!settings) {
     process.stderr.write(`Session configuration not found for session: ${sessionId}\n`);
     process.exit(1);
@@ -152,7 +215,7 @@ function runAgentsShow(name: string, sessionId: string): void {
     process.exit(1);
   }
 
-  const settings = readSessionSettings(sessionId);
+  const settings = loadAndValidateSessionSettings(sessionId);
   if (!settings) {
     process.stderr.write(`Session configuration not found for session: ${sessionId}\n`);
     process.exit(1);
@@ -175,13 +238,13 @@ function runAgentsShow(name: string, sessionId: string): void {
  * @param sessionId - The session identifier
  */
 function runAgentsSwitch(name: string, sessionId: string): void {
-  // Validate name is a supported stage
-  if (!isValidStage(name)) {
+  // Validate name is 'default' or a supported stage
+  if (name !== 'default' && !isValidStage(name)) {
     process.stderr.write(`Stage name not supported: ${name}\n`);
     process.exit(1);
   }
 
-  const settings = readSessionSettings(sessionId);
+  const settings = loadAndValidateSessionSettings(sessionId);
   if (!settings) {
     process.stderr.write('Switch failed, no configuration file\n');
     process.exit(1);
@@ -217,38 +280,16 @@ function runAgentsInit(sessionId: string, cwd: string): void {
 
   // Check proxy is enabled
   if (!getEnableOpenpowersProxy()) {
-    process.stderr.write('代理未开启，该功能不支持\n');
+    process.stderr.write('Proxy is not enabled, this feature is not supported\n');
     process.exit(1);
   }
 
   // Load switchProviders from config
-  const config = loadConfig();
+  const config = loadConfig(cwd);
   const rawSwitchProviders: Record<string, string> = (config as Record<string, unknown>).switchProviders as Record<string, string> || {};
 
-  // Collect all non-default model names for validation
-  const modelNames = Object.values(rawSwitchProviders).filter((v) => v !== 'default');
-
   // Validate model names against providers
-  const validatedSwitchProviders: Record<string, string> = {};
-  if (modelNames.length > 0) {
-    const providerByModels = getProviderByModels(modelNames);
-    for (const [stage, modelValue] of Object.entries(rawSwitchProviders)) {
-      if (modelValue === 'default') {
-        validatedSwitchProviders[stage] = 'default';
-      } else if (providerByModels[modelValue] !== null && providerByModels[modelValue] !== undefined) {
-        validatedSwitchProviders[stage] = modelValue;
-      } else {
-        // Model not found in any provider, replace with 'default'
-        validatedSwitchProviders[stage] = 'default';
-        logger.warn(`Model '${modelValue}' for stage '${stage}' not found in providers, replaced with 'default'`);
-      }
-    }
-  } else {
-    // No non-default models to validate, copy as-is
-    for (const [stage, modelValue] of Object.entries(rawSwitchProviders)) {
-      validatedSwitchProviders[stage] = modelValue;
-    }
-  }
+  const validatedSwitchProviders = validateSwitchProviders(rawSwitchProviders);
 
   // Create session settings
   const settings = {

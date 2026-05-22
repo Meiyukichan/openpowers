@@ -626,13 +626,13 @@ describe('getDefaultProvider', () => {
     expect(result).toEqual(sampleProvider);
   });
 
-  it('should return null when activeProviderId is null', () => {
+  it('should return first provider when activeProviderId is null and providers exist', () => {
     existsSyncMock.mockReturnValue(true);
     readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null));
 
     const result = mod.getDefaultProvider();
 
-    expect(result).toBeNull();
+    expect(result).toEqual(sampleProvider);
   });
 
   it('should return null when providers file does not exist', () => {
