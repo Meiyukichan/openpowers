@@ -35,6 +35,9 @@ Task tool (general-purpose):
     ## Changed Files
     {feature.files — one per line, using bullet points — these are only the likely files involved, not a complete list}
 
+    ## Feature Reference Documents
+    {`openpowers/changes/<name>/reference/{feature-id}.md`}
+
     ## Execution Flow
     Follow these steps strictly and accurately:
     1. Read the implementer template document: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-sdd/references/code-implementer.md`

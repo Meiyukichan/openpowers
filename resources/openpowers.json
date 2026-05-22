@@ -19,7 +19,12 @@
             "enable": false,
             "path": "docs/codebases"
         },
-        "repositories": [],
+        "repositories": [
+            {
+                "path": "./openpowers/",
+                "description": "The location of OpenPowers changes, recommend viewing archived changes and ongoing changes to achieve a global historical reference when starting a new OpenPowers change."
+            }
+        ],
         "references": []
     },
     "experimental": {

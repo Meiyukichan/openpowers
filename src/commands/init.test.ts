@@ -162,8 +162,8 @@ describe('src/commands/init.ts', () => {
       });
     });
 
-    describe('Step 4: add marketplace-dev as marketplace', () => {
-      it('should add marketplace with path containing marketplace-dev', () => {
+    describe('Step 4: add marketplace as marketplace', () => {
+      it('should add marketplace with path containing marketplace', () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
@@ -181,7 +181,7 @@ describe('src/commands/init.ts', () => {
         );
         expect(addCall).toBeDefined();
         expect(addCall![0]).toMatch(/marketplace add/);
-        expect(addCall![0]).toMatch(/marketplace-dev/);
+        expect(addCall![0]).toMatch(/marketplace/);
       });
 
       it('should exit with code 1 when marketplace add fails', () => {

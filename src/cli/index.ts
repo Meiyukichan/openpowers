@@ -12,6 +12,8 @@ import { registerRemoveCommand } from '../commands/remove.js';
 import { registerRecoverCommand } from '../commands/recover.js';
 import { registerChangeCommand } from '../commands/change/index.js';
 import { registerConfigCommand } from '../commands/config.js';
+import { registerEnableCommand } from '../commands/enable.js';
+import { registerDisableCommand } from '../commands/disable.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
@@ -29,5 +31,7 @@ registerRemoveCommand(program);
 registerRecoverCommand(program);
 registerChangeCommand(program);
 registerConfigCommand(program);
+registerEnableCommand(program);
+registerDisableCommand(program);
 
 export { program };

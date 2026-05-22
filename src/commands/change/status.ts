@@ -14,9 +14,28 @@ import { syncChangesJson, buildArtifacts, ARTIFACT_EXTENSIONS } from './shared.j
 const CORE_ARTIFACTS = ['proposal', 'design', 'specs'];
 
 /**
+ * Computes plan.json status: 'done' only when all features have status 'done',
+ * otherwise 'in_progress' (meaning at least one feature is still pending or in progress).
+ * @param planPath - Absolute path to plan.json
+ * @returns 'done' if all features are done, 'in_progress' otherwise
+ */
+function computePlanStatus(planPath: string): string {
+  try {
+    const raw = fs.readFileSync(planPath, 'utf-8');
+    const features = JSON.parse(raw);
+    if (!Array.isArray(features)) return 'in_progress';
+    if (features.length === 0) return 'done';
+    return features.every((f: { status?: string }) => f.status === 'done') ? 'done' : 'in_progress';
+  } catch {
+    return 'in_progress';
+  }
+}
+
+/**
  * Computes artifact pipeline status for all existing artifacts in a change directory.
  * Status follows sequential order: proposal -> design -> specs.
- * Non-core artifacts (api, database, plan) are assigned 'done' unconditionally.
+ * Non-core artifacts (api, database) are assigned 'done' unconditionally when present.
+ * Plan status depends on all features being done; otherwise it is 'in_progress'.
  * Output paths are relative to the change directory with forward slashes.
  * @param changeDirPath - The absolute path to the change directory
  * @returns Array of { id, outputPath, status } for each existing artifact
@@ -80,7 +99,10 @@ export function computeArtifactStatus(changeDirPath: string): Array<{ id: string
   for (const artifact of existingArtifacts) {
     if (!CORE_ARTIFACTS.includes(artifact.id)) {
       const fileName = `${artifact.id}${ARTIFACT_EXTENSIONS[artifact.id]}`;
-      results.push({ id: artifact.id, outputPath: fileName, status: 'done' });
+      const artifactStatus = artifact.id === 'plan'
+        ? computePlanStatus(path.join(changeDirPath, 'plan.json'))
+        : 'done';
+      results.push({ id: artifact.id, outputPath: fileName, status: artifactStatus });
     }
   }
 
@@ -91,7 +113,7 @@ export function computeArtifactStatus(changeDirPath: string): Array<{ id: string
  * Outputs the status of a specific change as JSON.
  * Syncs changes.json first, then searches both changes and archive arrays.
  * Computes artifact pipeline status using computeArtifactStatus and
- * determines isComplete as true only when all three core artifacts (proposal, design, specs) are done.
+ * determines isArtsComplete as true only when all three core artifacts (proposal, design, specs) are done.
  * Artifact outputPath values are relative to the change directory.
  * Exits with error if the change name is not found.
  * @param name - The change name to query
@@ -119,8 +141,8 @@ export function runChangeStatus(name: string): void {
   const changeDirPath = path.resolve(process.cwd(), String(entry.path));
   const artifacts = computeArtifactStatus(changeDirPath);
 
-  // isComplete is true only when all three core artifacts are done
-  const isComplete = CORE_ARTIFACTS.every((id) => {
+  // isArtsComplete is true only when all three core artifacts are done
+  const isArtsComplete = CORE_ARTIFACTS.every((id) => {
     const artifact = artifacts.find((a) => a.id === id);
     return artifact && artifact.status === 'done';
   });
@@ -128,7 +150,7 @@ export function runChangeStatus(name: string): void {
   const output = {
     name: entry.name,
     status,
-    isComplete,
+    isArtsComplete,
     artifacts,
   };
 

@@ -175,14 +175,17 @@ describe('src/commands/change/status.ts', () => {
       expect(specs!.status).toBe('done');
     });
 
-    it('should assign done to non-core artifacts (api, database, plan) when present', () => {
+    it('should assign done to non-core artifacts (api, database) and plan=done when all features done', () => {
       mockFs.setFile('some/change/proposal.md', '');
       mockFs.setFile('some/change/design.md', '');
       mockFs.setDir('some/change/specs');
       mockFs.setFile('some/change/specs/my-spec.md', '');
       mockFs.setFile('some/change/api.yaml', '');
       mockFs.setFile('some/change/database.md', '');
-      mockFs.setFile('some/change/plan.json', '');
+      mockFs.setFile('some/change/plan.json', JSON.stringify([
+        { id: 'f1', status: 'done' },
+        { id: 'f2', status: 'done' },
+      ]));
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
         if (normalized === 'some/change/specs') {
@@ -200,6 +203,33 @@ describe('src/commands/change/status.ts', () => {
       expect(api!.status).toBe('done');
       expect(database!.status).toBe('done');
       expect(plan!.status).toBe('done');
+    });
+
+    it('should assign plan=in_progress when not all features are done', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/plan.json', JSON.stringify([
+        { id: 'f1', status: 'done' },
+        { id: 'f2', status: 'todo' },
+      ]));
+      const artifacts = computeArtifactStatus('some/change');
+      const plan = artifacts.find(a => a.id === 'plan');
+      expect(plan!.status).toBe('in_progress');
+    });
+
+    it('should assign plan=done when plan.json is empty array', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/plan.json', JSON.stringify([]));
+      const artifacts = computeArtifactStatus('some/change');
+      const plan = artifacts.find(a => a.id === 'plan');
+      expect(plan!.status).toBe('done');
+    });
+
+    it('should assign plan=in_progress when plan.json is invalid', () => {
+      mockFs.setFile('some/change/proposal.md', '');
+      mockFs.setFile('some/change/plan.json', 'not valid json');
+      const artifacts = computeArtifactStatus('some/change');
+      const plan = artifacts.find(a => a.id === 'plan');
+      expect(plan!.status).toBe('in_progress');
     });
 
     it('should use change-relative outputPath with forward slashes', () => {
@@ -293,16 +323,16 @@ describe('src/commands/change/status.ts', () => {
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe('my-feature');
       expect(parsed.status).toBe('active');
-      expect(parsed.isComplete).toBe(false);
+      expect(parsed.isArtsComplete).toBe(false);
       expect(parsed.artifacts).toBeDefined();
-      // Core artifacts always included: proposal=done, design=ready, specs=blocked + plan=done
+      // Core artifacts always included: proposal=done, design=ready, specs=blocked + plan=in_progress
       expect(parsed.artifacts.length).toBe(4);
       const proposal = parsed.artifacts.find((a: { id: string }) => a.id === 'proposal');
       expect(proposal.status).toBe('done');
       expect(proposal.outputPath).toBe('proposal.md');
     });
 
-    it('should output isComplete=true when all core artifacts are done', () => {
+    it('should output isArtsComplete=true when all core artifacts are done', () => {
       mockFs.setDir(CHANGES_DIR);
       mockFs.setDir(path.join(CHANGES_DIR, 'complete-feature'));
       mockFs.setFile(path.join(CHANGES_DIR, 'complete-feature', 'proposal.md'), '');
@@ -335,11 +365,11 @@ describe('src/commands/change/status.ts', () => {
       const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
-      expect(parsed.isComplete).toBe(true);
+      expect(parsed.isArtsComplete).toBe(true);
       expect(parsed.status).toBe('active');
     });
 
-    it('should output isComplete=false when no features exist', () => {
+    it('should output isArtsComplete=false when no features exist', () => {
       mockFs.setDir(CHANGES_DIR);
       mockFs.setDir(path.join(CHANGES_DIR, 'empty-feature'));
 
@@ -362,7 +392,7 @@ describe('src/commands/change/status.ts', () => {
       const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
       const output = stdoutCalls[stdoutCalls.length - 1];
       const parsed = JSON.parse(output);
-      expect(parsed.isComplete).toBe(false);
+      expect(parsed.isArtsComplete).toBe(false);
     });
 
     it('should error when change name not found', () => {

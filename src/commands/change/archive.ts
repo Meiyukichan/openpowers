@@ -17,13 +17,10 @@ import {
 } from './shared.js';
 import { computeArtifactStatus } from './status.js';
 
-// Core artifact IDs that must be done before archiving
-const CORE_ARTIFACTS = ['proposal', 'design', 'specs'];
-
 /**
  * Archives a completed change by moving its directory from openpowers/changes/ to
  * openpowers/archive/YYYY-MM-DD-<name>/ after validating that the change exists,
- * is active (not already archived), and all core artifacts have status "done".
+ * is active (not already archived), and all artifacts have status "done".
  * @param name - The change name to archive
  */
 export function runChangeArchive(name: string): void {
@@ -50,11 +47,10 @@ export function runChangeArchive(name: string): void {
   // Compute artifact status for the change directory
   const artifacts = computeArtifactStatus(changeDirPath);
 
-  // Check if all core artifacts are done
-  const notDoneArtifacts = CORE_ARTIFACTS.filter((id) => {
-    const artifact = artifacts.find((a) => a.id === id);
-    return !artifact || artifact.status !== 'done';
-  });
+  // Check if ALL artifacts returned by computeArtifactStatus are done
+  const notDoneArtifacts = artifacts
+    .filter((a) => a.status !== 'done')
+    .map((a) => a.id);
 
   if (notDoneArtifacts.length > 0) {
     process.stderr.write(`Change '${name}' not all artifacts are done\n`);

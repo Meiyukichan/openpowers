@@ -54,7 +54,7 @@ Follow these change steps strictly and accurately to complete the creation of ch
    ```
 
    Parse the JSON to get:
-   - `isComplete`: Whether the change is complete (true/false)
+   - `isArtsComplete`: Whether the change is complete (true/false)
    - `status`: Change status (active/archived)
    - `artifacts`: list of all artifacts with their status and file names
 
@@ -79,9 +79,9 @@ Follow these change steps strictly and accurately to complete the creation of ch
    - Apply `context` and `rules` as constraints - but do NOT copy them into the file
    - Show brief progress: "Created <artifact-id>"
 
-   b. **Loop through `step a` above until `isComplete` = `true`**
+   b. **Loop through `step a` above until `isArtsComplete` = `true`**
    - After creating each artifact in `step a`, re-run `openpowers change status <name>`
-   - Stop when `isComplete` = `true`
+   - Stop when `isArtsComplete` = `true`
 
    c. **If an artifact requires user input** (unclear context):
    - Use **AskUserQuestion tool** to clarify

@@ -20,7 +20,7 @@ import { logger } from '../utils/logger.js';
  * 1. Check claude --version (fatal on failure)
  * 2. Uninstall old plugin (error-tolerant)
  * 3. Remove old marketplace (error-tolerant)
- * 4. Add marketplace-dev as marketplace (fatal on failure)
+ * 4. Add marketplace as marketplace (fatal on failure)
  * 5. Install openpowers-dev plugin (fatal on failure)
  *
  * Each step displays an ora spinner with chalk status indicators.
@@ -67,10 +67,10 @@ export function runInit(): void {
     logger.warn('Old marketplace remove failed (ignored): marketplace may not exist');
   }
 
-  // Step 4: Add marketplace-dev as marketplace
+  // Step 4: Add marketplace as marketplace
   const marketplacePath = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    '../../marketplace-dev',
+    '../../marketplace',
   );
   const step4 = ora('Adding marketplace...').start();
   try {

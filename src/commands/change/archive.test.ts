@@ -295,6 +295,32 @@ describe('src/commands/change/archive.ts', () => {
     expect(errorOutput).not.toContain('proposal');
   });
 
+  it('should reject change with complete core artifacts but incomplete plan.json features', () => {
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(ARCHIVE_DIR);
+
+    // Set up complete core artifacts (proposal, design, specs are all done)
+    setupCompleteChange('plan-incomplete');
+    // Also create plan.json with features not all done
+    mockFs.setFile(
+      path.join(CHANGES_DIR, 'plan-incomplete', 'plan.json'),
+      JSON.stringify([
+        { status: 'done' },
+        { status: 'in_progress' },
+      ]),
+    );
+
+    setupReadDirMocks(['plan-incomplete']);
+
+    expect(() => runChangeArchive('plan-incomplete')).toThrow('process.exit called');
+    expect(process.exit).toHaveBeenCalledWith(1);
+
+    const stderrCalls = stderrWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    const errorOutput = stderrCalls.join('');
+    expect(errorOutput).toContain('not all artifacts are done');
+    expect(errorOutput).toContain('plan');
+  });
+
   it('should create archive directory if it does not exist', () => {
     setupCompleteChange('fresh-archive-change');
     mockFs.setDir(CHANGES_DIR);
