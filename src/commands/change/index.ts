@@ -10,10 +10,12 @@ import { runChangeNew } from './new.js';
 import { runChangeStatus } from './status.js';
 import { runChangeInstruction } from './instruction.js';
 import { runFeatureStatus, runFeatureNext, runFeatureStart, runFeatureComplete } from './feature.js';
+import { runChangeArchive } from './archive.js';
 
 /**
  * Registers the `change` command and its subcommands on the given program.
  * Subcommands: list, new <name> --desc <description>, status <name>,
+ * archive <name>,
  * instruction <name> --proposal|--design|--specs,
  * feature <changeName> (status|next|start <featureId>|complete <featureId>)
  * @param program - The commander Command instance
@@ -43,6 +45,13 @@ export function registerChangeCommand(program: Command): void {
     .description('Show status of a specific change')
     .action((name: string) => {
       runChangeStatus(name);
+    });
+
+  changeCmd
+    .command('archive <name>')
+    .description('Archive a completed change')
+    .action((name: string) => {
+      runChangeArchive(name);
     });
 
   changeCmd
