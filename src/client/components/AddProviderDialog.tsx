@@ -12,7 +12,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { claudeProviderPresets, type ProviderPreset } from '../data/presets.js';
 import { logger } from '../utils/logger.js';
 import AnthropicSvg from '../icons/anthropic.svg?url';
 import DeepSeekSvg from '../icons/deepseek.svg?url';
@@ -41,6 +40,18 @@ interface FormValues {
   sonnetModel: string;
   opusModel: string;
   haikuModel: string;
+}
+
+/** Preset template data fetched from the templates API. */
+interface ProviderPreset {
+  name: string;
+  websiteUrl?: string;
+  baseUrl: string;
+  iconSvg?: string;
+  defaultModel?: string;
+  sonnetModel?: string;
+  opusModel?: string;
+  haikuModel?: string;
 }
 
 /** Initial empty form values. */
@@ -77,6 +88,8 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('自定义配置');
+  const [templates, setTemplates] = useState<ProviderPreset[]>([]);
+  const [templateSubmitting, setTemplateSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Reset form when dialog opens
@@ -109,6 +122,20 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
     return () => {
       document.body.style.overflow = '';
     };
+  }, [isOpen]);
+
+  // Fetch provider templates from API on mount
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/openpowers/api/providers/templates')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data: ProviderPreset[]) => setTemplates(data))
+      .catch((err) => {
+        logger.error(`Failed to fetch provider templates: ${err instanceof Error ? err.message : String(err)}`);
+      });
   }, [isOpen]);
 
   const handleChange = (field: keyof FormValues) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -166,6 +193,54 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleAddAsTemplate = async () => {
+    if (!form.name.trim()) {
+      showToast('Name is required to add a template', 'error');
+      return;
+    }
+
+    setTemplateSubmitting(true);
+    try {
+      const body: Record<string, string | undefined> = {
+        name: form.name.trim(),
+        baseUrl: form.baseUrl.trim() || undefined,
+        websiteUrl: form.websiteUrl.trim() || undefined,
+        defaultModel: form.defaultModel.trim() || undefined,
+        sonnetModel: form.sonnetModel.trim() || undefined,
+        opusModel: form.opusModel.trim() || undefined,
+        haikuModel: form.haikuModel.trim() || undefined,
+      };
+
+      const response = await fetch('/openpowers/api/providers/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        showToast('模板已添加', 'success');
+        // Refresh templates list
+        const newTemplate = await response.json();
+        setTemplates((prev) => [...prev, newTemplate]);
+        setSelectedPreset(newTemplate.name);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        const errorMsg = data.error || `HTTP ${response.status}`;
+        if (response.status === 409) {
+          showToast(errorMsg, 'error');
+        } else {
+          showToast(`添加模板失败: ${errorMsg}`, 'error');
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to add provider template: ${message}`);
+      showToast(`添加模板失败: ${message}`, 'error');
+    } finally {
+      setTemplateSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -202,6 +277,10 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   };
 
   if (!isOpen) return null;
+
+  // Hardcoded custom-config entry always comes first, followed by API-fetched templates
+  const CUSTOM_PRESET: ProviderPreset = { name: '自定义配置', baseUrl: '', iconSvg: '' };
+  const allPresets = [CUSTOM_PRESET, ...templates];
 
   const labelClass = 'block text-sm font-medium text-foreground mb-1';
   const inputClass =
@@ -261,7 +340,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
             React.createElement(
               'div',
               { className: 'grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1' },
-              ...claudeProviderPresets.map((preset) =>
+              ...allPresets.map((preset) =>
                 React.createElement(
                   'button',
                   {
@@ -475,11 +554,12 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
                 'button',
                 {
                   type: 'button',
-                  disabled: submitting,
+                  disabled: submitting || templateSubmitting,
+                  onClick: handleAddAsTemplate,
                   className:
                     'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted',
                 },
-                '添加为模板',
+                templateSubmitting ? 'Adding template...' : '添加为模板',
               ),
               React.createElement(
                 'button',
