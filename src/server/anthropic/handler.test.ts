@@ -123,9 +123,10 @@ function mockAxiosJson(status: number, data: unknown, headers?: Record<string, s
 
 /** Create a mock axios stream response. */
 function mockAxiosStream(status: number, headers: Record<string, string>) {
-  const streamData: { on: ReturnType<typeof vi.fn>; pipe: ReturnType<typeof vi.fn> } = {
+  const streamData: { on: ReturnType<typeof vi.fn>; pipe: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> } = {
     on: vi.fn(),
     pipe: vi.fn(),
+    destroy: vi.fn(),
   };
   axiosMock.mockResolvedValue({
     status,

@@ -115,7 +115,11 @@ function copyUpstreamHeaders(
  * @param req - Express Request object
  * @param res - Express Response object
  */
-export async function proxyRequestHandler(req: Request, res: Response): Promise<void> {
+export async function proxyRequestHandler(
+  req: Request,
+  res: Response,
+  onResponse?: (host: string, method: string, url: string, status: number, errorMsg?: string) => void,
+): Promise<void> {
   // Check if proxy is enabled
   if (!getEnableOpenpowersProxy()) {
     res.status(503).json({ error: 'OpenPowers proxy is disabled' });
@@ -139,9 +143,11 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
     return;
   }
 
+  const providerHost = provider.baseUrl.replace(/\/+$/, '').replace('https://', '').replace('http://', '');
+
   // Construct upstream URL
   const baseUrl = provider.baseUrl.replace(/\/+$/, '');
-  const reqPath = req.path || req.url || '/';
+  const reqPath = req.originalUrl || req.url || '/';
   const upstreamUrl = `${baseUrl}${reqPath}`;
 
   // Prepare auth-injected headers
@@ -180,7 +186,6 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
   }
 
   try {
-    proxyLogger.info(`Proxying ${req.method} ${reqPath} -> ${upstreamUrl} (stream=${isStreamRequest})`);
     const upstreamRes = await axios(config);
 
     // Handle stream response
@@ -210,6 +215,7 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
         });
 
         upstreamStream.pipe(res);
+        res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status));
         return;
       }
 
@@ -241,6 +247,7 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
         res.setHeader('content-type', upstreamContentType || 'text/plain');
         res.send(fullBody);
       }
+      onResponse?.(providerHost, req.method, reqPath, upstreamRes.status);
       return;
     }
 
@@ -254,8 +261,9 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
     } else {
       res.json(upstreamRes.data);
     }
+    res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status));
   } catch (err: unknown) {
-    handleAxiosError(err, res);
+    handleAxiosError(err, res, providerHost, req.method, reqPath, onResponse);
   }
 }
 
@@ -270,7 +278,7 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
  * @param err - The caught error
  * @param res - Express Response object
  */
-function handleAxiosError(err: unknown, res: Response): void {
+function handleAxiosError(err: unknown, res: Response, providerHost: string, method: string, reqPath: string, onResponse?: (host: string, method: string, url: string, status: number, errorMsg?: string) => void): void {
   // Check for axios error with a response (upstream returned HTTP error)
   if (axios.isAxiosError(err) && err.response) {
     const upstreamStatus = err.response.status;
@@ -288,20 +296,26 @@ function handleAxiosError(err: unknown, res: Response): void {
     } else {
       res.json(err.response.data);
     }
+    onResponse?.(providerHost, method, reqPath, upstreamStatus);
     return;
   }
 
   // Connection or timeout error
   const message = err instanceof Error ? err.message : String(err);
   const code = (err as NodeJS.ErrnoException).code;
+  let errorMsg = message;
 
   if (code === 'ECONNREFUSED') {
     proxyLogger.error(`Upstream connection refused: ${message}`);
+    errorMsg = `Connection refused: ${message}`;
   } else if (code === 'ETIMEDOUT') {
     proxyLogger.error(`Upstream timeout: ${message}`);
+    errorMsg = `Request timeout: ${message}`;
   } else {
     proxyLogger.error(`Upstream request error: ${message}`);
+    errorMsg = `Request error: ${message}`;
   }
 
   res.status(502).json({ error: 'Bad Gateway', message });
+  onResponse?.(providerHost, method, reqPath, 502, errorMsg);
 }
