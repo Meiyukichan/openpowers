@@ -99,6 +99,20 @@ describe('AddProviderDialog', () => {
     });
   });
 
+  it('shows preset selector section with label "供应商模板"', async () => {
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByText('供应商模板')).toBeInTheDocument();
+    });
+  });
+
   it('shows preset selector grid with provider names from API', async () => {
     render(
       React.createElement(AddProviderDialog, {

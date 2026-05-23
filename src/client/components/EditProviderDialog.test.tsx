@@ -105,7 +105,7 @@ describe('EditProviderDialog', () => {
         showToast: vi.fn(),
       }),
     );
-    expect(screen.queryByText('Preset Providers')).not.toBeInTheDocument();
+    expect(screen.queryByText('供应商模板')).not.toBeInTheDocument();
     expect(screen.queryByText('Claude Official')).not.toBeInTheDocument();
   });
 

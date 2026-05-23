@@ -356,7 +356,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
           React.createElement(
             'div',
             null,
-            React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Preset Providers'),
+            React.createElement('label', { className: 'block text-sm font-medium mb-2' }, '供应商模板'),
             React.createElement(
               'div',
               { className: 'grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1' },
