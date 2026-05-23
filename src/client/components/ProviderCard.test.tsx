@@ -51,7 +51,8 @@ describe('ProviderCard', () => {
     expect(screen.getByText('A test provider for testing')).toBeInTheDocument();
   });
 
-  it('renders base URL', () => {
+  // wu-001: websiteUrl rendered as clickable <a> tag
+  it('renders website URL as a clickable link', () => {
     render(
       React.createElement(ProviderCard, {
         provider: baseProvider,
@@ -61,7 +62,55 @@ describe('ProviderCard', () => {
         onDelete: vi.fn(),
       }),
     );
-    expect(screen.getByText('https://api.test.example.com')).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'https://test.example.com' });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://test.example.com');
+  });
+
+  // wu-001: <a> tag includes target='_blank' and rel='noopener noreferrer' for security
+  it('opens website URL in a new tab with security attributes', () => {
+    render(
+      React.createElement(ProviderCard, {
+        provider: baseProvider,
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    const link = screen.getByRole('link', { name: 'https://test.example.com' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  // wu-001: When websiteUrl is empty, no link is rendered
+  it('renders no link when websiteUrl is empty string', () => {
+    render(
+      React.createElement(ProviderCard, {
+        provider: { ...baseProvider, websiteUrl: '' },
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  // wu-001: When websiteUrl is undefined, no link is rendered
+  it('renders no link when websiteUrl is undefined', () => {
+    const providerWithoutWebsiteUrl = { ...baseProvider };
+    delete (providerWithoutWebsiteUrl as Record<string, unknown>).websiteUrl;
+    render(
+      React.createElement(ProviderCard, {
+        provider: providerWithoutWebsiteUrl,
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('renders brand SVG img when provider has a valid SVG icon filename', () => {

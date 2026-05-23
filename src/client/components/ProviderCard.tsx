@@ -1,6 +1,6 @@
 /**
  * ProviderCard component displays a single provider with its info and hover action buttons.
- * Shows provider icon, name, notes, base URL, and enabled/disabled status.
+ * Shows provider icon, name, notes, website URL, and enabled/disabled status.
  * Action buttons (toggle, edit, delete) appear on hover via opacity transition.
  * Styling follows cc-switch patterns: rounded-xl border, bg-card, group hover effects.
  * @author Meiyuki <meiyukichan@163.com>
@@ -148,11 +148,16 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
               { className: 'text-sm text-muted-foreground truncate mt-1' },
               provider.notes,
             ),
-          provider.baseUrl &&
+          provider.websiteUrl &&
             React.createElement(
-              'p',
-              { className: 'text-sm text-blue-500 dark:text-blue-400 truncate mt-1.5' },
-              provider.baseUrl,
+              'a',
+              {
+                href: provider.websiteUrl,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                className: 'text-sm text-blue-500 dark:text-blue-400 truncate mt-1.5',
+              },
+              provider.websiteUrl,
             ),
         ),
       ),
