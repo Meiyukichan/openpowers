@@ -19,6 +19,7 @@ import {
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
+import { readProviderTemplates, addProviderTemplate } from '../../utils/provider-templates.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -124,6 +125,18 @@ const SetProxySchema = z.object({
   enableOpenpowersProxy: z.boolean(),
 });
 
+/** Zod schema for adding a new provider template. */
+const ProviderTemplateInputSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  baseUrl: z.string(),
+  websiteUrl: z.string().optional().default(''),
+  iconSvg: z.string().optional().default(''),
+  defaultModel: z.string().optional().default(''),
+  sonnetModel: z.string().optional().default(''),
+  opusModel: z.string().optional().default(''),
+  haikuModel: z.string().optional().default(''),
+});
+
 /**
  * PUT /openpowers/api/providers/proxy
  * Sets the enableOpenpowersProxy flag.
@@ -176,6 +189,35 @@ providersRouter.delete('/:id', (req, res) => {
 providersRouter.post('/reset', (_req, res) => {
   clearActiveProviderId();
   res.status(200).json({ activeProviderId: null });
+});
+
+/**
+ * GET /openpowers/api/providers/templates
+ * Returns the full list of provider preset templates.
+ */
+providersRouter.get('/templates', (_req, res) => {
+  const templates = readProviderTemplates();
+  res.status(200).json(templates);
+});
+
+/**
+ * POST /openpowers/api/providers/templates
+ * Adds a new provider template. Validates required fields, strips apiKey
+ * if present, and rejects duplicate names with 409.
+ */
+providersRouter.post('/templates', (req, res) => {
+  const parsed = ProviderTemplateInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(formatZodError(parsed.error));
+    return;
+  }
+  try {
+    const template = addProviderTemplate(parsed.data);
+    res.status(201).json(template);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(409).json({ error: message });
+  }
 });
 
 

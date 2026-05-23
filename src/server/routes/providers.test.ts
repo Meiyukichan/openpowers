@@ -55,6 +55,18 @@ vi.mock('../providers-store.js', async (importOriginal) => {
   };
 });
 
+// ---- mocks for provider-templates ----
+
+const { readProviderTemplatesMock, addProviderTemplateMock } = vi.hoisted(() => ({
+  readProviderTemplatesMock: vi.fn(),
+  addProviderTemplateMock: vi.fn(),
+}));
+
+vi.mock('../../utils/provider-templates.js', () => ({
+  readProviderTemplates: readProviderTemplatesMock,
+  addProviderTemplate: addProviderTemplateMock,
+}));
+
 // ---- helpers ----
 
 const sampleProvider = {
@@ -319,6 +331,101 @@ describe('Provider Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
+    });
+  });
+
+  // ---- GET /openpowers/api/providers/templates ----
+
+  describe('GET /openpowers/api/providers/templates', () => {
+    const sampleTemplate = {
+      name: 'Claude Official',
+      websiteUrl: 'https://www.anthropic.com/claude-code',
+      baseUrl: 'https://api.anthropic.com',
+      iconSvg: 'anthropic.svg',
+      defaultModel: '',
+      sonnetModel: '',
+      opusModel: '',
+      haikuModel: '',
+    };
+
+    it('should return template array with 200', async () => {
+      readProviderTemplatesMock.mockReturnValue([sampleTemplate]);
+
+      const res = await request(app).get('/openpowers/api/providers/templates');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([sampleTemplate]);
+    });
+
+    it('should return empty array when no templates exist', async () => {
+      readProviderTemplatesMock.mockReturnValue([]);
+
+      const res = await request(app).get('/openpowers/api/providers/templates');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([]);
+    });
+  });
+
+  // ---- POST /openpowers/api/providers/templates ----
+
+  describe('POST /openpowers/api/providers/templates', () => {
+    const sampleTemplate = {
+      name: 'New Provider',
+      websiteUrl: 'https://example.com',
+      baseUrl: 'https://api.example.com',
+      iconSvg: '',
+      defaultModel: '',
+      sonnetModel: '',
+      opusModel: '',
+      haikuModel: '',
+    };
+
+    it('should add template and return 201 when name is unique', async () => {
+      addProviderTemplateMock.mockReturnValue(sampleTemplate);
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/templates')
+        .send(sampleTemplate);
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual(sampleTemplate);
+    });
+
+    it('should return 409 when template name already exists', async () => {
+      addProviderTemplateMock.mockImplementation(() => {
+        throw new Error(`Template name "${sampleTemplate.name}" already exists`);
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/templates')
+        .send(sampleTemplate);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty('error');
+      expect(res.body.error).toMatch(/already exists/i);
+    });
+
+    it('should silently discard apiKey field when present', async () => {
+      addProviderTemplateMock.mockReturnValue(sampleTemplate);
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/templates')
+        .send({ ...sampleTemplate, apiKey: 'sk-should-be-discarded' });
+
+      expect(res.status).toBe(201);
+      // apiKey should be stripped before passing to addProviderTemplate
+      expect(addProviderTemplateMock).toHaveBeenCalledWith(sampleTemplate);
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      const res = await request(app)
+        .post('/openpowers/api/providers/templates')
+        .send({ websiteUrl: 'https://example.com' });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+      expect(res.body).toHaveProperty('details');
     });
   });
 });
