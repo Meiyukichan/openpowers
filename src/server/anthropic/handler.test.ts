@@ -14,11 +14,16 @@ import type { Request, Response } from 'express';
 
 const {
   axiosMock,
+  isAxiosErrorMock,
   getDefaultProviderMock,
   getEnableOpenpowersProxyMock,
   proxyLoggerMock,
 } = vi.hoisted(() => ({
   axiosMock: vi.fn(),
+  isAxiosErrorMock: vi.fn(
+    (payload: unknown): boolean =>
+      typeof payload === 'object' && payload !== null && (payload as Record<string, unknown>).isAxiosError === true,
+  ),
   getDefaultProviderMock: vi.fn(),
   getEnableOpenpowersProxyMock: vi.fn(),
   proxyLoggerMock: {
@@ -28,8 +33,10 @@ const {
   },
 }));
 
+// Attach isAxiosError to the default axios mock so that `axios.isAxiosError()` works
 vi.mock('axios', () => ({
-  default: axiosMock,
+  default: Object.assign(axiosMock, { isAxiosError: isAxiosErrorMock }),
+  isAxiosError: isAxiosErrorMock,
 }));
 
 vi.mock('../providers-store.js', () => ({
@@ -256,6 +263,10 @@ describe('getTimeoutForPath', () => {
     expect(getTimeoutForPath('/v1/messages?beta=true')).toBe(600_000);
   });
 
+  it('returns 120s for /v1/messages/:path sub-path (e.g. count_tokens)', () => {
+    expect(getTimeoutForPath('/v1/messages/count_tokens')).toBe(120_000);
+  });
+
   it('returns 120s for /v1/models', () => {
     expect(getTimeoutForPath('/v1/models')).toBe(120_000);
   });
@@ -454,6 +465,82 @@ describe('proxyRequestHandler', () => {
       expect(res._status).toBe(200);
       expect(res.body).toEqual({ id: 'msg_456' });
     });
+
+    it('logs error and ends response on upstream SSE stream error', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'text/event-stream' });
+
+      let errorCb: ((err: Error) => void) | undefined;
+      streamObj.on.mockImplementation((event: string, cb: unknown) => {
+        if (event === 'error') {
+          errorCb = cb as (err: Error) => void;
+        }
+      });
+
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(errorCb).toBeDefined();
+      errorCb!(new Error('Stream broken'));
+
+      expect(proxyLoggerMock.error).toHaveBeenCalledWith('Upstream stream error: Stream broken');
+      expect(res._headersSent).toBe(true);
+    });
+
+    it('destroys upstream stream when client disconnects during SSE streaming', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'text/event-stream' });
+      streamObj.destroy = vi.fn();
+
+      let closeCb: (() => void) | undefined;
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+        on: vi.fn((event: string, cb: unknown) => {
+          if (event === 'close') {
+            closeCb = cb as () => void;
+          }
+          return req as unknown as Request;
+        }) as unknown as Request['on'],
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(closeCb).toBeDefined();
+      closeCb!();
+
+      expect(streamObj.destroy).toHaveBeenCalled();
+    });
+
+    it('sends buffered non-JSON stream content as text', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'text/html' });
+      const htmlContent = '<html><body>Error</body></html>';
+
+      streamObj.on.mockImplementation((event: string, handler: unknown) => {
+        if (event === 'data') {
+          (handler as (chunk: Buffer) => void)(Buffer.from(htmlContent));
+        }
+        if (event === 'end') {
+          (handler as () => void)();
+        }
+      });
+
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(res._status).toBe(200);
+      expect(res.headers['content-type']).toBe('text/html');
+      expect(res.body).toBe(htmlContent);
+    });
   });
 
   describe('upstream error handling', () => {
@@ -533,6 +620,49 @@ describe('proxyRequestHandler', () => {
 
       expect(res._status).toBe(500);
       expect(res.body).toEqual({ error: { type: 'server_error', message: 'Internal error' } });
+    });
+
+    it('returns 502 when buffered upstream stream emits error', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'application/json' });
+
+      streamObj.on.mockImplementation((event: string, handler: unknown) => {
+        if (event === 'error') {
+          (handler as (err: Error) => void)(new Error('Upstream connection lost'));
+        }
+      });
+
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(res._status).toBe(502);
+      expect(res.body).toHaveProperty('error', 'Bad Gateway');
+      expect(proxyLoggerMock.error).toHaveBeenCalledWith(
+        expect.stringContaining('Upstream connection lost'),
+      );
+    });
+
+    it('forwards upstream error with string response body as-is', async () => {
+      setupProvider();
+      axiosMock.mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 502,
+          data: '<html>502 Bad Gateway</html>',
+          headers: { 'content-type': 'text/html' },
+        },
+      });
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(res._status).toBe(502);
+      expect(res.body).toBe('<html>502 Bad Gateway</html>');
     });
   });
 

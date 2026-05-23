@@ -6,7 +6,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import type { Request, Response } from 'express';
 import { HOP_BY_HOP_HEADERS, MESSAGES_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from './types.js';
 import { getDefaultProvider, getEnableOpenpowersProxy } from '../providers-store.js';
@@ -42,14 +42,14 @@ export function prepareModifiedHeaders(
 
 /**
  * Determines the upstream request timeout based on the request path.
- * /v1/messages gets 600s; all other paths get 120s.
+ * Exact /v1/messages gets 600s; all other paths (including /v1/messages/:path) get 120s.
  * @param reqPath - The incoming request path
  * @returns Timeout in milliseconds
  */
 export function getTimeoutForPath(reqPath: string): number {
   // Strip query string for matching
   const pathOnly = reqPath.split('?')[0];
-  if (pathOnly === '/v1/messages' || pathOnly.startsWith('/v1/messages/')) {
+  if (pathOnly === '/v1/messages') {
     return MESSAGES_TIMEOUT_MS;
   }
   return DEFAULT_TIMEOUT_MS;
@@ -166,7 +166,7 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
   const timeout = getTimeoutForPath(reqPath);
 
   // Build axios request config
-  const config: Record<string, unknown> = {
+  const config: AxiosRequestConfig = {
     method: req.method,
     url: upstreamUrl,
     headers: modifiedHeaders,
@@ -267,29 +267,28 @@ export async function proxyRequestHandler(req: Request, res: Response): Promise<
  * Handles errors from the axios upstream call.
  * Connection/timeout errors → 502.
  * Upstream HTTP errors (4xx/5xx) → forwarded as-is.
- * @param err - The catched error
+ * @param err - The caught error
  * @param res - Express Response object
  */
 function handleAxiosError(err: unknown, res: Response): void {
   // Check for axios error with a response (upstream returned HTTP error)
-  if (err && typeof err === 'object' && 'isAxiosError' in err && 'response' in err) {
-    const axiosErr = err as { response?: { status: number; data: unknown; headers: Record<string, string | string[] | undefined> } };
-    if (axiosErr.response) {
-      const upstreamStatus = axiosErr.response.status;
-      proxyLogger.warn(`Upstream returned ${upstreamStatus}`);
-      res.status(upstreamStatus);
-      copyUpstreamHeaders(res, axiosErr.response.headers);
-      if (typeof axiosErr.response.data === 'string') {
-        try {
-          res.json(JSON.parse(axiosErr.response.data));
-        } catch {
-          res.send(axiosErr.response.data);
-        }
-      } else {
-        res.json(axiosErr.response.data);
-      }
-      return;
+  if (axios.isAxiosError(err) && err.response) {
+    const upstreamStatus = err.response.status;
+    proxyLogger.warn(`Upstream returned ${upstreamStatus}`);
+    res.status(upstreamStatus);
+    if (err.response.headers) {
+      copyUpstreamHeaders(res, err.response.headers as Record<string, string | string[] | undefined>);
     }
+    if (typeof err.response.data === 'string') {
+      try {
+        res.json(JSON.parse(err.response.data));
+      } catch {
+        res.send(err.response.data);
+      }
+    } else {
+      res.json(err.response.data);
+    }
+    return;
   }
 
   // Connection or timeout error
