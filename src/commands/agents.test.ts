@@ -46,6 +46,7 @@ vi.mock('../server/providers-store.js', () => ({
   getDefaultProvider: vi.fn(),
   getProviderByModels: vi.fn(),
   getEnableOpenpowersProxy: vi.fn(),
+  setActiveProviderId: vi.fn(),
 }));
 
 // Mock session utils
@@ -438,23 +439,104 @@ describe('src/commands/agents.ts', () => {
   });
 
   // -----------------------------------------------------------------------
-  // Acceptance Criteria 9: agents switch without --session
+  // Acceptance Criteria 9: agents switch without --session (global switch)
   // -----------------------------------------------------------------------
 
-  it('agents switch <name> without --session or --mark should output error', async () => {
+  it('agents switch default without --session should call getDefaultProvider and setActiveProviderId', async () => {
+    const { loadProviders, getDefaultProvider, setActiveProviderId } = await import('../server/providers-store.js');
+    vi.mocked(loadProviders).mockReturnValue(mockProviders);
+    vi.mocked(getDefaultProvider).mockReturnValue(mockDefaultProvider);
+
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
     const program = new Command();
     registerAgentsCommand(program);
 
     try {
-      await program.parseAsync(['agents', 'switch', 'explore'], { from: 'user' });
+      await program.parseAsync(['agents', 'switch', 'default'], { from: 'user' });
     } catch {
       // ignore exit
     }
 
+    expect(getDefaultProvider).toHaveBeenCalled();
+    expect(setActiveProviderId).toHaveBeenCalledWith('p1');
+
+    const output = stdoutCalls.join('');
+    expect(output).toContain('Switched global active provider to: Anthropic');
+  });
+
+  it('agents switch "OpenAI" without --session should find by name and call setActiveProviderId', async () => {
+    const { loadProviders, getProviderByModels, setActiveProviderId } = await import('../server/providers-store.js');
+    vi.mocked(loadProviders).mockReturnValue(mockProviders);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'switch', 'OpenAI'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(setActiveProviderId).toHaveBeenCalledWith('p2');
+
+    const output = stdoutCalls.join('');
+    expect(output).toContain('Switched global active provider to: OpenAI');
+  });
+
+  it('agents switch "claude-sonnet-4-20250514" without --session should fallback to model lookup', async () => {
+    const { loadProviders, getProviderByModels, setActiveProviderId } = await import('../server/providers-store.js');
+    vi.mocked(loadProviders).mockReturnValue(mockProviders);
+    vi.mocked(getProviderByModels).mockReturnValue({
+      'claude-sonnet-4-20250514': mockDefaultProvider,
+    });
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'switch', 'claude-sonnet-4-20250514'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(setActiveProviderId).toHaveBeenCalledWith('p1');
+
+    const output = stdoutCalls.join('');
+    expect(output).toContain('Anthropic');
+  });
+
+  it('agents switch nonexistent without --session should output error and exit', async () => {
+    const { loadProviders, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(loadProviders).mockReturnValue(mockProviders);
+    vi.mocked(getProviderByModels).mockReturnValue({ nonexistent: null });
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    let exitCode: string | number | null = null;
+    vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
+      exitCode = code ?? null;
+      throw new Error(`process.exit(${code})`);
+    });
+
+    try {
+      await program.parseAsync(['agents', 'switch', 'nonexistent'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(exitCode).toBe(1);
     const output = stderrCalls.join('');
-    expect(output).toContain('--session or --mark');
+    expect(output).toContain('Provider not found');
+    expect(output).toContain('nonexistent');
   });
 
   it('agents switch <name> --mark should output Marked', async () => {

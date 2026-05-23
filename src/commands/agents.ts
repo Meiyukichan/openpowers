@@ -13,6 +13,7 @@ import {
   getDefaultProvider,
   getProviderByModels,
   getEnableOpenpowersProxy,
+  setActiveProviderId,
 } from '../server/providers-store.js';
 import {
   readSessionSettings,
@@ -260,6 +261,41 @@ function runAgentsSwitch(name: string, sessionId: string): void {
 }
 
 /**
+ * Switches the global active provider without a session context.
+ * Looks up the provider by name first, then falls back to model name matching.
+ * @param name - The provider name, model name, or 'default'
+ */
+function runAgentsGlobalSwitch(name: string): void {
+  if (name === 'default') {
+    const defaultProvider = getDefaultProvider();
+    if (defaultProvider) {
+      setActiveProviderId(defaultProvider.id);
+      process.stdout.write(`Switched global active provider to: ${defaultProvider.name}\n`);
+    } else {
+      process.stderr.write('No providers configured\n');
+      process.exit(1);
+    }
+    return;
+  }
+
+  const providers = loadProviders();
+  let found = providers.find((p) => p.name === name) ?? null;
+
+  if (!found) {
+    const byModels = getProviderByModels([name]);
+    found = byModels[name] ?? null;
+  }
+
+  if (found) {
+    setActiveProviderId(found.id);
+    process.stdout.write(`Switched global active provider to: ${found.name}\n`);
+  } else {
+    process.stderr.write(`Provider not found: ${name}\n`);
+    process.exit(1);
+  }
+}
+
+/**
  * Initializes a session settings file with validation.
  * Validates sessionId, cwd directory, proxy enabled state, and model names.
  * @param sessionId - The session identifier
@@ -343,15 +379,15 @@ export function registerAgentsCommand(program: Command): void {
     .option('--session <id>', 'Session ID')
     .option('--mark', 'Mark the switch')
     .action((name: string, options: { session?: string; mark?: boolean }) => {
-      if (!options.session && !options.mark) {
-        process.stderr.write('Either --session or --mark is required\n');
-        process.exit(1);
-      }
       if (options.mark) {
         process.stdout.write('Marked\n');
         return;
       }
-      runAgentsSwitch(name, options.session!);
+      if (options.session) {
+        runAgentsSwitch(name, options.session);
+        return;
+      }
+      runAgentsGlobalSwitch(name);
     });
 
   agentsCmd
