@@ -17,6 +17,7 @@ import ChatglmSvg from '../icons/chatglm.svg?url';
 import MinimaxSvg from '../icons/minimax.svg?url';
 import KimiSvg from '../icons/kimi.svg?url';
 import BailianSvg from '../icons/bailian.svg?url';
+import OpenAISvg from '../icons/openai.svg?url';
 
 /** Props for the ProviderCard component. */
 interface ProviderCardProps {
@@ -38,6 +39,7 @@ const ICON_MAP: Record<string, string> = {
   'minimax.svg': MinimaxSvg,
   'kimi.svg': KimiSvg,
   'bailian.svg': BailianSvg,
+  'openai.svg': OpenAISvg,
 };
 
 /**

@@ -131,6 +131,24 @@ describe('ensureProvidersFile', () => {
     }
   });
 
+  it('should have valid SVG icon filenames for default providers', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    mod.ensureProvidersFile();
+
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+
+    const anthropic = parsed.providers.find((p: { name: string }) => p.name === 'Anthropic');
+    const openai = parsed.providers.find((p: { name: string }) => p.name === 'OpenAI');
+
+    expect(anthropic).toBeDefined();
+    expect(openai).toBeDefined();
+    // pif-001: icon values must be valid SVG filenames registered in ICON_MAP
+    expect(anthropic.icon).toBe('anthropic.svg');
+    expect(openai.icon).toBe('openai.svg');
+  });
+
   it('should not overwrite existing providers.json', () => {
     existsSyncMock.mockReturnValue(true);
 

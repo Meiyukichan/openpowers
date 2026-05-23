@@ -108,7 +108,7 @@ const DEFAULT_STORE_DATA: StoreData = {
       websiteUrl: 'https://www.anthropic.com',
       apiKey: '',
       baseUrl: 'https://api.anthropic.com',
-      icon: 'sparkles',
+      icon: 'anthropic.svg',
       iconColor: '#d97706',
       defaultModel: '',
       sonnetModel: '',
@@ -123,7 +123,7 @@ const DEFAULT_STORE_DATA: StoreData = {
       websiteUrl: 'https://openai.com',
       apiKey: '',
       baseUrl: 'https://api.openai.com',
-      icon: 'cpu',
+      icon: 'openai.svg',
       iconColor: '#10a37f',
       defaultModel: '',
       sonnetModel: '',
@@ -220,6 +220,7 @@ export function getProviderById(id: string): Provider | undefined {
  * to the current ISO timestamp.
  * @param input - The provider input data (name and apiKey required)
  * @returns The newly created provider object
+ * @throws Error if a provider with the same name already exists
  */
 export function createProvider(input: ProviderInput): Provider {
   const now = new Date().toISOString();
@@ -240,6 +241,12 @@ export function createProvider(input: ProviderInput): Provider {
   };
 
   const data = readStoreData();
+
+  const isDuplicate = data.providers.some((p) => p.name === input.name);
+  if (isDuplicate) {
+    throw new Error(`Provider name "${input.name}" already exists`);
+  }
+
   data.providers.push(provider);
   writeStoreData(data);
   logger.info(`Provider created: ${provider.name} (${provider.id})`);

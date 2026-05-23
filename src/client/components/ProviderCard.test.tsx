@@ -360,6 +360,24 @@ describe('ProviderCard', () => {
     expect(iconImg).toHaveAttribute('src', '/test-fixtures/mock-icon.svg');
   });
 
+  // pif-001: OpenAI brand SVG icon rendering
+  it('renders brand SVG img when provider.icon is openai.svg', () => {
+    render(
+      React.createElement(ProviderCard, {
+        provider: {
+          ...baseProvider,
+          icon: 'openai.svg',
+        },
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    const iconImg = document.querySelector('img[alt="Provider icon"]');
+    expect(iconImg).toBeInTheDocument();
+  });
+
   it('shows no icon when provider.icon is empty string', () => {
     render(
       React.createElement(ProviderCard, {
