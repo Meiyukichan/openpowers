@@ -92,6 +92,17 @@ describe('readProviderTemplates', () => {
     expect(existsSyncMock).toHaveBeenCalledTimes(1);
     expect(readFileSyncMock).not.toHaveBeenCalled();
   });
+
+  it('should return empty array when the JSON file contains invalid content', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue('not valid json {{{');
+
+    const result = readProviderTemplates();
+
+    expect(result).toEqual([]);
+    expect(existsSyncMock).toHaveBeenCalledTimes(1);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('addProviderTemplate', () => {

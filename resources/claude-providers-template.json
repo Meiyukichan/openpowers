@@ -1,15 +1,5 @@
 [
   {
-    "name": "自定义配置",
-    "websiteUrl": "",
-    "baseUrl": "",
-    "iconSvg": "",
-    "defaultModel": "",
-    "sonnetModel": "",
-    "opusModel": "",
-    "haikuModel": ""
-  },
-  {
     "name": "Claude Official",
     "websiteUrl": "https://www.anthropic.com/claude-code",
     "baseUrl": "https://api.anthropic.com",

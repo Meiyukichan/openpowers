@@ -38,7 +38,7 @@ export interface ProviderTemplate {
 /**
  * Input type for adding a new provider template (same fields as ProviderTemplate).
  */
-export type ProviderTemplateInput = Omit<ProviderTemplate, never>;
+export type ProviderTemplateInput = ProviderTemplate;
 
 /**
  * Reads the full list of provider templates from the JSON resource file.
@@ -50,7 +50,11 @@ export function readProviderTemplates(): ProviderTemplate[] {
     return [];
   }
   const raw = fs.readFileSync(TEMPLATES_PATH, 'utf-8');
-  return JSON.parse(raw) as ProviderTemplate[];
+  try {
+    return JSON.parse(raw) as ProviderTemplate[];
+  } catch {
+    return [];
+  }
 }
 
 /**

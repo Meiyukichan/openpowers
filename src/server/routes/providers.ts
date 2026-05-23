@@ -125,18 +125,6 @@ const SetProxySchema = z.object({
   enableOpenpowersProxy: z.boolean(),
 });
 
-/** Zod schema for adding a new provider template. */
-const ProviderTemplateInputSchema = z.object({
-  name: z.string().min(1, 'Template name is required'),
-  baseUrl: z.string(),
-  websiteUrl: z.string().optional().default(''),
-  iconSvg: z.string().optional().default(''),
-  defaultModel: z.string().optional().default(''),
-  sonnetModel: z.string().optional().default(''),
-  opusModel: z.string().optional().default(''),
-  haikuModel: z.string().optional().default(''),
-});
-
 /**
  * PUT /openpowers/api/providers/proxy
  * Sets the enableOpenpowersProxy flag.
@@ -191,13 +179,29 @@ providersRouter.post('/reset', (_req, res) => {
   res.status(200).json({ activeProviderId: null });
 });
 
+/** Zod schema for adding a new provider template. */
+const ProviderTemplateInputSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  baseUrl: z.string(),
+  websiteUrl: z.string().optional().default(''),
+  iconSvg: z.string().optional().default(''),
+  defaultModel: z.string().optional().default(''),
+  sonnetModel: z.string().optional().default(''),
+  opusModel: z.string().optional().default(''),
+  haikuModel: z.string().optional().default(''),
+});
+
 /**
  * GET /openpowers/api/providers/templates
  * Returns the full list of provider preset templates.
  */
 providersRouter.get('/templates', (_req, res) => {
-  const templates = readProviderTemplates();
-  res.status(200).json(templates);
+  try {
+    const templates = readProviderTemplates();
+    res.status(200).json(templates);
+  } catch {
+    res.status(500).json({ error: 'Failed to read provider templates' });
+  }
 });
 
 /**
@@ -216,8 +220,10 @@ providersRouter.post('/templates', (req, res) => {
     res.status(201).json(template);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(409).json({ error: message });
+    if (message.includes('already exists')) {
+      res.status(409).json({ error: message });
+    } else {
+      res.status(500).json({ error: message });
+    }
   }
 });
-
-
