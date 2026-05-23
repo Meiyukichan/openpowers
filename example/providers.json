@@ -6,13 +6,13 @@
       "id": "55885090-f62f-4194-8996-ec66252255d5",
       "name": "MiniMax",
       "websiteUrl": "https://platform.minimaxi.com",
-      "apiKey": "sk-cp-wGGbptSq0bk_acHijR2dWvQGsioFxnFEtnb56HiJBNpLNRX2PMeYJn-u3q7ag7OBeayiT63psnsemixsDRXqSpwY2LBASSj0Hy3GKjsiqbMkVSJC-sVq2uo",
-      "baseUrl": "https://api.minimaxi.com/anthropic",
+      "apiKey": "sk-3c271c2d3ecc49d3bdad23438ef22a7a",
+      "baseUrl": "https://api.deepseek.com/anthropic",
       "usedTemplate": "MiniMax",
-      "defaultModel": "MiniMax-M2.7",
-      "sonnetModel": "MiniMax-M2.7",
-      "opusModel": "MiniMax-M2.7",
-      "haikuModel": "MiniMax-M2.7",
+      "defaultModel": "deepseek-v4-pro",
+      "sonnetModel": "deepseek-v4-pro",
+      "opusModel": "deepseek-v4-pro",
+      "haikuModel": "deepseek-v4-pro",
       "createdAt": "2026-05-23T12:52:23.054Z"
     }
   ]

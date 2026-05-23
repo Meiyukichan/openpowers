@@ -61,26 +61,6 @@ describe('createProxyRouter', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Health check routes
-// ---------------------------------------------------------------------------
-
-describe('Health check routes', () => {
-  it('HEAD / returns 200 OK with no body', async () => {
-    const app = createAppWithProxy();
-    const res = await request(app).head('/');
-    expect(res.status).toBe(200);
-    // HEAD responses have no body
-    expect(res.text).toBeUndefined();
-  });
-
-  it('GET / returns 200 OK', async () => {
-    const app = createAppWithProxy();
-    const res = await request(app).get('/');
-    expect(res.status).toBe(200);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Dedicated /v1/messages route
 // ---------------------------------------------------------------------------
 

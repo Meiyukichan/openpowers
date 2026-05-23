@@ -29,7 +29,7 @@ const defaultClientDir = path.join(moduleDirname, '..', 'client');
  */
 export function createApp(options?: { clientDir?: string }): express.Application {
   const app = express.default();
-  app.use(express.default.json());
+  app.use(express.default.json({ limit: '50mb' }));
 
   // API routes
   app.use('/openpowers/api/providers', providersRouter);
