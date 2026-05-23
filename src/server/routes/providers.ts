@@ -62,10 +62,35 @@ const SetActiveProviderSchema = z.object({
 /**
  * GET /openpowers/api/providers
  * Returns the full list of configured providers as a JSON array.
+ * Resolves icon from usedTemplate when provider has no explicit icon.
  */
 providersRouter.get('/', (_req, res) => {
   const providers = loadProviders();
-  res.status(200).json(providers);
+  const templates = readProviderTemplates();
+  const resolved = providers.map((p) => {
+    if (p.icon) return p;
+    // 1) resolve via usedTemplate → template.iconSvg
+    if (p.usedTemplate) {
+      const template = templates.find((t) => t.name === p.usedTemplate);
+      if (template?.iconSvg) {
+        return { ...p, icon: template.iconSvg };
+      }
+    }
+    // 2) fallback: derive icon from provider name for legacy providers
+    const nameDerived = `${p.name.toLowerCase().replace(/\s+/g, '')}.svg`;
+    const templateByName = templates.find((t) => t.name === p.name);
+    if (templateByName?.iconSvg) {
+      return { ...p, icon: templateByName.iconSvg };
+    }
+    // if the derived filename matches a known template's iconSvg, use it
+    for (const t of templates) {
+      if (t.iconSvg === nameDerived) {
+        return { ...p, icon: t.iconSvg };
+      }
+    }
+    return p;
+  });
+  res.status(200).json(resolved);
 });
 
 /**

@@ -35,6 +35,7 @@ export const ProviderSchema = z.object({
   baseUrl: z.string().optional(),
   icon: z.string().optional(),
   iconColor: z.string().optional(),
+  usedTemplate: z.string().optional(),
   defaultModel: z.string().default(''),
   sonnetModel: z.string().default(''),
   opusModel: z.string().default(''),
@@ -69,6 +70,7 @@ export const ProviderInputSchema = z.object({
   baseUrl: z.string().optional(),
   icon: z.string().optional(),
   iconColor: z.string().optional(),
+  usedTemplate: z.string().optional(),
 });
 
 /** Inferred TypeScript type for provider creation input. */
@@ -237,6 +239,7 @@ export function createProvider(input: ProviderInput): Provider {
     baseUrl: input.baseUrl,
     icon: input.icon,
     iconColor: input.iconColor,
+    usedTemplate: input.usedTemplate,
     createdAt: now,
   };
 

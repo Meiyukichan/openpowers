@@ -94,6 +94,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   const [selectedPreset, setSelectedPreset] = useState<string | null>('自定义配置');
   const [templates, setTemplates] = useState<ProviderPreset[]>([]);
   const [templateSubmitting, setTemplateSubmitting] = useState(false);
+  const [usedTemplate, setUsedTemplate] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Reset form when dialog opens
@@ -103,6 +104,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
       setShowApiKey(false);
       setErrors({});
       setSelectedPreset('自定义配置');
+      setUsedTemplate(null);
     }
   }, [isOpen]);
 
@@ -158,7 +160,9 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
     setSelectedPreset(preset.name);
     if (preset.name === '自定义配置') {
       setForm(EMPTY_FORM);
+      setUsedTemplate(null);
     } else {
+      setUsedTemplate(preset.name);
       setForm((prev) => ({
         ...prev,
         name: preset.name,
@@ -207,6 +211,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
         if (selectedPreset === preset.name) {
           setSelectedPreset('自定义配置');
           setForm(EMPTY_FORM);
+          setUsedTemplate(null);
         }
       }
     } catch (err) {
@@ -282,17 +287,19 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
           notes: form.notes.trim() || undefined,
           websiteUrl: form.websiteUrl.trim() || undefined,
           baseUrl: form.baseUrl.trim() || undefined,
+          usedTemplate: usedTemplate || undefined,
         }),
       });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${response.status}`);
       }
       onSuccess();
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`Failed to add provider: ${message}`);
-      showToast(`添加供应商失败: ${message}`, 'error');
+      showToast(`${message}`, 'error');
     } finally {
       setSubmitting(false);
     }

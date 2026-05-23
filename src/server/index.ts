@@ -10,6 +10,8 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { providersRouter } from './routes/providers.js';
+import { createProxyRouter } from './anthropic/router.js';
+import { getEnableOpenpowersProxy } from './providers-store.js';
 
 // Resolve dist/client/ directory relative to the compiled output location.
 // At runtime: dist/server/index.js -> ../client -> dist/client/
@@ -18,7 +20,8 @@ const defaultClientDir = path.join(moduleDirname, '..', 'client');
 
 /**
  * Creates and configures the Express application.
- * Mounts provider CRUD routes at /openpowers/api/providers and the frontend SPA at /openpowers/ui.
+ * Mounts provider CRUD routes at /openpowers/api/providers, the frontend SPA at /openpowers/ui,
+ * and conditionally registers proxy routes at root level when enableOpenpowersProxy is true.
  * @param options - Optional configuration
  * @param options.clientDir - Path to the frontend build output directory.
  *   Defaults to dist/client/ relative to the package root.
@@ -47,6 +50,11 @@ export function createApp(options?: { clientDir?: string }): express.Application
     app.use('/openpowers/ui', (_req, res) => {
       res.status(200).type('text/plain').send(message);
     });
+  }
+
+  // Proxy routes — mounted at root for /v1/* and other Anthropic API paths
+  if (getEnableOpenpowersProxy()) {
+    app.use(createProxyRouter());
   }
 
   return app;

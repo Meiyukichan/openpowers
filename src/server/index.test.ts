@@ -7,8 +7,21 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import request from 'supertest';
+
+// ---- mock providers-store to control proxy flag ----
+const { mockGetEnableOpenpowersProxy } = vi.hoisted(() => ({
+  mockGetEnableOpenpowersProxy: vi.fn(() => false),
+}));
+
+vi.mock('./providers-store.js', async () => {
+  const actual = await vi.importActual<typeof import('./providers-store.js')>('./providers-store.js');
+  return {
+    ...actual,
+    getEnableOpenpowersProxy: mockGetEnableOpenpowersProxy,
+  };
+});
 
 // ---- helpers ----
 
@@ -29,6 +42,10 @@ afterAll(() => {
   if (tempDir) {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+});
+
+beforeEach(() => {
+  mockGetEnableOpenpowersProxy.mockReturnValue(false);
 });
 
 // ---- test suites ----
@@ -92,6 +109,40 @@ describe('src/server/index.ts', () => {
       const res = await request(app).get('/openpowers/ui/any/sub/path');
       expect(res.status).toBe(200);
       expect(res.text).toContain('needs to be built');
+    });
+  });
+
+  describe('Proxy route integration', () => {
+    it('should register proxy routes when enableOpenpowersProxy is true', async () => {
+      mockGetEnableOpenpowersProxy.mockReturnValue(true);
+      const app = createApp({ clientDir: '/non/existent/path' });
+      const res = await request(app).head('/');
+      expect(res.status).toBe(200);
+    });
+
+    it('should NOT register proxy routes when enableOpenpowersProxy is false', async () => {
+      mockGetEnableOpenpowersProxy.mockReturnValue(false);
+      const app = createApp({ clientDir: '/non/existent/path' });
+      const res = await request(app).head('/');
+      expect(res.status).toBe(404);
+    });
+
+    it('should still serve /openpowers/api/providers when proxy is enabled', async () => {
+      mockGetEnableOpenpowersProxy.mockReturnValue(true);
+      const app = createApp({ clientDir: '/non/existent/path' });
+      const res = await request(app).get('/openpowers/api/providers');
+      expect(res.status).not.toBe(404);
+    });
+
+    it('should support coexistence: both proxy and /openpowers routes work on same app', async () => {
+      mockGetEnableOpenpowersProxy.mockReturnValue(true);
+      const app = createApp({ clientDir: '/non/existent/path' });
+
+      const proxyRes = await request(app).head('/');
+      expect(proxyRes.status).toBe(200);
+
+      const apiRes = await request(app).get('/openpowers/api/providers');
+      expect(apiRes.status).not.toBe(404);
     });
   });
 });

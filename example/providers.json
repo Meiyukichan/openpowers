@@ -1,0 +1,19 @@
+{
+  "activeProviderId": "1259d974-a788-417a-91b4-e235f3007234",
+  "enableOpenpowersProxy": true,
+  "providers": [
+    {
+      "id": "55885090-f62f-4194-8996-ec66252255d5",
+      "name": "MiniMax",
+      "websiteUrl": "https://platform.minimaxi.com",
+      "apiKey": "sk-cp-wGGbptSq0bk_acHijR2dWvQGsioFxnFEtnb56HiJBNpLNRX2PMeYJn-u3q7ag7OBeayiT63psnsemixsDRXqSpwY2LBASSj0Hy3GKjsiqbMkVSJC-sVq2uo",
+      "baseUrl": "https://api.minimaxi.com/anthropic",
+      "usedTemplate": "MiniMax",
+      "defaultModel": "MiniMax-M2.7",
+      "sonnetModel": "MiniMax-M2.7",
+      "opusModel": "MiniMax-M2.7",
+      "haikuModel": "MiniMax-M2.7",
+      "createdAt": "2026-05-23T12:52:23.054Z"
+    }
+  ]
+}
