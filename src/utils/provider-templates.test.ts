@@ -183,3 +183,75 @@ describe('addProviderTemplate', () => {
     expect(result.source).toBe('custom');
   });
 });
+
+describe('deleteProviderTemplate', () => {
+  let deleteProviderTemplate: (name: string) => boolean;
+
+  const customTemplate: ProviderTemplate = {
+    name: 'My Custom Template',
+    baseUrl: 'https://api.custom.com',
+    websiteUrl: '',
+    iconSvg: '',
+    defaultModel: '',
+    sonnetModel: '',
+    opusModel: '',
+    haikuModel: '',
+    source: 'custom',
+  };
+
+  const builtinTemplate: ProviderTemplate = {
+    name: 'Builtin Template',
+    baseUrl: 'https://api.builtin.com',
+    websiteUrl: '',
+    iconSvg: '',
+    defaultModel: '',
+    sonnetModel: '',
+    opusModel: '',
+    haikuModel: '',
+    source: 'builtin',
+  };
+
+  beforeAll(async () => {
+    const mod = await import('./provider-templates.js');
+    deleteProviderTemplate = mod.deleteProviderTemplate;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should delete a custom template and return true', () => {
+    const existingTemplates = [builtinTemplate, customTemplate];
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify(existingTemplates));
+
+    const result = deleteProviderTemplate('My Custom Template');
+
+    expect(result).toBe(true);
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const writtenJson = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(writtenJson) as ProviderTemplate[];
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].name).toBe('Builtin Template');
+  });
+
+  it('should return false when the template does not exist', () => {
+    const existingTemplates = [builtinTemplate];
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify(existingTemplates));
+
+    const result = deleteProviderTemplate('Non Existent Template');
+
+    expect(result).toBe(false);
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should throw an error when attempting to delete a builtin template', () => {
+    const existingTemplates = [builtinTemplate];
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(JSON.stringify(existingTemplates));
+
+    expect(() => deleteProviderTemplate('Builtin Template')).toThrow(/cannot delete builtin/i);
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+});

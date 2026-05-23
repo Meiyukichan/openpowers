@@ -57,14 +57,16 @@ vi.mock('../providers-store.js', async (importOriginal) => {
 
 // ---- mocks for provider-templates ----
 
-const { readProviderTemplatesMock, addProviderTemplateMock } = vi.hoisted(() => ({
+const { readProviderTemplatesMock, addProviderTemplateMock, deleteProviderTemplateMock } = vi.hoisted(() => ({
   readProviderTemplatesMock: vi.fn(),
   addProviderTemplateMock: vi.fn(),
+  deleteProviderTemplateMock: vi.fn(),
 }));
 
 vi.mock('../../utils/provider-templates.js', () => ({
   readProviderTemplates: readProviderTemplatesMock,
   addProviderTemplate: addProviderTemplateMock,
+  deleteProviderTemplate: deleteProviderTemplateMock,
 }));
 
 // ---- helpers ----
@@ -507,6 +509,43 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('error');
       expect(res.body).toHaveProperty('details');
+    });
+  });
+
+  // ---- DELETE /openpowers/api/providers/templates/:name ----
+
+  describe('DELETE /openpowers/api/providers/templates/:name', () => {
+    it('should delete custom template and return 200 with success message', async () => {
+      deleteProviderTemplateMock.mockReturnValue(true);
+
+      const res = await request(app).delete('/openpowers/api/providers/templates/MyTemplate');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('message');
+      expect(res.body.message).toMatch(/deleted/i);
+      expect(deleteProviderTemplateMock).toHaveBeenCalledWith('MyTemplate');
+    });
+
+    it('should return 403 when attempting to delete a builtin template', async () => {
+      deleteProviderTemplateMock.mockImplementation(() => {
+        throw new Error('Cannot delete builtin template: "BuiltinTemplate"');
+      });
+
+      const res = await request(app).delete('/openpowers/api/providers/templates/BuiltinTemplate');
+
+      expect(res.status).toBe(403);
+      expect(res.body).toHaveProperty('error');
+      expect(res.body.error).toMatch(/cannot delete builtin/i);
+    });
+
+    it('should return 404 when template name does not exist', async () => {
+      deleteProviderTemplateMock.mockReturnValue(false);
+
+      const res = await request(app).delete('/openpowers/api/providers/templates/NonExistent');
+
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('error');
+      expect(res.body.error).toMatch(/not found/i);
     });
   });
 });

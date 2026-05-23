@@ -13,8 +13,8 @@ import { AddProviderDialog } from './AddProviderDialog.js';
 
 // Template data returned by the API for all tests
 const mockTemplates = [
-  { name: 'TestProvider1', baseUrl: 'https://api.test1.com', iconSvg: 'anthropic.svg', websiteUrl: 'https://test1.com', defaultModel: 'model1', sonnetModel: 'model1-sonnet', opusModel: 'model1-opus', haikuModel: 'model1-haiku' },
-  { name: 'TestProvider2', baseUrl: 'https://api.test2.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '' },
+  { name: 'TestProvider1', baseUrl: 'https://api.test1.com', iconSvg: 'anthropic.svg', websiteUrl: 'https://test1.com', defaultModel: 'model1', sonnetModel: 'model1-sonnet', opusModel: 'model1-opus', haikuModel: 'model1-haiku', source: 'builtin' },
+  { name: 'TestProvider2', baseUrl: 'https://api.test2.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '', source: 'builtin' },
 ];
 
 describe('AddProviderDialog', () => {
@@ -552,5 +552,119 @@ describe('AddProviderDialog', () => {
         'error',
       );
     });
+  });
+
+  // ts-002: Template deletion tests
+
+  it('custom templates show a delete button while builtin templates do not', async () => {
+    const customTemplates = [
+      { name: 'CustomTemplate', baseUrl: 'https://api.custom.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '', source: 'custom' },
+      { name: 'BuiltinTemplate', baseUrl: 'https://api.builtin.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '', source: 'builtin' },
+    ];
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+        return { ok: true, status: 200, json: () => Promise.resolve(customTemplates) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('CustomTemplate')).toBeInTheDocument();
+    });
+    expect(screen.getByText('BuiltinTemplate')).toBeInTheDocument();
+
+    // Custom template card should have a delete button
+    const customCard = screen.getByText('CustomTemplate').closest('div');
+    expect(customCard).toBeInTheDocument();
+    const deleteButtons = customCard!.querySelectorAll('button[title="Delete template"]');
+    expect(deleteButtons.length).toBe(1);
+
+    // Builtin template card should NOT have a delete button
+    const builtinCard = screen.getByText('BuiltinTemplate').closest('div');
+    expect(builtinCard).toBeInTheDocument();
+    const builtinDeleteBtns = builtinCard!.querySelectorAll('button[title="Delete template"]');
+    expect(builtinDeleteBtns.length).toBe(0);
+  });
+
+  it('hardcoded custom config preset does not show delete button', async () => {
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('自定义配置')).toBeInTheDocument();
+    });
+
+    const customConfigCard = screen.getByText('自定义配置').closest('div');
+    expect(customConfigCard).toBeInTheDocument();
+    const deleteButtons = customConfigCard!.querySelectorAll('button[title="Delete template"]');
+    expect(deleteButtons.length).toBe(0);
+  });
+
+  it('clicking delete button on custom template sends DELETE API call and removes template from list', async () => {
+    const user = userEvent.setup();
+    const customTemplates = [
+      { name: 'Deletable', baseUrl: 'https://api.delete.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '', source: 'custom' },
+      { name: 'KeepMe', baseUrl: 'https://api.keep.com', iconSvg: '', websiteUrl: '', defaultModel: '', sonnetModel: '', opusModel: '', haikuModel: '', source: 'builtin' },
+    ];
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+        return { ok: true, status: 200, json: () => Promise.resolve(customTemplates) };
+      }
+      if (urlStr === '/openpowers/api/providers/templates/Deletable' && init?.method === 'DELETE') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ message: 'Template "Deletable" deleted successfully' }) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Deletable')).toBeInTheDocument();
+    });
+    expect(screen.getByText('KeepMe')).toBeInTheDocument();
+
+    // Find and click the delete button on the custom template card
+    const deletableCard = screen.getByText('Deletable').closest('div');
+    const deleteBtn = deletableCard!.querySelector('button[title="Delete template"]') as HTMLButtonElement;
+    expect(deleteBtn).toBeInTheDocument();
+    await user.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        '/openpowers/api/providers/templates/Deletable',
+        expect.objectContaining({ method: 'DELETE' }),
+      );
+    });
+
+    // After deletion, the custom template should be removed from the list
+    await waitFor(() => {
+      expect(screen.queryByText('Deletable')).not.toBeInTheDocument();
+    });
+    // But the builtin template should still be present
+    expect(screen.getByText('KeepMe')).toBeInTheDocument();
   });
 });

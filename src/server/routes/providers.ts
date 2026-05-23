@@ -19,7 +19,7 @@ import {
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
-import { readProviderTemplates, addProviderTemplate } from '../../utils/provider-templates.js';
+import { readProviderTemplates, addProviderTemplate, deleteProviderTemplate } from '../../utils/provider-templates.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -163,6 +163,29 @@ providersRouter.put('/:id', (req, res) => {
     res.status(200).json(provider);
   } catch {
     res.status(404).json({ error: `Provider not found: ${req.params.id}` });
+  }
+});
+
+/**
+ * DELETE /openpowers/api/providers/templates/:name
+ * Deletes a custom provider template by name. Builtin templates cannot be
+ * deleted (returns 403). Non-existent names return 404.
+ */
+providersRouter.delete('/templates/:name', (req, res) => {
+  try {
+    const deleted = deleteProviderTemplate(req.params.name);
+    if (!deleted) {
+      res.status(404).json({ error: `Template not found: ${req.params.name}` });
+      return;
+    }
+    res.status(200).json({ message: `Template "${req.params.name}" deleted successfully` });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    if (message.includes('Cannot delete builtin')) {
+      res.status(403).json({ error: message });
+    } else {
+      res.status(500).json({ error: message });
+    }
   }
 });
 

@@ -89,3 +89,28 @@ export function addProviderTemplate(template: ProviderTemplateInput): ProviderTe
   fs.writeFileSync(TEMPLATES_PATH, JSON.stringify(templates, null, 2), 'utf-8');
   return newTemplate;
 }
+
+/**
+ * Deletes a provider template by name from the JSON resource file.
+ * Only templates with source 'custom' can be deleted.
+ * @param name - The name of the template to delete
+ * @returns true if the template was found and deleted successfully
+ * @returns false if no template with the given name exists
+ * @throws {Error} If the template is a builtin template (cannot be deleted)
+ */
+export function deleteProviderTemplate(name: string): boolean {
+  const templates = readProviderTemplates();
+
+  const index = templates.findIndex((t) => t.name === name);
+  if (index === -1) {
+    return false;
+  }
+
+  if (templates[index].source === 'builtin') {
+    throw new Error(`Cannot delete builtin template: "${name}"`);
+  }
+
+  templates.splice(index, 1);
+  fs.writeFileSync(TEMPLATES_PATH, JSON.stringify(templates, null, 2), 'utf-8');
+  return true;
+}

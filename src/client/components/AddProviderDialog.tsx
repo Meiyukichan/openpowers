@@ -195,6 +195,24 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleDeleteTemplate = async (preset: ProviderPreset) => {
+    try {
+      const response = await fetch(`/openpowers/api/providers/templates/${encodeURIComponent(preset.name)}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setTemplates((prev) => prev.filter((t) => t.name !== preset.name));
+        if (selectedPreset === preset.name) {
+          setSelectedPreset('自定义配置');
+          setForm(EMPTY_FORM);
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to delete provider template: ${message}`);
+    }
+  };
+
   const handleAddAsTemplate = async () => {
     if (!form.name.trim()) {
       showToast('Name is required to add a template', 'error');
@@ -344,38 +362,61 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
               { className: 'grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1' },
               ...allPresets.map((preset) =>
                 React.createElement(
-                  'button',
+                  'div',
                   {
                     key: preset.name,
-                    type: 'button',
-                    title: preset.name,
-                    onClick: () => handlePresetSelect(preset),
-                    className: `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      selectedPreset === preset.name
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 hover:bg-gray-200 text-foreground'
-                    }`,
+                    className: 'relative',
                   },
                   React.createElement(
-                    'div',
+                    'button',
                     {
-                      className: 'h-6 w-6 rounded flex items-center justify-center flex-shrink-0',
+                      type: 'button',
+                      title: preset.name,
+                      onClick: () => handlePresetSelect(preset),
+                      className: `w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        selectedPreset === preset.name
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 hover:bg-gray-200 text-foreground'
+                      }`,
                     },
-                    (() => {
-                      const svgUrl = preset.iconSvg ? ICON_MAP[preset.iconSvg] : undefined;
-                      if (svgUrl) {
-                        return React.createElement('img', {
-                          src: svgUrl,
-                          alt: 'Provider icon',
-                          width: 16,
-                          height: 16,
-                          loading: 'lazy',
-                        });
-                      }
-                      return null;
-                    })(),
+                    React.createElement(
+                      'div',
+                      {
+                        className: 'h-6 w-6 rounded flex items-center justify-center flex-shrink-0',
+                      },
+                      (() => {
+                        const svgUrl = preset.iconSvg ? ICON_MAP[preset.iconSvg] : undefined;
+                        if (svgUrl) {
+                          return React.createElement('img', {
+                            src: svgUrl,
+                            alt: 'Provider icon',
+                            width: 16,
+                            height: 16,
+                            loading: 'lazy',
+                          });
+                        }
+                        return null;
+                      })(),
+                    ),
+                    React.createElement('span', { className: 'truncate text-left' }, preset.name),
                   ),
-                  React.createElement('span', { className: 'truncate text-left' }, preset.name),
+                  // Delete button overlay for custom templates (exclude hardcoded custom config)
+                  (preset.source === 'custom' && preset.name !== '自定义配置')
+                    ? React.createElement(
+                        'button',
+                        {
+                          type: 'button',
+                          title: 'Delete template',
+                          onClick: (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            handleDeleteTemplate(preset);
+                          },
+                          className:
+                            'absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors',
+                        },
+                        '\u00D7',
+                      )
+                    : null,
                 ),
               ),
             ),
