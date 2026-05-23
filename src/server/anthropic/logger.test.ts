@@ -26,6 +26,7 @@ vi.mock('winston', () => ({
   },
   transports: {
     File: vi.fn(),
+    Console: vi.fn(),
   },
 }));
 

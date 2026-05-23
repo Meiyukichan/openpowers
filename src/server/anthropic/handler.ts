@@ -116,16 +116,17 @@ function copyUpstreamHeaders(
  */
 export function mapModel(model: string, provider: Provider): string {
   const modelLower = model.toLowerCase();
+  const defaultModel = provider.defaultModel || model;
   if (modelLower.includes('haiku')) {
-    return provider.haikuModel || model;
+    return provider.haikuModel || defaultModel;
   }
   if (modelLower.includes('opus')) {
-    return provider.opusModel || model;
+    return provider.opusModel || defaultModel;
   }
   if (modelLower.includes('sonnet')) {
-    return provider.sonnetModel || model;
+    return provider.sonnetModel || defaultModel;
   }
-  return provider.defaultModel || model;
+  return defaultModel;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +144,7 @@ export function mapModel(model: string, provider: Provider): string {
 export async function proxyRequestHandler(
   req: Request,
   res: Response,
-  onResponse?: (host: string, method: string, url: string, status: number, errorMsg?: string) => void,
+  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void,
 ): Promise<void> {
   // Check if proxy is enabled
   if (!getEnableOpenpowersProxy()) {
@@ -183,6 +184,8 @@ export async function proxyRequestHandler(
   let rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? '');
 
   let isStreamRequest = false;
+  let clientModel: string | undefined;
+  let providerModel: string | undefined;
   if (contentType && contentType.startsWith('application/json')) {
     let parsedBody: Record<string, unknown> | null = null;
     try {
@@ -195,7 +198,9 @@ export async function proxyRequestHandler(
 
     // Apply model replacement for JSON requests
     if (parsedBody && parsedBody.model) {
-      parsedBody.model = mapModel(parsedBody.model as string, provider);
+      clientModel = parsedBody.model as string;
+      parsedBody.model = mapModel(clientModel, provider);
+      providerModel = parsedBody.model as string;
       rawBody = JSON.stringify(parsedBody);
     }
   }
@@ -247,7 +252,7 @@ export async function proxyRequestHandler(
         });
 
         upstreamStream.pipe(res);
-        res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status));
+        res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel));
         return;
       }
 
@@ -286,7 +291,12 @@ export async function proxyRequestHandler(
         res.setHeader('content-type', upstreamContentType || 'text/plain');
         res.send(fullBody);
       }
-      onResponse?.(providerHost, req.method, reqPath, upstreamRes.status);
+      onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel);
+
+      // Log non-2xx responses with error details
+      if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
+        proxyLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody} | request body: ${rawBody}`);
+      }
       return;
     }
 
@@ -300,9 +310,14 @@ export async function proxyRequestHandler(
     } else {
       res.json(upstreamRes.data);
     }
-    res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status));
+    res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel));
+
+    // Log non-2xx responses with error details
+    if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
+      proxyLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)} | request body: ${rawBody}`);
+    }
   } catch (err: unknown) {
-    handleAxiosError(err, res, providerHost, req.method, reqPath, onResponse);
+    handleAxiosError(err, res, providerHost, req.method, reqPath, onResponse, providerModel, clientModel);
   }
 }
 
@@ -317,11 +332,11 @@ export async function proxyRequestHandler(
  * @param err - The caught error
  * @param res - Express Response object
  */
-function handleAxiosError(err: unknown, res: Response, providerHost: string, method: string, reqPath: string, onResponse?: (host: string, method: string, url: string, status: number, errorMsg?: string) => void): void {
+function handleAxiosError(err: unknown, res: Response, providerHost: string, method: string, reqPath: string, onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void, providerModel?: string, clientModel?: string): void {
   // Check for axios error with a response (upstream returned HTTP error)
   if (axios.isAxiosError(err) && err.response) {
     const upstreamStatus = err.response.status;
-    proxyLogger.warn(`Upstream returned ${upstreamStatus}`);
+    proxyLogger.warn(`Upstream returned ${upstreamStatus}: ${JSON.stringify(err.response.data)}`);
     res.status(upstreamStatus);
     if (err.response.headers) {
       copyUpstreamHeaders(res, err.response.headers as Record<string, string | string[] | undefined>);
@@ -335,7 +350,7 @@ function handleAxiosError(err: unknown, res: Response, providerHost: string, met
     } else {
       res.json(err.response.data);
     }
-    onResponse?.(providerHost, method, reqPath, upstreamStatus);
+    onResponse?.(providerHost, method, reqPath, upstreamStatus, providerModel, clientModel);
     return;
   }
 
@@ -356,5 +371,5 @@ function handleAxiosError(err: unknown, res: Response, providerHost: string, met
   }
 
   res.status(502).json({ error: 'Bad Gateway', message });
-  onResponse?.(providerHost, method, reqPath, 502, errorMsg);
+  onResponse?.(providerHost, method, reqPath, 502, providerModel, clientModel, errorMsg);
 }

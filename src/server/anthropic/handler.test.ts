@@ -363,19 +363,24 @@ describe('mapModel', () => {
     expect(mapModel('gpt-5', provider)).toBe('anthropic/claude-sonnet-4');
   });
 
-  it('preserves original model when haikuModel is empty', () => {
-    const provider = createProvider({ haikuModel: '' });
+  it('falls back to defaultModel when haikuModel is empty', () => {
+    const provider = createProvider({ haikuModel: '', defaultModel: 'anthropic/default' });
+    expect(mapModel('claude-haiku-3-5', provider)).toBe('anthropic/default');
+  });
+
+  it('falls back to defaultModel when sonnetModel is empty', () => {
+    const provider = createProvider({ sonnetModel: '', defaultModel: 'anthropic/default' });
+    expect(mapModel('claude-sonnet', provider)).toBe('anthropic/default');
+  });
+
+  it('falls back to defaultModel when opusModel is empty', () => {
+    const provider = createProvider({ opusModel: '', defaultModel: 'anthropic/default' });
+    expect(mapModel('claude-opus-4', provider)).toBe('anthropic/default');
+  });
+
+  it('preserves original model when both haikuModel and defaultModel are empty', () => {
+    const provider = createProvider({ haikuModel: '', defaultModel: '' });
     expect(mapModel('claude-haiku-3-5', provider)).toBe('claude-haiku-3-5');
-  });
-
-  it('preserves original model when sonnetModel is empty', () => {
-    const provider = createProvider({ sonnetModel: '' });
-    expect(mapModel('claude-sonnet', provider)).toBe('claude-sonnet');
-  });
-
-  it('preserves original model when opusModel is empty', () => {
-    const provider = createProvider({ opusModel: '' });
-    expect(mapModel('claude-opus-4', provider)).toBe('claude-opus-4');
   });
 
   it('preserves original model when defaultModel is empty', () => {

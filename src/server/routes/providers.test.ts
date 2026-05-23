@@ -103,6 +103,7 @@ describe('Provider Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loadProvidersMock.mockReturnValue([sampleProvider]);
+    readProviderTemplatesMock.mockReturnValue([]);
   });
 
   // ---- GET /openpowers/api/providers ----

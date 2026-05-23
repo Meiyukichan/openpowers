@@ -27,11 +27,13 @@ const STATUS_PHRASES: Record<number, string> = {
 /**
  * Logs a request/response entry in uvicorn-like format, using provider host instead of client IP.
  */
-function logRequest(providerHost: string, method: string, url: string, status: number, errorMsg?: string): void {
+function logRequest(providerHost: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string): void {
   const phrase = STATUS_PHRASES[status] || '';
+  const hostPart = providerModel ? `${providerHost}:${providerModel}` : providerHost;
+  const methodPart = clientModel ? `${clientModel}:${method}` : method;
   const entry = errorMsg
-    ? `${providerHost} - "${method} ${url} HTTP/1.1" ${status} ${phrase} - ${errorMsg}`
-    : `${providerHost} - "${method} ${url} HTTP/1.1" ${status} ${phrase}`;
+    ? `${hostPart} - "${methodPart} ${url} HTTP/1.1" ${status} ${phrase} - ${errorMsg}`
+    : `${hostPart} - "${methodPart} ${url} HTTP/1.1" ${status} ${phrase}`;
   proxyLogger.info(entry);
 }
 
@@ -43,6 +45,11 @@ function logRequest(providerHost: string, method: string, url: string, status: n
 export function createProxyRouter(): express.Router {
   const router = express.default.Router({ mergeParams: true });
 
+  // Health check
+  router.head('/', (_req, res) => {
+    res.sendStatus(200);
+  });
+
   // Error handler
   router.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     proxyLogger.error(`${err.message}`);
@@ -51,17 +58,17 @@ export function createProxyRouter(): express.Router {
 
   // Dedicated Messages API route (600s timeout via handler's getTimeoutForPath)
   router.post('/v1/messages', (req, res) => {
-    proxyRequestHandler(req, res, (host, method, url, status, errorMsg) => logRequest(host, method, url, status, errorMsg));
+    proxyRequestHandler(req, res, (host, method, url, status, providerModel, clientModel, errorMsg) => logRequest(host, method, url, status, providerModel, clientModel, errorMsg));
   });
 
   // Messages sub-path routes (e.g. count_tokens) — 120s timeout via handler
   router.post('/v1/messages/:path', (req, res) => {
-    proxyRequestHandler(req, res, (host, method, url, status, errorMsg) => logRequest(host, method, url, status, errorMsg));
+    proxyRequestHandler(req, res, (host, method, url, status, providerModel, clientModel, errorMsg) => logRequest(host, method, url, status, providerModel, clientModel, errorMsg));
   });
 
   // Catch-all dynamic proxy for all other Anthropic API endpoints
   router.all('/{*catchall}', (req, res) => {
-    proxyRequestHandler(req, res, (host, method, url, status, errorMsg) => logRequest(host, method, url, status, errorMsg));
+    proxyRequestHandler(req, res, (host, method, url, status, providerModel, clientModel, errorMsg) => logRequest(host, method, url, status, providerModel, clientModel, errorMsg));
   });
 
   return router;
