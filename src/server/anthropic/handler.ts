@@ -9,7 +9,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import type { Request, Response } from 'express';
 import { HOP_BY_HOP_HEADERS, MESSAGES_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from './types.js';
-import { getDefaultProvider, getEnableOpenpowersProxy } from '../providers-store.js';
+import { getDefaultProvider, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
 import { proxyLogger } from './logger.js';
 
 /**
@@ -104,6 +104,31 @@ function copyUpstreamHeaders(
 }
 
 // ---------------------------------------------------------------------------
+// Model mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a client model name to a provider-specific model name using
+ * case-insensitive keyword matching.
+ * @param model - The original model name from the client request
+ * @param provider - The target provider configuration
+ * @returns The mapped provider model name, or the original model if the target is empty
+ */
+export function mapModel(model: string, provider: Provider): string {
+  const modelLower = model.toLowerCase();
+  if (modelLower.includes('haiku')) {
+    return provider.haikuModel || model;
+  }
+  if (modelLower.includes('opus')) {
+    return provider.opusModel || model;
+  }
+  if (modelLower.includes('sonnet')) {
+    return provider.sonnetModel || model;
+  }
+  return provider.defaultModel || model;
+}
+
+// ---------------------------------------------------------------------------
 // Main proxy request handler
 // ---------------------------------------------------------------------------
 
@@ -155,17 +180,24 @@ export async function proxyRequestHandler(
 
   // Parse body for stream detection
   const contentType = req.headers['content-type'] as string | undefined;
-  const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? '');
+  let rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? '');
 
   let isStreamRequest = false;
   if (contentType && contentType.startsWith('application/json')) {
+    let parsedBody: Record<string, unknown> | null = null;
     try {
-      JSON.parse(rawBody);
+      parsedBody = JSON.parse(rawBody);
     } catch {
       res.status(400).json({ error: 'Invalid JSON in request body' });
       return;
     }
     isStreamRequest = detectStreamRequest(contentType, rawBody);
+
+    // Apply model replacement for JSON requests
+    if (parsedBody && parsedBody.model) {
+      parsedBody.model = mapModel(parsedBody.model as string, provider);
+      rawBody = JSON.stringify(parsedBody);
+    }
   }
 
   // Determine timeout
@@ -222,6 +254,13 @@ export async function proxyRequestHandler(
       // Layer 2: upstream returned non-SSE response — buffer and return as JSON
       const chunks: Buffer[] = [];
       const upstreamStream = upstreamRes.data;
+
+      // Handle client disconnect
+      req.on('close', () => {
+        if (typeof upstreamStream.destroy === 'function') {
+          upstreamStream.destroy();
+        }
+      });
 
       await new Promise<void>((resolve, reject) => {
         upstreamStream.on('data', (chunk: Buffer) => {

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { prepareModifiedHeaders, getTimeoutForPath, detectStreamRequest, proxyRequestHandler } from './handler.js';
+import { prepareModifiedHeaders, getTimeoutForPath, detectStreamRequest, proxyRequestHandler, mapModel } from './handler.js';
 import type { Request, Response } from 'express';
 
 // ---------------------------------------------------------------------------
@@ -137,17 +137,21 @@ function mockAxiosStream(status: number, headers: Record<string, string>) {
 }
 
 /** Configure a provider mock that the handler can use. */
-function setupProvider(baseUrl = 'https://api.anthropic.com', apiKey = 'sk-test-key') {
+function setupProvider(
+  baseUrl = 'https://api.anthropic.com',
+  apiKey = 'sk-test-key',
+  models?: { defaultModel?: string; sonnetModel?: string; opusModel?: string; haikuModel?: string },
+) {
   getEnableOpenpowersProxyMock.mockReturnValue(true);
   getDefaultProviderMock.mockReturnValue({
     id: 'test-provider',
     name: 'Test Provider',
     apiKey,
     baseUrl,
-    defaultModel: '',
-    sonnetModel: '',
-    opusModel: '',
-    haikuModel: '',
+    defaultModel: models?.defaultModel ?? '',
+    sonnetModel: models?.sonnetModel ?? '',
+    opusModel: models?.opusModel ?? '',
+    haikuModel: models?.haikuModel ?? '',
     createdAt: new Date().toISOString(),
   });
 }
@@ -314,6 +318,92 @@ describe('detectStreamRequest', () => {
   it('returns false when content-type does not start with application/json', () => {
     const body = JSON.stringify({ stream: true });
     expect(detectStreamRequest('text/plain', body)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mapModel
+// ---------------------------------------------------------------------------
+
+import type { Provider } from '../providers-store.js';
+
+function createProvider(overrides?: Partial<Provider>): Provider {
+  return {
+    id: 'test-provider',
+    name: 'Test Provider',
+    apiKey: 'sk-test',
+    baseUrl: 'https://api.example.com',
+    defaultModel: '',
+    sonnetModel: '',
+    opusModel: '',
+    haikuModel: '',
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+describe('mapModel', () => {
+  it('maps haiku model to provider haikuModel', () => {
+    const provider = createProvider({ haikuModel: 'anthropic/claude-3.5-haiku' });
+    expect(mapModel('claude-haiku-3-5', provider)).toBe('anthropic/claude-3.5-haiku');
+  });
+
+  it('maps sonnet model to provider sonnetModel', () => {
+    const provider = createProvider({ sonnetModel: 'anthropic/claude-sonnet-4' });
+    expect(mapModel('claude-sonnet-4-20250514', provider)).toBe('anthropic/claude-sonnet-4');
+  });
+
+  it('maps opus model to provider opusModel', () => {
+    const provider = createProvider({ opusModel: 'anthropic/claude-opus-4' });
+    expect(mapModel('claude-opus-4', provider)).toBe('anthropic/claude-opus-4');
+  });
+
+  it('maps unknown model to provider defaultModel', () => {
+    const provider = createProvider({ defaultModel: 'anthropic/claude-sonnet-4' });
+    expect(mapModel('gpt-5', provider)).toBe('anthropic/claude-sonnet-4');
+  });
+
+  it('preserves original model when haikuModel is empty', () => {
+    const provider = createProvider({ haikuModel: '' });
+    expect(mapModel('claude-haiku-3-5', provider)).toBe('claude-haiku-3-5');
+  });
+
+  it('preserves original model when sonnetModel is empty', () => {
+    const provider = createProvider({ sonnetModel: '' });
+    expect(mapModel('claude-sonnet', provider)).toBe('claude-sonnet');
+  });
+
+  it('preserves original model when opusModel is empty', () => {
+    const provider = createProvider({ opusModel: '' });
+    expect(mapModel('claude-opus-4', provider)).toBe('claude-opus-4');
+  });
+
+  it('preserves original model when defaultModel is empty', () => {
+    const provider = createProvider({ defaultModel: '' });
+    expect(mapModel('gpt-5', provider)).toBe('gpt-5');
+  });
+
+  it('matches haiku case-insensitively', () => {
+    const provider = createProvider({ haikuModel: 'anthropic/claude-3.5-haiku' });
+    expect(mapModel('CLAUDE-HAIKU-3-5', provider)).toBe('anthropic/claude-3.5-haiku');
+  });
+
+  it('matches sonnet case-insensitively', () => {
+    const provider = createProvider({ sonnetModel: 'anthropic/claude-sonnet-4' });
+    expect(mapModel('CLAUDE-SONNET-4', provider)).toBe('anthropic/claude-sonnet-4');
+  });
+
+  it('matches opus case-insensitively', () => {
+    const provider = createProvider({ opusModel: 'anthropic/claude-opus-4' });
+    expect(mapModel('CLAUDE-OPUS-4', provider)).toBe('anthropic/claude-opus-4');
+  });
+
+  it('haiku keyword takes priority over other keywords', () => {
+    const provider = createProvider({
+      haikuModel: 'anthropic/haiku',
+      sonnetModel: 'anthropic/sonnet',
+    });
+    expect(mapModel('claude-haiku-sonnet', provider)).toBe('anthropic/haiku');
   });
 });
 
@@ -515,6 +605,111 @@ describe('proxyRequestHandler', () => {
       closeCb!();
 
       expect(streamObj.destroy).toHaveBeenCalled();
+    });
+
+    it('destroys upstream stream when client disconnects during non-SSE buffering', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'application/json' });
+      streamObj.destroy = vi.fn();
+
+      // Register stream event handlers but DON'T trigger end — stream stays open
+      const dataHandlers: Array<(chunk: Buffer) => void> = [];
+      let errorHandler: ((err: Error) => void) | undefined;
+      streamObj.on.mockImplementation((event: string, handler: unknown) => {
+        if (event === 'data') {
+          dataHandlers.push(handler as (chunk: Buffer) => void);
+        }
+        if (event === 'error') {
+          errorHandler = handler as (err: Error) => void;
+        }
+        // Do not trigger 'end' or 'error' — stream stays pending
+      });
+
+      // Capture the close callback on req
+      let closeCb: (() => void) | undefined;
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+        on: vi.fn((event: string, cb: unknown) => {
+          if (event === 'close') {
+            closeCb = cb as () => void;
+          }
+          return req as unknown as Request;
+        }) as unknown as Request['on'],
+      });
+      const res = createMockRes();
+
+      // Start the handler — it will be waiting on the buffering Promise
+      const handlerPromise = proxyRequestHandler(req, res as unknown as Response);
+
+      // Flush microtasks so handler resumes after await axios(config) and
+      // registers req.on('close') + stream event listeners
+      await Promise.resolve();
+
+      // Emit some data so stream listeners are registered by the handler
+      dataHandlers.forEach(h => h(Buffer.from('{"id":"msg_123"}')));
+      // Flush microtasks after emitting data
+      await Promise.resolve();
+
+      // Simulate client disconnect
+      expect(closeCb).toBeDefined();
+      closeCb!();
+
+      expect(streamObj.destroy).toHaveBeenCalled();
+
+      // Resolve the pending handler promise by emitting stream error after destroy
+      // (destroy() on a real stream triggers error/close, so we simulate that here)
+      errorHandler!(new Error('Stream destroyed'));
+      await handlerPromise;
+    });
+
+    it('does not throw when upstream stream has no destroy method on non-SSE client disconnect', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'application/json' });
+      // Stream has NO destroy method — simulating a non-standard stream object
+      delete (streamObj as Record<string, unknown>).destroy;
+
+      // Register stream event handlers but DON'T trigger end
+      const dataHandlers: Array<(chunk: Buffer) => void> = [];
+      let errorHandler: ((err: Error) => void) | undefined;
+      streamObj.on.mockImplementation((event: string, handler: unknown) => {
+        if (event === 'data') {
+          dataHandlers.push(handler as (chunk: Buffer) => void);
+        }
+        if (event === 'error') {
+          errorHandler = handler as (err: Error) => void;
+        }
+      });
+
+      // Capture the close callback on req
+      let closeCb: (() => void) | undefined;
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+        on: vi.fn((event: string, cb: unknown) => {
+          if (event === 'close') {
+            closeCb = cb as () => void;
+          }
+          return req as unknown as Request;
+        }) as unknown as Request['on'],
+      });
+      const res = createMockRes();
+
+      // Start the handler
+      const handlerPromise = proxyRequestHandler(req, res as unknown as Response);
+
+      // Flush microtasks so handler resumes and registers event listeners
+      await Promise.resolve();
+
+      // Emit some data
+      dataHandlers.forEach(h => h(Buffer.from('{"test":true}')));
+      await Promise.resolve();
+
+      // Simulate client disconnect — should NOT throw despite missing destroy
+      expect(closeCb).toBeDefined();
+      expect(() => closeCb!()).not.toThrow();
+
+      // Resolve the pending handler promise
+      errorHandler!(new Error('Stream destroyed'));
+      await handlerPromise;
     });
 
     it('sends buffered non-JSON stream content as text', async () => {
@@ -723,6 +918,129 @@ describe('proxyRequestHandler', () => {
           timeout: 120_000,
         }),
       );
+    });
+  });
+
+  describe('model replacement', () => {
+    it('replaces sonnet model with provider sonnetModel in forwarded body', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        sonnetModel: 'anthropic/claude-sonnet-4',
+      });
+      mockAxiosJson(200, { id: 'msg_1' });
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 100, messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(axiosMock).toHaveBeenCalledTimes(1);
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBe('anthropic/claude-sonnet-4');
+    });
+
+    it('replaces haiku model with provider haikuModel in forwarded body', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        haikuModel: 'anthropic/claude-3.5-haiku',
+      });
+      mockAxiosJson(200, { id: 'msg_2' });
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-haiku-3-5', messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBe('anthropic/claude-3.5-haiku');
+    });
+
+    it('replaces opus model with provider opusModel in forwarded body', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        opusModel: 'anthropic/claude-opus-4',
+      });
+      mockAxiosJson(200, { id: 'msg_3' });
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-opus-4', messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBe('anthropic/claude-opus-4');
+    });
+
+    it('replaces unknown model with provider defaultModel in forwarded body', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        defaultModel: 'anthropic/claude-sonnet-4',
+      });
+      mockAxiosJson(200, { id: 'msg_4' });
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'gpt-5', messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBe('anthropic/claude-sonnet-4');
+    });
+
+    it('forwards body without model field unchanged', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        sonnetModel: 'anthropic/claude-sonnet-4',
+      });
+      mockAxiosJson(200, { id: 'msg_5' });
+      const req = createMockReq({
+        body: JSON.stringify({ max_tokens: 100, messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBeUndefined();
+      expect(forwardedBody.max_tokens).toBe(100);
+    });
+
+    it('preserves original model when target sonnetModel is empty', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        sonnetModel: '',
+      });
+      mockAxiosJson(200, { id: 'msg_6' });
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      const forwardedBody = JSON.parse(config.data);
+      expect(forwardedBody.model).toBe('claude-sonnet');
+    });
+
+    it('does not replace model when content-type is not application/json', async () => {
+      setupProvider('https://api.anthropic.com', 'sk-key', {
+        sonnetModel: 'anthropic/claude-sonnet-4',
+      });
+      mockAxiosJson(200, { id: 'msg_7' });
+      const req = createMockReq({
+        headers: { 'content-type': 'multipart/form-data' },
+        body: JSON.stringify({ model: 'claude-sonnet', messages: [] }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.data).toBe(JSON.stringify({ model: 'claude-sonnet', messages: [] }));
     });
   });
 });
