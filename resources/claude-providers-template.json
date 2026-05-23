@@ -7,7 +7,8 @@
     "defaultModel": "",
     "sonnetModel": "",
     "opusModel": "",
-    "haikuModel": ""
+    "haikuModel": "",
+    "source": "builtin"
   },
   {
     "name": "DeepSeek",
@@ -17,7 +18,8 @@
     "defaultModel": "deepseek-v4-pro",
     "sonnetModel": "deepseek-v4-pro",
     "opusModel": "deepseek-v4-pro",
-    "haikuModel": "deepseek-v4-flash"
+    "haikuModel": "deepseek-v4-flash",
+    "source": "builtin"
   },
   {
     "name": "Xiaomi MiMo",
@@ -27,7 +29,8 @@
     "defaultModel": "mimo-v2.5-pro",
     "sonnetModel": "mimo-v2.5-pro",
     "opusModel": "mimo-v2.5-pro",
-    "haikuModel": "mimo-v2.5-pro"
+    "haikuModel": "mimo-v2.5-pro",
+    "source": "builtin"
   },
   {
     "name": "Xiaomi MiMo Token Plan (China)",
@@ -37,7 +40,8 @@
     "defaultModel": "mimo-v2.5-pro",
     "sonnetModel": "mimo-v2.5-pro",
     "opusModel": "mimo-v2.5-pro",
-    "haikuModel": "mimo-v2.5-pro"
+    "haikuModel": "mimo-v2.5-pro",
+    "source": "builtin"
   },
   {
     "name": "Zhipu GLM",
@@ -47,7 +51,8 @@
     "defaultModel": "glm-5.1",
     "sonnetModel": "glm-5.1",
     "opusModel": "glm-5.1",
-    "haikuModel": "glm-5.1"
+    "haikuModel": "glm-5.1",
+    "source": "builtin"
   },
   {
     "name": "Zhipu GLM en",
@@ -57,7 +62,8 @@
     "defaultModel": "glm-5.1",
     "sonnetModel": "glm-5.1",
     "opusModel": "glm-5.1",
-    "haikuModel": "glm-5.1"
+    "haikuModel": "glm-5.1",
+    "source": "builtin"
   },
   {
     "name": "MiniMax",
@@ -67,7 +73,8 @@
     "defaultModel": "MiniMax-M2.7",
     "sonnetModel": "MiniMax-M2.7",
     "opusModel": "MiniMax-M2.7",
-    "haikuModel": "MiniMax-M2.7"
+    "haikuModel": "MiniMax-M2.7",
+    "source": "builtin"
   },
   {
     "name": "MiniMax en",
@@ -77,7 +84,8 @@
     "defaultModel": "MiniMax-M2.7",
     "sonnetModel": "MiniMax-M2.7",
     "opusModel": "MiniMax-M2.7",
-    "haikuModel": "MiniMax-M2.7"
+    "haikuModel": "MiniMax-M2.7",
+    "source": "builtin"
   },
   {
     "name": "Kimi",
@@ -87,7 +95,8 @@
     "defaultModel": "kimi-k2.6",
     "sonnetModel": "kimi-k2.6",
     "opusModel": "kimi-k2.6",
-    "haikuModel": "kimi-k2.6"
+    "haikuModel": "kimi-k2.6",
+    "source": "builtin"
   },
   {
     "name": "Kimi For Coding",
@@ -97,7 +106,8 @@
     "defaultModel": "",
     "sonnetModel": "",
     "opusModel": "",
-    "haikuModel": ""
+    "haikuModel": "",
+    "source": "builtin"
   },
   {
     "name": "Bailian",
@@ -107,7 +117,8 @@
     "defaultModel": "",
     "sonnetModel": "",
     "opusModel": "",
-    "haikuModel": ""
+    "haikuModel": "",
+    "source": "builtin"
   },
   {
     "name": "Bailian For Coding",
@@ -117,6 +128,7 @@
     "defaultModel": "",
     "sonnetModel": "",
     "opusModel": "",
-    "haikuModel": ""
+    "haikuModel": "",
+    "source": "builtin"
   }
 ]

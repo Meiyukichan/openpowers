@@ -6,6 +6,7 @@
 
 import path from 'path';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ProviderTemplate, ProviderTemplateInput } from './provider-templates.js';
 
 // ---- mocks for file I/O ----
 
@@ -44,6 +45,7 @@ const sampleTemplate = {
   sonnetModel: '',
   opusModel: '',
   haikuModel: '',
+  source: 'builtin',
 };
 
 const newTemplateInput = {
@@ -60,7 +62,7 @@ const newTemplateInput = {
 // ---- describe blocks ----
 
 describe('readProviderTemplates', () => {
-  let readProviderTemplates: () => typeof sampleTemplate[];
+  let readProviderTemplates: () => ProviderTemplate[];
 
   beforeAll(async () => {
     const mod = await import('./provider-templates.js');
@@ -106,7 +108,7 @@ describe('readProviderTemplates', () => {
 });
 
 describe('addProviderTemplate', () => {
-  let addProviderTemplate: (template: typeof newTemplateInput) => typeof sampleTemplate;
+  let addProviderTemplate: (template: ProviderTemplateInput) => ProviderTemplate;
 
   beforeAll(async () => {
     const mod = await import('./provider-templates.js');
@@ -124,10 +126,11 @@ describe('addProviderTemplate', () => {
 
     const result = addProviderTemplate(newTemplateInput);
 
-    expect(result).toEqual(newTemplateInput);
+    const expectedResult = { ...newTemplateInput, source: 'custom' };
+    expect(result).toEqual(expectedResult);
 
     // Verify the file was written with the combined array
-    const expectedTemplates = [...existingTemplates, newTemplateInput];
+    const expectedTemplates = [...existingTemplates, expectedResult];
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
     const writtenJson = writeFileSyncMock.mock.calls[0][1] as string;
     expect(JSON.parse(writtenJson)).toEqual(expectedTemplates);
@@ -163,10 +166,20 @@ describe('addProviderTemplate', () => {
 
     const result = addProviderTemplate(newTemplateInput);
 
-    expect(result).toEqual(newTemplateInput);
+    const expectedResult = { ...newTemplateInput, source: 'custom' };
+    expect(result).toEqual(expectedResult);
 
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
     const writtenJson = writeFileSyncMock.mock.calls[0][1] as string;
-    expect(JSON.parse(writtenJson)).toEqual([newTemplateInput]);
+    expect(JSON.parse(writtenJson)).toEqual([expectedResult]);
+  });
+
+  it('should always set source to custom regardless of input', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    // newTemplateInput is Omit<ProviderTemplate, 'source'>, but even if we
+    // somehow pass extra fields, source must always be 'custom'
+    const result = addProviderTemplate(newTemplateInput);
+    expect(result.source).toBe('custom');
   });
 });

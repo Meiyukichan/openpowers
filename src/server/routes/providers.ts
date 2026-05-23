@@ -107,8 +107,17 @@ providersRouter.post('/', (req, res) => {
     res.status(400).json(formatZodError(parsed.error));
     return;
   }
-  const provider = createProvider(parsed.data);
-  res.status(201).json(provider);
+  try {
+    const provider = createProvider(parsed.data);
+    res.status(201).json(provider);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    if (message.includes('already exists')) {
+      res.status(409).json({ error: message });
+    } else {
+      res.status(500).json({ error: message });
+    }
+  }
 });
 
 /**

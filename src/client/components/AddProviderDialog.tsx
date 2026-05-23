@@ -52,6 +52,8 @@ interface ProviderPreset {
   sonnetModel?: string;
   opusModel?: string;
   haikuModel?: string;
+  /** Template origin: 'builtin' (from JSON resource) or 'custom' (user-added via API). */
+  source: 'builtin' | 'custom';
 }
 
 /** Initial empty form values. */
@@ -279,7 +281,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   if (!isOpen) return null;
 
   // Hardcoded custom-config entry always comes first, followed by API-fetched templates
-  const CUSTOM_PRESET: ProviderPreset = { name: '自定义配置', baseUrl: '', iconSvg: '' };
+  const CUSTOM_PRESET: ProviderPreset = { name: '自定义配置', baseUrl: '', iconSvg: '', source: 'custom' };
   const allPresets = [CUSTOM_PRESET, ...templates];
 
   const labelClass = 'block text-sm font-medium text-foreground mb-1';

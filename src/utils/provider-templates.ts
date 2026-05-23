@@ -33,12 +33,18 @@ export interface ProviderTemplate {
   opusModel?: string;
   /** Haiku-tier model identifier */
   haikuModel?: string;
+  /**
+   * Template origin.
+   * 'builtin' for templates from the resource JSON file;
+   * 'custom' for templates added via API. Server-assigned.
+   */
+  source: 'builtin' | 'custom';
 }
 
 /**
  * Input type for adding a new provider template (same fields as ProviderTemplate).
  */
-export type ProviderTemplateInput = ProviderTemplate;
+export type ProviderTemplateInput = Omit<ProviderTemplate, 'source'>;
 
 /**
  * Reads the full list of provider templates from the JSON resource file.
@@ -74,7 +80,12 @@ export function addProviderTemplate(template: ProviderTemplateInput): ProviderTe
     throw new Error(`Template name "${template.name}" already exists`);
   }
 
-  templates.push(template);
+  // Force source to 'custom' regardless of any client-provided value
+  const newTemplate: ProviderTemplate = {
+    ...template,
+    source: 'custom',
+  };
+  templates.push(newTemplate);
   fs.writeFileSync(TEMPLATES_PATH, JSON.stringify(templates, null, 2), 'utf-8');
-  return template;
+  return newTemplate;
 }

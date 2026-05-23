@@ -410,6 +410,7 @@ describe('Provider Routes', () => {
       sonnetModel: '',
       opusModel: '',
       haikuModel: '',
+      source: 'builtin',
     };
 
     it('should return template array with 200', async () => {
@@ -443,6 +444,7 @@ describe('Provider Routes', () => {
       sonnetModel: '',
       opusModel: '',
       haikuModel: '',
+      source: 'custom',
     };
 
     it('should add template and return 201 when name is unique', async () => {
@@ -454,6 +456,8 @@ describe('Provider Routes', () => {
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual(sampleTemplate);
+      // addProviderTemplate receives parsed data (zod strips unknown fields like source)
+      expect(addProviderTemplateMock).toHaveBeenCalled();
     });
 
     it('should return 409 when template name already exists', async () => {
@@ -473,13 +477,26 @@ describe('Provider Routes', () => {
     it('should silently discard apiKey field when present', async () => {
       addProviderTemplateMock.mockReturnValue(sampleTemplate);
 
+      // zod strips unknown fields (apiKey, source) from the input, so
+      // addProviderTemplate receives only known template fields
+      const expectedInput = {
+        name: 'New Provider',
+        websiteUrl: 'https://example.com',
+        baseUrl: 'https://api.example.com',
+        iconSvg: '',
+        defaultModel: '',
+        sonnetModel: '',
+        opusModel: '',
+        haikuModel: '',
+      };
+
       const res = await request(app)
         .post('/openpowers/api/providers/templates')
         .send({ ...sampleTemplate, apiKey: 'sk-should-be-discarded' });
 
       expect(res.status).toBe(201);
       // apiKey should be stripped before passing to addProviderTemplate
-      expect(addProviderTemplateMock).toHaveBeenCalledWith(sampleTemplate);
+      expect(addProviderTemplateMock).toHaveBeenCalledWith(expectedInput);
     });
 
     it('should return 400 when required fields are missing', async () => {
