@@ -9,8 +9,8 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import type { Request, Response } from 'express';
 import { HOP_BY_HOP_HEADERS, MESSAGES_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from './types.js';
-import { getDefaultProvider, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
-import { proxyLogger } from './logger.js';
+import { getDefaultProvider, getProviderBySessionId, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
+import { proxyLogger, createSessionLogger } from './logger.js';
 
 /**
  * Prepares the headers for forwarding to the upstream provider.
@@ -135,9 +135,11 @@ export function mapModel(model: string, provider: Provider): string {
 
 /**
  * Express request handler for the Anthropic API proxy.
- * Validates provider configuration, prepares authenticated headers,
- * detects streaming, forwards the request to the upstream provider,
- * and handles all error scenarios.
+ * Validates provider configuration, extracts session metadata from body,
+ * resolves session-level provider when available, prepares authenticated
+ * headers, detects streaming, maps model names using the active provider,
+ * forwards the request to the upstream provider, and handles all error
+ * scenarios with the appropriate logger (session or global).
  * @param req - Express Request object
  * @param res - Express Response object
  */
@@ -152,14 +154,64 @@ export async function proxyRequestHandler(
     return;
   }
 
-  // Load active provider
-  const provider = getDefaultProvider();
-  if (!provider) {
+  // Load default provider (may be overridden by session provider)
+  const defaultProvider = getDefaultProvider();
+  if (!defaultProvider) {
     res.status(503).json({ error: 'No active provider configured' });
     return;
   }
 
-  // Validate provider configuration
+  // Parse body and extract session metadata before resolving final provider
+  const contentType = req.headers['content-type'] as string | undefined;
+  let rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? '');
+
+  let isStreamRequest = false;
+  let clientModel: string | undefined;
+  let providerModel: string | undefined;
+  let sessionId: string | undefined;
+  if (contentType && contentType.startsWith('application/json')) {
+    let parsedBody: Record<string, unknown> | null = null;
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      res.status(400).json({ error: 'Invalid JSON in request body' });
+      return;
+    }
+    isStreamRequest = detectStreamRequest(contentType, rawBody);
+
+    // Extract session_id from metadata.user_id (JSON string)
+    if (parsedBody?.metadata) {
+      const metadata = parsedBody.metadata as Record<string, unknown>;
+      if (typeof metadata.user_id === 'string') {
+        try {
+          const userId = JSON.parse(metadata.user_id) as Record<string, unknown>;
+          if (typeof userId.session_id === 'string') {
+            sessionId = userId.session_id;
+          }
+        } catch {
+          // Silent fallback: invalid JSON in user_id
+        }
+      }
+    }
+
+    // Store client model before provider resolution for later model mapping
+    if (parsedBody?.model) {
+      clientModel = parsedBody.model as string;
+    }
+  }
+
+  // Resolve provider: use session provider if session_id is present and valid
+  let provider: Provider = defaultProvider;
+  let activeLogger = proxyLogger;
+  if (sessionId) {
+    const sessionProvider = getProviderBySessionId(sessionId);
+    if (sessionProvider) {
+      provider = sessionProvider;
+      activeLogger = createSessionLogger(sessionId);
+    }
+  }
+
+  // Validate final provider configuration
   if (!provider.apiKey) {
     res.status(503).json({ error: 'Active provider is missing API key' });
     return;
@@ -179,30 +231,12 @@ export async function proxyRequestHandler(
   // Prepare auth-injected headers
   const modifiedHeaders = prepareModifiedHeaders(req.headers, provider.apiKey);
 
-  // Parse body for stream detection
-  const contentType = req.headers['content-type'] as string | undefined;
-  let rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? '');
-
-  let isStreamRequest = false;
-  let clientModel: string | undefined;
-  let providerModel: string | undefined;
-  if (contentType && contentType.startsWith('application/json')) {
-    let parsedBody: Record<string, unknown> | null = null;
-    try {
-      parsedBody = JSON.parse(rawBody);
-    } catch {
-      res.status(400).json({ error: 'Invalid JSON in request body' });
-      return;
-    }
-    isStreamRequest = detectStreamRequest(contentType, rawBody);
-
-    // Apply model replacement for JSON requests
-    if (parsedBody && parsedBody.model) {
-      clientModel = parsedBody.model as string;
-      parsedBody.model = mapModel(clientModel, provider);
-      providerModel = parsedBody.model as string;
-      rawBody = JSON.stringify(parsedBody);
-    }
+  // Apply model replacement for JSON requests using the resolved provider
+  if (contentType && contentType.startsWith('application/json') && clientModel) {
+    const parsedBody = JSON.parse(rawBody);
+    parsedBody.model = mapModel(clientModel, provider);
+    providerModel = parsedBody.model as string;
+    rawBody = JSON.stringify(parsedBody);
   }
 
   // Determine timeout
@@ -238,7 +272,7 @@ export async function proxyRequestHandler(
 
         // Handle upstream stream errors
         upstreamStream.on('error', (err: Error) => {
-          proxyLogger.error(`Upstream stream error: ${err.message}`);
+          activeLogger.error(`Upstream stream error: ${err.message}`);
           if (!res.headersSent) {
             res.end();
           }
@@ -295,7 +329,7 @@ export async function proxyRequestHandler(
 
       // Log non-2xx responses with error details
       if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
-        proxyLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody} | request body: ${rawBody}`);
+        activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody} | request body: ${rawBody}`);
       }
       return;
     }
@@ -314,10 +348,10 @@ export async function proxyRequestHandler(
 
     // Log non-2xx responses with error details
     if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
-      proxyLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)} | request body: ${rawBody}`);
+      activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)} | request body: ${rawBody}`);
     }
   } catch (err: unknown) {
-    handleAxiosError(err, res, providerHost, req.method, reqPath, onResponse, providerModel, clientModel);
+    handleAxiosError(err, res, providerHost, req.method, reqPath, activeLogger, onResponse, providerModel, clientModel);
   }
 }
 
@@ -331,12 +365,23 @@ export async function proxyRequestHandler(
  * Upstream HTTP errors (4xx/5xx) → forwarded as-is.
  * @param err - The caught error
  * @param res - Express Response object
+ * @param logger - The active logger instance (session or global)
  */
-function handleAxiosError(err: unknown, res: Response, providerHost: string, method: string, reqPath: string, onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void, providerModel?: string, clientModel?: string): void {
+function handleAxiosError(
+  err: unknown,
+  res: Response,
+  providerHost: string,
+  method: string,
+  reqPath: string,
+  logger: { error: (msg: string) => void; warn: (msg: string) => void },
+  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void,
+  providerModel?: string,
+  clientModel?: string,
+): void {
   // Check for axios error with a response (upstream returned HTTP error)
   if (axios.isAxiosError(err) && err.response) {
     const upstreamStatus = err.response.status;
-    proxyLogger.warn(`Upstream returned ${upstreamStatus}: ${JSON.stringify(err.response.data)}`);
+    logger.warn(`Upstream returned ${upstreamStatus}: ${JSON.stringify(err.response.data)}`);
     res.status(upstreamStatus);
     if (err.response.headers) {
       copyUpstreamHeaders(res, err.response.headers as Record<string, string | string[] | undefined>);
@@ -360,13 +405,13 @@ function handleAxiosError(err: unknown, res: Response, providerHost: string, met
   let errorMsg = message;
 
   if (code === 'ECONNREFUSED') {
-    proxyLogger.error(`Upstream connection refused: ${message}`);
+    logger.error(`Upstream connection refused: ${message}`);
     errorMsg = `Connection refused: ${message}`;
   } else if (code === 'ETIMEDOUT') {
-    proxyLogger.error(`Upstream timeout: ${message}`);
+    logger.error(`Upstream timeout: ${message}`);
     errorMsg = `Request timeout: ${message}`;
   } else {
-    proxyLogger.error(`Upstream request error: ${message}`);
+    logger.error(`Upstream request error: ${message}`);
     errorMsg = `Request error: ${message}`;
   }
 

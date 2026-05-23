@@ -16,8 +16,10 @@ const {
   axiosMock,
   isAxiosErrorMock,
   getDefaultProviderMock,
+  getProviderBySessionIdMock,
   getEnableOpenpowersProxyMock,
   proxyLoggerMock,
+  createSessionLoggerMock,
 } = vi.hoisted(() => ({
   axiosMock: vi.fn(),
   isAxiosErrorMock: vi.fn(
@@ -25,12 +27,14 @@ const {
       typeof payload === 'object' && payload !== null && (payload as Record<string, unknown>).isAxiosError === true,
   ),
   getDefaultProviderMock: vi.fn(),
+  getProviderBySessionIdMock: vi.fn(),
   getEnableOpenpowersProxyMock: vi.fn(),
   proxyLoggerMock: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },
+  createSessionLoggerMock: vi.fn(),
 }));
 
 // Attach isAxiosError to the default axios mock so that `axios.isAxiosError()` works
@@ -41,11 +45,13 @@ vi.mock('axios', () => ({
 
 vi.mock('../providers-store.js', () => ({
   getDefaultProvider: getDefaultProviderMock,
+  getProviderBySessionId: getProviderBySessionIdMock,
   getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
 }));
 
 vi.mock('./logger.js', () => ({
   proxyLogger: proxyLoggerMock,
+  createSessionLogger: createSessionLoggerMock,
 }));
 
 // ---------------------------------------------------------------------------
@@ -156,8 +162,35 @@ function setupProvider(
   });
 }
 
+/** Create a session-level provider mock. */
+function setupSessionProvider(
+  baseUrl = 'https://session.api.example.com',
+  apiKey = 'sk-session-key',
+  models?: { defaultModel?: string; sonnetModel?: string; opusModel?: string; haikuModel?: string },
+) {
+  return {
+    id: 'session-provider',
+    name: 'Session Provider',
+    apiKey,
+    baseUrl,
+    defaultModel: models?.defaultModel ?? '',
+    sonnetModel: models?.sonnetModel ?? '',
+    opusModel: models?.opusModel ?? '',
+    haikuModel: models?.haikuModel ?? '',
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** Create a session logger mock. */
+const sessionLoggerMock = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  createSessionLoggerMock.mockReturnValue(sessionLoggerMock);
 });
 
 // ---------------------------------------------------------------------------
@@ -1046,6 +1079,217 @@ describe('proxyRequestHandler', () => {
 
       const config = axiosMock.mock.calls[0][0];
       expect(config.data).toBe(JSON.stringify({ model: 'claude-sonnet', messages: [] }));
+    });
+  });
+
+  describe('metadata session routing', () => {
+    it('uses session provider when metadata.user_id contains valid session_id', async () => {
+      const sessionProvider = setupSessionProvider('https://session.api.com', 'sk-session');
+      getProviderBySessionIdMock.mockReturnValue(sessionProvider);
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_session' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session-123' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).toHaveBeenCalledWith('test-session-123');
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.url).toContain('session.api.com');
+      expect(config.headers['x-api-key']).toBe('sk-session');
+    });
+
+    it('uses default provider when metadata field is missing', async () => {
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_no_meta' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          // no metadata field
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).not.toHaveBeenCalled();
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.url).toContain('default.api.com');
+      expect(config.headers['x-api-key']).toBe('sk-default');
+    });
+
+    it('uses default provider when metadata.user_id is not valid JSON', async () => {
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_invalid_json' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: 'not-valid-json{{{',
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).not.toHaveBeenCalled();
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.url).toContain('default.api.com');
+    });
+
+    it('uses default provider when metadata.user_id lacks session_id field', async () => {
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_no_session_id' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ other_field: 'value' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).not.toHaveBeenCalled();
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.url).toContain('default.api.com');
+    });
+
+    it('falls back to default provider when getProviderBySessionId returns null', async () => {
+      getProviderBySessionIdMock.mockReturnValue(null);
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_fallback' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session-456' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).toHaveBeenCalledWith('test-session-456');
+      const config = axiosMock.mock.calls[0][0];
+      expect(config.url).toContain('default.api.com');
+      expect(config.headers['x-api-key']).toBe('sk-default');
+    });
+
+    it('uses session logger when session provider is active', async () => {
+      const sessionProvider = setupSessionProvider('https://session.api.com', 'sk-session');
+      getProviderBySessionIdMock.mockReturnValue(sessionProvider);
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_logger' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session-789' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(createSessionLoggerMock).toHaveBeenCalledWith('test-session-789');
+    });
+
+    it('uses proxyLogger when session provider is null', async () => {
+      getProviderBySessionIdMock.mockReturnValue(null);
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_proxy_logger_fallback' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          max_tokens: 100,
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session-null' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(createSessionLoggerMock).not.toHaveBeenCalled();
+    });
+
+    it('does not parse metadata for non-JSON requests', async () => {
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(200, { id: 'msg_non_json' });
+
+      const req = createMockReq({
+        headers: { 'content-type': 'multipart/form-data' },
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(getProviderBySessionIdMock).not.toHaveBeenCalled();
+      expect(createSessionLoggerMock).not.toHaveBeenCalled();
+    });
+
+    it('uses session logger for logging when session provider is active and upstream error occurs', async () => {
+      const sessionProvider = setupSessionProvider('https://session.api.com', 'sk-session');
+      getProviderBySessionIdMock.mockReturnValue(sessionProvider);
+      setupProvider('https://default.api.com', 'sk-default');
+      mockAxiosJson(500, { error: 'Server error' });
+
+      const req = createMockReq({
+        body: JSON.stringify({
+          model: 'claude-sonnet',
+          messages: [],
+          metadata: {
+            user_id: JSON.stringify({ session_id: 'test-session-log' }),
+          },
+        }),
+      });
+      const res = createMockRes();
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(sessionLoggerMock.warn).toHaveBeenCalledWith(expect.stringContaining('Server error'));
+      expect(proxyLoggerMock.warn).not.toHaveBeenCalled();
     });
   });
 });
