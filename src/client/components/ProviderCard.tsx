@@ -9,7 +9,14 @@
 
 import React, { useState } from 'react';
 import type { Provider } from '../../server/providers-store.js';
-import { Sparkles, Cpu, Globe, Zap, Star, Cloud, Bot, Wrench, Play, Check, Pencil, Trash2 } from 'lucide-react';
+import { Play, Check, Pencil, Trash2 } from 'lucide-react';
+import AnthropicSvg from '../icons/anthropic.svg?url';
+import DeepSeekSvg from '../icons/deepseek.svg?url';
+import XiaomimimoSvg from '../icons/xiaomimimo.svg?url';
+import ChatglmSvg from '../icons/chatglm.svg?url';
+import MinimaxSvg from '../icons/minimax.svg?url';
+import KimiSvg from '../icons/kimi.svg?url';
+import BailianSvg from '../icons/bailian.svg?url';
 
 /** Props for the ProviderCard component. */
 interface ProviderCardProps {
@@ -22,28 +29,33 @@ interface ProviderCardProps {
   isActive: boolean;
 }
 
-// Map of icon names to Lucide React components
-const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  sparkles: Sparkles,
-  cpu: Cpu,
-  globe: Globe,
-  zap: Zap,
-  star: Star,
-  cloud: Cloud,
-  bot: Bot,
-  wrench: Wrench,
+// Map of SVG filenames to Vite ?url imported module URLs
+const ICON_MAP: Record<string, string> = {
+  'anthropic.svg': AnthropicSvg,
+  'deepseek.svg': DeepSeekSvg,
+  'xiaomimimo.svg': XiaomimimoSvg,
+  'chatglm.svg': ChatglmSvg,
+  'minimax.svg': MinimaxSvg,
+  'kimi.svg': KimiSvg,
+  'bailian.svg': BailianSvg,
 };
 
 /**
- * Renders an icon based on the provider's icon name.
- * Falls back to a default Cpu icon if the icon name is not recognized.
+ * Renders a brand SVG icon for the provider if icon is a valid SVG filename.
+ * Returns null (no icon) when icon is empty or unrecognized.
  */
-function ProviderIcon({ icon, color, size = 20 }: { icon?: string; color?: string; size?: number }): React.ReactElement {
-  const IconComponent = icon ? ICON_MAP[icon] : undefined;
-  if (IconComponent) {
-    return React.createElement(IconComponent, { size, style: { color: color || undefined } });
+function ProviderIcon({ icon }: { icon?: string }): React.ReactElement | null {
+  const svgUrl = icon ? ICON_MAP[icon] : undefined;
+  if (svgUrl) {
+    return React.createElement('img', {
+      src: svgUrl,
+      alt: 'Provider icon',
+      width: 20,
+      height: 20,
+      loading: 'lazy',
+    });
   }
-  return React.createElement(Cpu, { size, style: { color: color || undefined } });
+  return null;
 }
 
 /**
@@ -119,8 +131,6 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           },
           React.createElement(ProviderIcon, {
             icon: provider.icon,
-            color: provider.iconColor,
-            size: 20,
           }),
         ),
         // Info

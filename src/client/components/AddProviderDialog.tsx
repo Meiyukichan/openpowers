@@ -11,9 +11,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, EyeOff, Sparkles, Cpu, Globe, Zap, Star, Cloud, Bot, Wrench } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { claudeProviderPresets, type ProviderPreset } from '../data/presets.js';
 import { logger } from '../utils/logger.js';
+import AnthropicSvg from '../icons/anthropic.svg?url';
+import DeepSeekSvg from '../icons/deepseek.svg?url';
+import XiaomimimoSvg from '../icons/xiaomimimo.svg?url';
+import ChatglmSvg from '../icons/chatglm.svg?url';
+import MinimaxSvg from '../icons/minimax.svg?url';
+import KimiSvg from '../icons/kimi.svg?url';
+import BailianSvg from '../icons/bailian.svg?url';
 
 /** Props for the AddProviderDialog component. */
 interface AddProviderDialogProps {
@@ -49,16 +56,15 @@ const EMPTY_FORM: FormValues = {
   haikuModel: '',
 };
 
-// Map of icon names to Lucide React components
-const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
-  sparkles: Sparkles,
-  cpu: Cpu,
-  globe: Globe,
-  zap: Zap,
-  star: Star,
-  cloud: Cloud,
-  bot: Bot,
-  wrench: Wrench,
+// Map of SVG filenames to Vite ?url imported module URLs
+const ICON_MAP: Record<string, string> = {
+  'anthropic.svg': AnthropicSvg,
+  'deepseek.svg': DeepSeekSvg,
+  'xiaomimimo.svg': XiaomimimoSvg,
+  'chatglm.svg': ChatglmSvg,
+  'minimax.svg': MinimaxSvg,
+  'kimi.svg': KimiSvg,
+  'bailian.svg': BailianSvg,
 };
 
 /**
@@ -273,14 +279,19 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
                     'div',
                     {
                       className: 'h-6 w-6 rounded flex items-center justify-center flex-shrink-0',
-                      style: { backgroundColor: preset.iconColor + '20' },
                     },
                     (() => {
-                      const IconComponent = ICON_MAP[preset.icon];
-                      if (IconComponent) {
-                        return React.createElement(IconComponent, { size: 12, style: { color: preset.iconColor } });
+                      const svgUrl = preset.iconSvg ? ICON_MAP[preset.iconSvg] : undefined;
+                      if (svgUrl) {
+                        return React.createElement('img', {
+                          src: svgUrl,
+                          alt: 'Provider icon',
+                          width: 16,
+                          height: 16,
+                          loading: 'lazy',
+                        });
                       }
-                      return React.createElement('span', { style: { color: preset.iconColor } }, preset.name.charAt(0));
+                      return null;
                     })(),
                   ),
                   React.createElement('span', { className: 'truncate text-left' }, preset.name),

@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { Plus, Settings, RotateCcw, Radio } from 'lucide-react';
 import { ConfirmResetDialog } from './ConfirmResetDialog.js';
+import ClaudeSvg from '../icons/claude.svg?url';
 
 /** Props for the Layout component. */
 interface LayoutProps {
@@ -68,6 +69,13 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
         React.createElement(
           'div',
           { className: 'flex items-center gap-2' },
+          React.createElement('img', {
+            src: ClaudeSvg,
+            alt: 'Claude',
+            width: 24,
+            height: 24,
+            loading: 'lazy',
+          }),
           React.createElement(
             'h1',
             { className: 'text-xl font-semibold text-blue-500 dark:text-blue-400' },

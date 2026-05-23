@@ -242,6 +242,36 @@ describe('AddProviderDialog', () => {
     expect(screen.queryByText('ChatGPT')).not.toBeInTheDocument();
   });
 
+  // bi-001: Brand SVG icons in preset selector
+  it('preset buttons with valid iconSvg render brand SVG img tag', () => {
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+    // Each preset button with an iconSvg should contain an img tag
+    const presetImgs = document.querySelectorAll('button img[alt="Provider icon"]');
+    expect(presetImgs.length).toBeGreaterThan(0);
+  });
+
+  it('custom preset "自定义配置" with empty iconSvg shows no icon img', () => {
+    render(
+      React.createElement(AddProviderDialog, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+      }),
+    );
+    const customBtn = screen.getByText('自定义配置').closest('button');
+    expect(customBtn).toBeInTheDocument();
+    const imgInCustomBtn = customBtn?.querySelector('img');
+    expect(imgInCustomBtn).not.toBeInTheDocument();
+  });
+
   it('form fields start empty when no preset is selected', () => {
     render(
       React.createElement(AddProviderDialog, {

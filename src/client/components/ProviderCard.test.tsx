@@ -64,19 +64,21 @@ describe('ProviderCard', () => {
     expect(screen.getByText('https://api.test.example.com')).toBeInTheDocument();
   });
 
-  it('renders icon element when provider has an icon', () => {
+  it('renders brand SVG img when provider has a valid SVG icon filename', () => {
     render(
       React.createElement(ProviderCard, {
-        provider: baseProvider,
+        provider: {
+          ...baseProvider,
+          icon: 'anthropic.svg',
+        },
         onSetActive: vi.fn(),
         isActive: false,
         onEdit: vi.fn(),
         onDelete: vi.fn(),
       }),
     );
-    // The icon container should exist
-    const iconContainer = document.querySelector('.rounded-lg');
-    expect(iconContainer).toBeInTheDocument();
+    const iconImg = document.querySelector('img[alt="Provider icon"]');
+    expect(iconImg).toBeInTheDocument();
   });
 
   it('shows grey disabled button with Check icon and "使用中" text when provider is active', () => {
@@ -288,5 +290,57 @@ describe('ProviderCard', () => {
     const rootElement = container.firstElementChild as HTMLElement;
     expect(rootElement.className).toContain('transition-all');
     expect(rootElement.className).toContain('duration-300');
+  });
+
+  // bi-001: Brand SVG icon rendering
+  it('renders brand SVG img when provider.icon is anthropic.svg', () => {
+    render(
+      React.createElement(ProviderCard, {
+        provider: {
+          ...baseProvider,
+          icon: 'anthropic.svg',
+        },
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    const iconImg = document.querySelector('img[alt="Provider icon"]');
+    expect(iconImg).toBeInTheDocument();
+    expect(iconImg).toHaveAttribute('src', '/test-fixtures/mock-icon.svg');
+  });
+
+  it('shows no icon when provider.icon is empty string', () => {
+    render(
+      React.createElement(ProviderCard, {
+        provider: {
+          ...baseProvider,
+          icon: '',
+        },
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    const iconImg = document.querySelector('img[alt="Provider icon"]');
+    expect(iconImg).not.toBeInTheDocument();
+  });
+
+  it('shows no icon when provider.icon is undefined', () => {
+    const providerWithoutIcon = { ...baseProvider };
+    delete (providerWithoutIcon as Record<string, unknown>).icon;
+    render(
+      React.createElement(ProviderCard, {
+        provider: providerWithoutIcon,
+        onSetActive: vi.fn(),
+        isActive: false,
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+      }),
+    );
+    const iconImg = document.querySelector('img[alt="Provider icon"]');
+    expect(iconImg).not.toBeInTheDocument();
   });
 });

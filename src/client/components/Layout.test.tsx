@@ -236,4 +236,18 @@ describe('Layout', () => {
     // Toggle wrapper should be after reset button in the left group
     expect(resetBtn.nextElementSibling).toBe(toggle.parentElement);
   });
+
+  it('renders Claude brand SVG icon to the left of OpenPowers title', () => {
+    render(
+      React.createElement(Layout, {
+        ...defaultProps,
+        children: React.createElement('div', null, 'content'),
+      }),
+    );
+    const claudeIcon = document.querySelector('img[alt="Claude"]');
+    expect(claudeIcon).toBeInTheDocument();
+    const title = screen.getByText('OpenPowers');
+    // Claude icon should be positioned immediately before the title
+    expect(title.previousElementSibling).toBe(claudeIcon);
+  });
 });
