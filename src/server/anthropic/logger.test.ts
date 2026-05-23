@@ -231,6 +231,20 @@ describe('src/server/anthropic/logger.ts', () => {
     vi.useRealTimers();
   });
 
+  // ---- Chunk 8: Session logger should not have Console transport ----
+
+  it('should NOT create Console transport for session logger', async () => {
+    const { createSessionLogger } = await import('./logger.js');
+    // Clear mock call tracking from proxyLogger module init
+    const { transports } = await import('winston');
+    vi.mocked(transports.Console).mockClear();
+
+    createSessionLogger('test-no-console');
+
+    // Session logger should only have File transport, no Console
+    expect(transports.Console).not.toHaveBeenCalled();
+  });
+
   // ---- Chunk 7: Session logger graceful degradation ----
 
   it('should return silent logger when session log directory creation fails', async () => {

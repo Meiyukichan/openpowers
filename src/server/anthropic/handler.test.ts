@@ -45,13 +45,16 @@ vi.mock('axios', () => ({
 
 vi.mock('../providers-store.js', () => ({
   getDefaultProvider: getDefaultProviderMock,
-  getProviderBySessionId: getProviderBySessionIdMock,
   getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
 }));
 
 vi.mock('./logger.js', () => ({
   proxyLogger: proxyLoggerMock,
   createSessionLogger: createSessionLoggerMock,
+}));
+
+vi.mock('../../utils/session.js', () => ({
+  getProviderBySessionId: getProviderBySessionIdMock,
 }));
 
 // ---------------------------------------------------------------------------

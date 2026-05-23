@@ -9,6 +9,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+import { getDefaultProvider, getProviderByModels } from '../server/providers-store.js';
+import type { Provider } from '../server/providers-store.js';
+
 // Session settings directory under user home
 const SESSIONS_DIR = path.join(os.homedir(), '.openpowers', 'sessions');
 
@@ -62,4 +65,31 @@ export function writeSessionSettings(sessionId: string, settings: SessionSetting
     fs.mkdirSync(dir, { recursive: true });
   }
   fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), 'utf-8');
+}
+
+/**
+ * Resolves a provider for a session by reading the session settings and determining
+ * the appropriate provider based on currentProvider and switchProviders configuration.
+ * Falls back to the default provider when the session file is missing, currentProvider
+ * is "default", or the resolved switchProviders value is "default".
+ * @param sessionId - The session identifier
+ * @returns The resolved provider object, or null if no match is found
+ */
+export function getProviderBySessionId(sessionId: string): Provider | null {
+  const settings = readSessionSettings(sessionId);
+  if (settings === null) {
+    return getDefaultProvider();
+  }
+
+  if (settings.currentProvider === 'default') {
+    return getDefaultProvider();
+  }
+
+  const modelValue = settings.switchProviders[settings.currentProvider];
+  if (modelValue === 'default' || modelValue === undefined) {
+    return getDefaultProvider();
+  }
+
+  const result = getProviderByModels([modelValue]);
+  return result[modelValue] ?? null;
 }

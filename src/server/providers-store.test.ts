@@ -699,7 +699,7 @@ describe('deleteProvider cascade', () => {
 // ---- getDefaultProvider ----
 
 describe('getDefaultProvider', () => {
-  it('should return full provider object when activeProviderId is set', () => {
+  it('should return full provider object when activeProviderId is set, with single file read', () => {
     existsSyncMock.mockReturnValue(true);
     readFileSyncMock.mockReturnValue(
       combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000'),
@@ -708,23 +708,26 @@ describe('getDefaultProvider', () => {
     const result = mod.getDefaultProvider();
 
     expect(result).toEqual(sampleProvider);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should return first provider when activeProviderId is null and providers exist', () => {
+  it('should return first provider when activeProviderId is null and providers exist, with single file read', () => {
     existsSyncMock.mockReturnValue(true);
     readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null));
 
     const result = mod.getDefaultProvider();
 
     expect(result).toEqual(sampleProvider);
+    expect(readFileSyncMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should return null when providers file does not exist', () => {
+  it('should return null when providers file does not exist, without reading file', () => {
     existsSyncMock.mockReturnValue(false);
 
     const result = mod.getDefaultProvider();
 
     expect(result).toBeNull();
+    expect(readFileSyncMock).not.toHaveBeenCalled();
   });
 });
 

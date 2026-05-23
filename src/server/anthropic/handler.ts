@@ -9,8 +9,9 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import type { Request, Response } from 'express';
 import { HOP_BY_HOP_HEADERS, MESSAGES_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from './types.js';
-import { getDefaultProvider, getProviderBySessionId, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
+import { getDefaultProvider, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
 import { proxyLogger, createSessionLogger } from './logger.js';
+import { getProviderBySessionId } from '../../utils/session.js';
 
 /**
  * Prepares the headers for forwarding to the upstream provider.

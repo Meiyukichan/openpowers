@@ -114,15 +114,6 @@ export function createSessionLogger(sessionId: string): winston.Logger {
       ),
       transports: [
         new winston.transports.File({ filename: sessionLogFile }),
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss,SSS' }),
-            winston.format.printf((info) => {
-              const level = String(info.level).padStart(7).slice(0, 7);
-              return `${info.timestamp} ${level} ${info.message}`;
-            }),
-          ),
-        }),
       ],
     });
 

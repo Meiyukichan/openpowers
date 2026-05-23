@@ -380,13 +380,12 @@ export function setEnableOpenpowersProxy(enabled: boolean): void {
  * @returns The active provider object, the first available provider, or null if no providers exist
  */
 export function getDefaultProvider(): Provider | null {
-  const activeId = getActiveProviderId();
-  if (activeId !== null) {
-    const provider = getProviderById(activeId);
+  const data = readStoreData();
+  if (data.activeProviderId !== null) {
+    const provider = data.providers.find((p) => p.id === data.activeProviderId);
     if (provider) return provider;
   }
-  const providers = loadProviders();
-  return providers.length > 0 ? providers[0] : null;
+  return data.providers.length > 0 ? data.providers[0] : null;
 }
 
 // Model field names used by getProviderByModels for matching
