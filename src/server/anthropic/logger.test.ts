@@ -50,7 +50,7 @@ vi.mock('os', () => ({
 
 createLoggerMock.mockReturnValue(mockWinstonLogger);
 
-const PROXY_LOG_DIR = path.join('/mock/home', '.openpowers', 'logs', 'proxy');
+const PROXY_LOG_DIR = path.join('/mock/home', '.openpowers', 'logs');
 const PROXY_LOG_FILE = path.join(PROXY_LOG_DIR, 'anthropic.log');
 
 describe('src/server/anthropic/logger.ts', () => {
@@ -133,6 +133,121 @@ describe('src/server/anthropic/logger.ts', () => {
     await import('./logger.js');
 
     expect(mkdirSyncMock).not.toHaveBeenCalled();
+  });
+
+  // ---- Chunk 5: createSessionLogger export ----
+
+  it('should export createSessionLogger as a named export', async () => {
+    const { createSessionLogger } = await import('./logger.js');
+    expect(createSessionLogger).toBeDefined();
+  });
+
+  it('should return a logger object from createSessionLogger', async () => {
+    const { createSessionLogger } = await import('./logger.js');
+    const logger = createSessionLogger('test-session-1');
+    expect(logger).toBeDefined();
+    expect(typeof logger.info).toBe('function');
+    expect(typeof logger.warn).toBe('function');
+    expect(typeof logger.error).toBe('function');
+    expect(typeof logger.debug).toBe('function');
+  });
+
+  it('should create session log directory when it does not exist', async () => {
+    existsSyncMock.mockImplementation((_p: string) => false);
+
+    const { createSessionLogger } = await import('./logger.js');
+    createSessionLogger('test-session-1');
+
+    const expectedDir = path.join('/mock/home', '.openpowers', 'sessions', 'test-session-1');
+    expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
+  });
+
+  it('should create session logger with File transport to session anthropic.log', async () => {
+    const { createSessionLogger } = await import('./logger.js');
+    createSessionLogger('test-session-2');
+
+    const expectedFile = path.join('/mock/home', '.openpowers', 'sessions', 'test-session-2', 'anthropic.log');
+    const { transports } = await import('winston');
+    const fileCalls = (transports.File as ReturnType<typeof vi.fn>).mock.calls;
+    expect(fileCalls.length).toBeGreaterThanOrEqual(1);
+    expect(fileCalls[fileCalls.length - 1][0].filename).toBe(expectedFile);
+  });
+
+  // ---- Chunk 6: Session logger caching ----
+
+  it('should return cached logger for the same sessionId within 1 hour', async () => {
+    const { createSessionLogger } = await import('./logger.js');
+    // Clear call tracking from proxyLogger module init
+    createLoggerMock.mockClear();
+
+    const logger1 = createSessionLogger('test-cache-1');
+    expect(createLoggerMock).toHaveBeenCalledTimes(1);
+
+    const logger2 = createSessionLogger('test-cache-1');
+    expect(createLoggerMock).toHaveBeenCalledTimes(1);
+    expect(logger2).toBe(logger1);
+  });
+
+  it('should create a new logger when cache entry expires after 1 hour', async () => {
+    vi.useFakeTimers();
+    const { createSessionLogger } = await import('./logger.js');
+    createLoggerMock.mockClear();
+
+    createSessionLogger('test-expiry-1');
+    expect(createLoggerMock).toHaveBeenCalledTimes(1);
+
+    // Advance time by 1 hour and 1ms to expire the cache entry
+    vi.advanceTimersByTime(3600001);
+
+    createSessionLogger('test-expiry-1');
+    // A new logger should be created, so createLoggerMock is called again
+    expect(createLoggerMock).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
+  it('should lazily clean up expired cache entries on retrieval', async () => {
+    vi.useFakeTimers();
+    const { createSessionLogger } = await import('./logger.js');
+    createLoggerMock.mockClear();
+
+    // Create loggers for two sessions
+    createSessionLogger('test-lazy-a');
+    createSessionLogger('test-lazy-b');
+    expect(createLoggerMock).toHaveBeenCalledTimes(2);
+
+    // Advance past expiry
+    vi.advanceTimersByTime(3600001);
+
+    // Create a third session logger; this triggers lazy cleanup
+    createSessionLogger('test-lazy-c');
+    expect(createLoggerMock).toHaveBeenCalledTimes(3);
+
+    // Now requesting the expired 'test-lazy-a' should create a new logger
+    // (since it was cleaned up during the lazy cleanup triggered by test-lazy-c)
+    createSessionLogger('test-lazy-a');
+    expect(createLoggerMock).toHaveBeenCalledTimes(4);
+
+    vi.useRealTimers();
+  });
+
+  // ---- Chunk 7: Session logger graceful degradation ----
+
+  it('should return silent logger when session log directory creation fails', async () => {
+    existsSyncMock.mockImplementation((_p: string) => false);
+    mkdirSyncMock.mockImplementation(() => {
+      throw new Error('EACCES: permission denied');
+    });
+    createLoggerMock.mockClear();
+
+    const { createSessionLogger } = await import('./logger.js');
+    const logger = createSessionLogger('test-fail-1');
+
+    // The last call to createLoggerMock should be for silent logger
+    const lastCall = createLoggerMock.mock.calls[createLoggerMock.mock.calls.length - 1][0];
+    expect(lastCall.silent).toBe(true);
+    expect(logger).toBeDefined();
+    expect(typeof logger.info).toBe('function');
   });
 
   // ---- Chunk 4: Graceful degradation on failure ----
