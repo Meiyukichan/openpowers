@@ -258,6 +258,72 @@ describe('createProvider', () => {
     expect(result.opusModel).toBe('om');
     expect(result.haikuModel).toBe('hm');
   });
+
+  it('should throw an error when a provider with the same name already exists', () => {
+    existsSyncMock.mockReturnValue(true);
+    const existingProvider = {
+      ...sampleProvider,
+      name: 'Existing Provider',
+    };
+    readFileSyncMock.mockReturnValue(combinedStore([existingProvider]));
+
+    const input = {
+      name: 'Existing Provider',
+      apiKey: 'sk-new',
+      defaultModel: 'dm',
+      sonnetModel: 'sm',
+      opusModel: 'om',
+      haikuModel: 'hm',
+    };
+
+    expect(() => mod.createProvider(input)).toThrow(/already exists/i);
+  });
+
+  it('should not write to file when duplicate name is detected', () => {
+    existsSyncMock.mockReturnValue(true);
+    const existingProvider = {
+      ...sampleProvider,
+      name: 'Existing Provider',
+    };
+    readFileSyncMock.mockReturnValue(combinedStore([existingProvider]));
+
+    const input = {
+      name: 'Existing Provider',
+      apiKey: 'sk-new',
+      defaultModel: 'dm',
+      sonnetModel: 'sm',
+      opusModel: 'om',
+      haikuModel: 'hm',
+    };
+
+    expect(() => mod.createProvider(input)).toThrow();
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should create provider when name differs only in case (case-sensitive matching)', () => {
+    existsSyncMock.mockReturnValue(true);
+    const existingProvider = {
+      ...sampleProvider,
+      name: 'Anthropic',
+    };
+    readFileSyncMock.mockReturnValue(combinedStore([existingProvider]));
+    randomUUIDMock.mockReturnValue('case-diff-uuid');
+
+    const input = {
+      name: 'anthropic',
+      apiKey: 'sk-new',
+      defaultModel: 'dm',
+      sonnetModel: 'sm',
+      opusModel: 'om',
+      haikuModel: 'hm',
+    };
+
+    const result = mod.createProvider(input);
+
+    expect(result.name).toBe('anthropic');
+    expect(result.id).toBe('case-diff-uuid');
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('getProviderById', () => {

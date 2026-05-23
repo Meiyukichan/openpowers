@@ -197,6 +197,70 @@ describe('Provider Routes', () => {
       expect(res.body).toHaveProperty('error');
       expect(res.body).toHaveProperty('details');
     });
+
+    it('should return 409 when provider name already exists', async () => {
+      createProviderMock.mockImplementation(() => {
+        throw new Error(`Provider name "Test Provider" already exists`);
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers')
+        .send({
+          name: 'Test Provider',
+          apiKey: 'sk-test',
+          defaultModel: 'dm',
+          sonnetModel: 'sm',
+          opusModel: 'om',
+          haikuModel: 'hm',
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty('error');
+      expect(res.body.error).toMatch(/already exists/i);
+    });
+
+    it('should return 201 when name differs only in case from existing provider (case-sensitive matching)', async () => {
+      createProviderMock.mockImplementation((input: { name: string }) => ({
+        ...sampleProvider,
+        name: input.name,
+        id: 'case-diff-uuid',
+      }));
+
+      const res = await request(app)
+        .post('/openpowers/api/providers')
+        .send({
+          name: 'anthropic',
+          apiKey: 'sk-test',
+          defaultModel: 'dm',
+          sonnetModel: 'sm',
+          opusModel: 'om',
+          haikuModel: 'hm',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.name).toBe('anthropic');
+      expect(res.body.id).toBe('case-diff-uuid');
+    });
+
+    it('should return 500 when createProvider throws a non-duplicate error', async () => {
+      createProviderMock.mockImplementation(() => {
+        throw new Error('Disk write failed');
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers')
+        .send({
+          name: 'Test',
+          apiKey: 'sk-test',
+          defaultModel: 'dm',
+          sonnetModel: 'sm',
+          opusModel: 'om',
+          haikuModel: 'hm',
+        });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toHaveProperty('error');
+    });
   });
 
   // ---- PUT /openpowers/api/providers/:id ----
