@@ -147,7 +147,7 @@ export function mapModel(model: string, provider: Provider): string {
 export async function proxyRequestHandler(
   req: Request,
   res: Response,
-  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void,
+  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string, logger?: { info: (msg: string) => void }) => void,
 ): Promise<void> {
   // Check if proxy is enabled
   if (!getEnableOpenpowersProxy()) {
@@ -287,7 +287,7 @@ export async function proxyRequestHandler(
         });
 
         upstreamStream.pipe(res);
-        res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel));
+        res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel, undefined, activeLogger));
         return;
       }
 
@@ -326,11 +326,11 @@ export async function proxyRequestHandler(
         res.setHeader('content-type', upstreamContentType || 'text/plain');
         res.send(fullBody);
       }
-      onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel);
+      onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel, undefined, activeLogger);
 
       // Log non-2xx responses with error details
       if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
-        activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody} | request body: ${rawBody}`);
+        activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody}`);
       }
       return;
     }
@@ -345,11 +345,11 @@ export async function proxyRequestHandler(
     } else {
       res.json(upstreamRes.data);
     }
-    res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel));
+    res.on('finish', () => onResponse?.(providerHost, req.method, reqPath, upstreamRes.status, providerModel, clientModel, undefined, activeLogger));
 
     // Log non-2xx responses with error details
     if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
-      activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)} | request body: ${rawBody}`);
+      activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)}`);
     }
   } catch (err: unknown) {
     handleAxiosError(err, res, providerHost, req.method, reqPath, activeLogger, onResponse, providerModel, clientModel);
@@ -374,8 +374,8 @@ function handleAxiosError(
   providerHost: string,
   method: string,
   reqPath: string,
-  logger: { error: (msg: string) => void; warn: (msg: string) => void },
-  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string) => void,
+  logger: { error: (msg: string) => void; warn: (msg: string) => void; info: (msg: string) => void },
+  onResponse?: (host: string, method: string, url: string, status: number, providerModel?: string, clientModel?: string, errorMsg?: string, logger?: { info: (msg: string) => void }) => void,
   providerModel?: string,
   clientModel?: string,
 ): void {
@@ -396,7 +396,7 @@ function handleAxiosError(
     } else {
       res.json(err.response.data);
     }
-    onResponse?.(providerHost, method, reqPath, upstreamStatus, providerModel, clientModel);
+    onResponse?.(providerHost, method, reqPath, upstreamStatus, providerModel, clientModel, undefined, logger);
     return;
   }
 
@@ -417,5 +417,5 @@ function handleAxiosError(
   }
 
   res.status(502).json({ error: 'Bad Gateway', message });
-  onResponse?.(providerHost, method, reqPath, 502, providerModel, clientModel, errorMsg);
+  onResponse?.(providerHost, method, reqPath, 502, providerModel, clientModel, errorMsg, logger);
 }

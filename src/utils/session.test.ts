@@ -7,6 +7,7 @@
 import path from 'path';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionSettings } from './session.js';
+import type { Provider } from '../server/providers-store.js';
 
 // ---- mocks for session file I/O ----
 
@@ -193,7 +194,7 @@ describe('writeSessionSettings', () => {
 // ---- getProviderBySessionId ----
 
 describe('getProviderBySessionId', () => {
-  let getProviderBySessionId: (sessionId: string) => typeof sampleProvider | null;
+  let getProviderBySessionId: (sessionId: string) => Provider | null;
 
   beforeAll(async () => {
     const mod = await import('./session.js');

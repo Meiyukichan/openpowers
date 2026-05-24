@@ -52,6 +52,49 @@ export async function killPortProcess(port: number): Promise<void> {
   }
 }
 
+/** Default maximum wait time for port to become free (15 seconds). */
+const PORT_FREE_MAX_WAIT_MS = 15000;
+
+/** Polling interval between port checks (500ms). */
+const PORT_FREE_POLL_INTERVAL_MS = 500;
+
+/**
+ * Polls isPortInUse until the port is free, then resolves.
+ * Used after killPortProcess to ensure the OS has released the port
+ * (e.g. TCP WAITING/TIME_WAIT states) before starting a new server.
+ * @param port - The port number to wait for
+ * @param maxWaitMs - Maximum time to wait in milliseconds (default 15s)
+ * @returns A promise that resolves when the port is free
+ * @throws Error if the port is still occupied after maxWaitMs
+ */
+export async function waitForPortFree(port: number, maxWaitMs: number = PORT_FREE_MAX_WAIT_MS): Promise<void> {
+  const platform = os.platform();
+  const discoverCommand = platform === 'win32'
+    ? `netstat -ano | findstr :${port}`
+    : `lsof -ti :${port}`;
+
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const output = execSync(discoverCommand, {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: process.cwd(),
+      });
+      if (!output.trim()) {
+        logger.info(`Port ${port} is now free`);
+        return;
+      }
+    } catch {
+      // Command returned no matches (findstr returns error on no match, lsof returns error on empty)
+      logger.info(`Port ${port} is now free`);
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, PORT_FREE_POLL_INTERVAL_MS));
+  }
+  throw new Error(`Port ${port} is still occupied after ${maxWaitMs}ms`);
+}
+
 /**
  * Common process termination logic: discovers PIDs via a platform-specific
  * command, parses the output, and terminates each PID with a kill command.

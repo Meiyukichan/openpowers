@@ -8,14 +8,32 @@ import { Command } from 'commander';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { isPortInUse, killPortProcess } from '../utils/port-manager.js';
-import { createApp } from '../server/index.js';
+import { isPortInUse, killPortProcess, waitForPortFree } from '../utils/port-manager.js';
 import { logger } from '../utils/logger.js';
 
 /** Default port for the UI server. */
 const UI_PORT = 3939;
+
+// Resolve the server entry point relative to this module
+const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
+const serverEntryPath = path.join(moduleDirname, '..', '..', 'dist', 'server', 'entry.js');
+
+/**
+ * Spawns the UI server in a detached background child process.
+ * The child process writes its own startup message to stdout.
+ * @param port - Port number for the server to listen on
+ */
+function spawnUiServer(port: number): void {
+  const child = spawn(process.execPath, [serverEntryPath], {
+    detached: true,
+    stdio: ['ignore', 'inherit', 'inherit'],
+    env: { ...process.env, OPENPOWERS_UI_PORT: String(port) },
+    windowsHide: true,
+  });
+  child.unref();
+}
 
 /**
  * Opens the given URL in the default browser using platform-specific commands.
@@ -44,13 +62,38 @@ function openBrowser(url: string): void {
  * @param options - Command options
  * @param options.restart - If true, kills any existing process on port 3939 before starting
  */
+/**
+ * Starts a new UI server and opens the browser.
+ * Shared by both normal startup and --restart paths.
+ */
+function startUiServer(port: number): void {
+  const clientDir = path.join(moduleDirname, '..', '..', 'dist', 'client');
+  if (!fs.existsSync(clientDir)) {
+    process.stdout.write('UI has not been built yet. Please run the build command first to generate the frontend assets.\n');
+  }
+
+  spawnUiServer(port);
+  logger.info(`UI server spawned on port ${port}`);
+  const uiUrl = `http://localhost:${port}/openpowers/ui`;
+  process.stdout.write(`UI server started at ${uiUrl}\n`);
+  openBrowser(uiUrl);
+}
+
 export async function runUi(options: { restart?: boolean }): Promise<void> {
   const port = UI_PORT;
 
-  // Handle --restart: kill any process on the port first
+  // Handle --restart: kill any process on the port first, then spawn directly
   if (options.restart) {
     logger.info('Restart requested, killing existing process on port 3939');
     await killPortProcess(port);
+    try {
+      await waitForPortFree(port);
+    } catch {
+      process.stdout.write('Port 3939 has not been released yet, please retry in a moment.\n');
+      return;
+    }
+    startUiServer(port);
+    return;
   }
 
   // Check if port is already occupied (assumed to be our server if --restart not set)
@@ -63,28 +106,7 @@ export async function runUi(options: { restart?: boolean }): Promise<void> {
     return;
   }
 
-  // Check if the frontend build exists (dist/client/ relative to package root)
-  const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
-  const clientDir = path.join(moduleDirname, '..', '..', 'dist', 'client');
-
-  if (!fs.existsSync(clientDir)) {
-    process.stdout.write('UI has not been built yet. Please run the build command first to generate the frontend assets.\n');
-  }
-
-  // Start the Express server
-  const app = createApp();
-  await new Promise<void>((resolve) => {
-    app.listen(port, () => {
-      resolve();
-    });
-  });
-
-  logger.info(`UI server started on port ${port}`);
-  process.stdout.write(`UI server started at http://localhost:${port}/openpowers/ui\n`);
-
-  // Open the browser
-  const uiUrl = `http://localhost:${port}/openpowers/ui`;
-  openBrowser(uiUrl);
+  startUiServer(port);
 }
 
 /**

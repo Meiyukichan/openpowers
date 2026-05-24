@@ -168,7 +168,8 @@ describe('src/server/anthropic/logger.ts', () => {
 
     const expectedFile = path.join('/mock/home', '.openpowers', 'sessions', 'test-session-2', 'anthropic.log');
     const { transports } = await import('winston');
-    const fileCalls = (transports.File as ReturnType<typeof vi.fn>).mock.calls;
+    const fileMock = transports.File as unknown as { mock: { calls: Array<Array<{ filename: string }>> } };
+    const fileCalls = fileMock.mock.calls;
     expect(fileCalls.length).toBeGreaterThanOrEqual(1);
     expect(fileCalls[fileCalls.length - 1][0].filename).toBe(expectedFile);
   });

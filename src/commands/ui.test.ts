@@ -9,35 +9,30 @@ import { Command } from 'commander';
 
 // ---- mocks ----
 
-const { isPortInUseMock, killPortProcessMock } = vi.hoisted(() => ({
+const { isPortInUseMock, killPortProcessMock, waitForPortFreeMock } = vi.hoisted(() => ({
   isPortInUseMock: vi.fn(),
   killPortProcessMock: vi.fn(),
+  waitForPortFreeMock: vi.fn(),
 }));
 
 vi.mock('../utils/port-manager.js', () => ({
   isPortInUse: isPortInUseMock,
   killPortProcess: killPortProcessMock,
+  waitForPortFree: waitForPortFreeMock,
 }));
 
-const mockListenFn = vi.fn();
-const mockApp = {
-  listen: mockListenFn,
-};
-
-const { createAppMock } = vi.hoisted(() => ({
-  createAppMock: vi.fn(),
-}));
-
-vi.mock('../server/index.js', () => ({
-  createApp: createAppMock,
-}));
-
-const { execSyncMock } = vi.hoisted(() => ({
-  execSyncMock: vi.fn(),
-}));
+const { execSyncMock, spawnMock, unrefMock } = vi.hoisted(() => {
+  const unref = vi.fn();
+  return {
+    execSyncMock: vi.fn(),
+    spawnMock: vi.fn<(_cmd: string, _args: string[], _opts: Record<string, unknown>) => ({ unref: () => void })>(() => ({ unref })),
+    unrefMock: unref,
+  };
+});
 
 vi.mock('child_process', () => ({
   execSync: execSyncMock,
+  spawn: spawnMock,
 }));
 
 const { existsSyncMock } = vi.hoisted(() => ({
@@ -80,11 +75,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   isPortInUseMock.mockResolvedValue(false);
   killPortProcessMock.mockResolvedValue(undefined);
-  createAppMock.mockReturnValue(mockApp);
-  mockListenFn.mockImplementation((_port: number, cb: () => void) => {
-    cb();
-    return { close: vi.fn() };
-  });
+  waitForPortFreeMock.mockResolvedValue(undefined);
   existsSyncMock.mockReturnValue(true);
 });
 
@@ -114,17 +105,20 @@ describe('registerUiCommand', () => {
 });
 
 describe('runUi', () => {
-  it('should start server on port 3939 when port is free', async () => {
+  it('should spawn server on port 3939 when port is free', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: false });
 
     expect(isPortInUseMock).toHaveBeenCalledWith(3939);
-    expect(createAppMock).toHaveBeenCalled();
-    expect(mockListenFn).toHaveBeenCalledWith(3939, expect.any(Function));
+    expect(spawnMock).toHaveBeenCalled();
+    const spawnArgs = (spawnMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
+    expect(String(spawnArgs[1])).toContain('entry.js');
+    const spawnOpts = spawnArgs[2] as { env: Record<string, string> };
+    expect(spawnOpts.env.OPENPOWERS_UI_PORT).toBe('3939');
   });
 
-  it('should open browser after server starts', async () => {
+  it('should open browser after spawning server', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: false });
@@ -139,34 +133,54 @@ describe('runUi', () => {
 
     await runUi({ restart: false });
 
-    // Should just open browser, not start server
+    // Should just open browser, not spawn server
     expect(killPortProcessMock).not.toHaveBeenCalled();
-    expect(createAppMock).not.toHaveBeenCalled();
-    expect(mockListenFn).not.toHaveBeenCalled();
+    expect(spawnMock).not.toHaveBeenCalled();
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
     expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 
-  it('should kill existing process on --restart before starting', async () => {
+  it('should kill, wait for port free, then spawn on --restart', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: true });
 
+    // Call order: kill → wait → spawn
     expect(killPortProcessMock).toHaveBeenCalledWith(3939);
-    expect(createAppMock).toHaveBeenCalled();
-    expect(mockListenFn).toHaveBeenCalledWith(3939, expect.any(Function));
+    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
+    expect(spawnMock).toHaveBeenCalled();
+    const spawnArgs = (spawnMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
+    const spawnOpts = spawnArgs[2] as { env: Record<string, string> };
+    expect(spawnOpts.env.OPENPOWERS_UI_PORT).toBe('3939');
   });
 
-  it('should start server on --restart even when port was occupied', async () => {
-    // After killing the process, the port becomes free
+  it('should not call isPortInUse on --restart (uses waitForPortFree instead)', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: true });
 
+    // --restart path should NOT call isPortInUse
+    expect(isPortInUseMock).not.toHaveBeenCalled();
     expect(killPortProcessMock).toHaveBeenCalledWith(3939);
-    expect(createAppMock).toHaveBeenCalled();
-    expect(mockListenFn).toHaveBeenCalledWith(3939, expect.any(Function));
+    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
+    expect(spawnMock).toHaveBeenCalled();
+  });
+
+  it('should show retry message when port is not released in time on --restart', async () => {
+    waitForPortFreeMock.mockRejectedValue(new Error('Port 3939 is still occupied after 15000ms'));
+
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+    await runUi({ restart: true });
+
+    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
+    expect(spawnMock).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      expect.stringContaining('not been released yet'),
+    );
+
+    stdoutSpy.mockRestore();
   });
 
   it('should show message when dist/client/ does not exist', async () => {

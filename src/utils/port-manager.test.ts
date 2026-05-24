@@ -4,7 +4,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 // ---- mocks for Node.js built-in modules ----
 
@@ -369,5 +369,84 @@ describe('killPortProcess', () => {
         expect.any(Object),
       );
     });
+  });
+});
+
+describe('waitForPortFree', () => {
+  let waitForPortFree: (port: number, maxWaitMs?: number) => Promise<void>;
+
+  beforeAll(async () => {
+    waitForPortFree = (await import('./port-manager.js')).waitForPortFree;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    osPlatformMock.mockReturnValue('win32');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should resolve immediately when netstat returns empty (port free)', async () => {
+    execSyncMock.mockReturnValueOnce('');
+
+    await expect(waitForPortFree(3939, 2000)).resolves.toBeUndefined();
+    expect(execSyncMock).toHaveBeenCalledWith(
+      'netstat -ano | findstr :3939',
+      expect.objectContaining({ encoding: 'utf-8' }),
+    );
+    expect(loggerInfoMock).toHaveBeenCalledWith(expect.stringContaining('Port 3939 is now free'));
+  });
+
+  it('should resolve immediately when netstat throws (no match = port free)', async () => {
+    execSyncMock.mockImplementationOnce(() => {
+      throw new Error('findstr: no match');
+    });
+
+    await expect(waitForPortFree(3939, 2000)).resolves.toBeUndefined();
+    expect(loggerInfoMock).toHaveBeenCalledWith(expect.stringContaining('Port 3939 is now free'));
+  });
+
+  it('should poll until netstat returns empty', async () => {
+    vi.useFakeTimers();
+    // First two calls: port in use (netstat returns output)
+    // Third call: port free (netstat returns empty)
+    execSyncMock
+      .mockReturnValueOnce('TCP    0.0.0.0:3939    0.0.0.0:0    TIME_WAIT    0')
+      .mockReturnValueOnce('TCP    0.0.0.0:3939    0.0.0.0:0    TIME_WAIT    0')
+      .mockReturnValueOnce('');
+
+    const promise = waitForPortFree(3939, 2000);
+
+    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(500);
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(execSyncMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should throw error when port never frees within maxWaitMs', async () => {
+    vi.useFakeTimers();
+    // Always return occupied
+    execSyncMock.mockReturnValue('TCP    0.0.0.0:3939    0.0.0.0:0    TIME_WAIT    0');
+
+    const promise = waitForPortFree(3939, 1000);
+    promise.catch(() => {});
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(promise).rejects.toThrow('Port 3939 is still occupied after 1000ms');
+  });
+
+  it('should use lsof on Linux', async () => {
+    osPlatformMock.mockReturnValue('linux');
+    execSyncMock.mockReturnValueOnce('');
+
+    await waitForPortFree(3939, 2000);
+
+    expect(execSyncMock).toHaveBeenCalledWith(
+      'lsof -ti :3939',
+      expect.objectContaining({ encoding: 'utf-8' }),
+    );
   });
 });
