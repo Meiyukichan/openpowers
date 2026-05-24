@@ -64,8 +64,8 @@ describe('src/commands/config.ts', () => {
 
   it('config list should output merged config as formatted JSON', async () => {
     const { loadConfig } = await import('../utils/config.js');
-    const mockConfig = { language: 'chinese', providers: { enable: false } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
+    const mockConfig = { language: 'chinese', switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' } };
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -82,23 +82,23 @@ describe('src/commands/config.ts', () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = {
       language: 'chinese',
-      providers: { enable: false, default: 'mimo' },
+      switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' },
       project: { sourcecode: './' },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as OpenPowersConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
     const program = new Command();
     registerConfigCommand(program);
 
-    await program.parseAsync(['config', 'show', 'language', 'providers.enable', 'project.sourcecode'], { from: 'user' });
+    await program.parseAsync(['config', 'show', 'language', 'switchProviders.workflow', 'project.sourcecode'], { from: 'user' });
 
     const output = stdoutCalls.join('');
     const lines = output.trim().split('\n');
     expect(lines).toHaveLength(3);
     expect(lines[0]).toBe('language=chinese');
-    expect(lines[1]).toBe('providers.enable=false');
+    expect(lines[1]).toBe('switchProviders.workflow=default');
     expect(lines[2]).toBe('project.sourcecode=./');
   });
 
@@ -154,7 +154,7 @@ describe('src/commands/config.ts', () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = {
       language: 'chinese',
-      providers: { enable: false, default: 'mimo' },
+      switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' },
       project: { sourcecode: './', references: [] },
     };
     vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as OpenPowersConfig);
@@ -165,7 +165,7 @@ describe('src/commands/config.ts', () => {
     registerConfigCommand(program);
 
     await program.parseAsync(
-      ['config', 'show', 'language', 'providers', 'nonexistent.key', 'project.references'],
+      ['config', 'show', 'language', 'switchProviders', 'nonexistent.key', 'project.references'],
       { from: 'user' },
     );
 
@@ -173,7 +173,7 @@ describe('src/commands/config.ts', () => {
     const lines = output.trim().split('\n');
     expect(lines).toHaveLength(4);
     expect(lines[0]).toBe('language=chinese');
-    expect(lines[1]).toBe('providers=' + JSON.stringify(mockConfig.providers));
+    expect(lines[1]).toBe('switchProviders=' + JSON.stringify(mockConfig.switchProviders));
     expect(lines[2]).toBe('nonexistent.key=None');
     expect(lines[3]).toBe('project.references=' + JSON.stringify(mockConfig.project.references));
   });

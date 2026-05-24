@@ -520,6 +520,22 @@ describe('Provider Routes', () => {
       expect(setNeverClaudeSettingsMock).toHaveBeenCalledWith(false);
       expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
     });
+
+    it('should return 500 when sync write fails (not 404)', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+      getNeverClaudeSettingsMock.mockReturnValue(false);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      writeEnvToClaudeSettingsMock.mockImplementationOnce(() => {
+        throw new Error('Disk write failed');
+      });
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Failed to sync Claude settings' });
+    });
   });
 
   // ---- PUT /openpowers/api/providers/proxy ----
@@ -591,6 +607,20 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('error');
     });
+
+    it('should return 500 when sync write fails', async () => {
+      getNeverClaudeSettingsMock.mockReturnValue(false);
+      writeEnvToClaudeSettingsMock.mockImplementationOnce(() => {
+        throw new Error('Disk write failed');
+      });
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({ enableOpenpowersProxy: true });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Failed to update proxy settings' });
+    });
   });
 
   // ---- POST /openpowers/api/providers/reset ----
@@ -616,6 +646,31 @@ describe('Provider Routes', () => {
       expect(res.body).toEqual({ activeProviderId: null });
       expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
       expect(clearActiveProviderIdMock).toHaveBeenCalledOnce();
+    });
+
+    it('should still call clearActiveProviderId when restoreClaudeSettings throws', async () => {
+      restoreClaudeSettingsMock.mockImplementationOnce(() => {
+        throw new Error('Disk read failed');
+      });
+
+      const res = await request(app).post('/openpowers/api/providers/reset');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ activeProviderId: null });
+      expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(clearActiveProviderIdMock).toHaveBeenCalledOnce();
+    });
+
+    it('should return 500 when clearActiveProviderId throws', async () => {
+      restoreClaudeSettingsMock.mockReturnValue(true);
+      clearActiveProviderIdMock.mockImplementationOnce(() => {
+        throw new Error('Config write failed');
+      });
+
+      const res = await request(app).post('/openpowers/api/providers/reset');
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Failed to clear active provider' });
     });
   });
 

@@ -6,9 +6,18 @@
  */
 
 import { Command } from 'commander';
-import { setEnableOpenpowersProxy } from '../server/providers-store.js';
+import {
+  setEnableOpenpowersProxy,
+  getNeverClaudeSettings,
+  setNeverClaudeSettings,
+} from '../server/providers-store.js';
 import { startBackendService, UI_PORT } from '../server/service-manager.js';
 import { isPortInUse } from '../utils/port-manager.js';
+import {
+  getProxyEnv,
+  writeEnvToClaudeSettings,
+  backupClaudeSettings,
+} from '../server/claude-settings.js';
 import { logger } from '../utils/logger.js';
 
 /** Max wait time for the backend service to start listening (10 seconds). */
@@ -34,7 +43,8 @@ async function waitForPortInUse(port: number, timeoutMs: number): Promise<boolea
 
 /**
  * Enables the OpenPowers proxy: ensures the backend service is running first,
- * then writes the proxy configuration flag.
+ * writes the proxy configuration flag, and syncs the Claude settings file
+ * with the proxy environment configuration (with first-write backup).
  * The proxy handler checks the flag per-request, so no restart is needed.
  * On failure, logs the error and exits with code 1.
  */
@@ -51,6 +61,8 @@ export async function runEnable(): Promise<void> {
       process.stderr.write(`${msg}\n`);
       logger.error(msg);
       process.exit(1);
+      // eslint-disable-next-line no-unsafe-finally
+      return;
     }
   }
 
@@ -61,6 +73,19 @@ export async function runEnable(): Promise<void> {
     process.stderr.write(`Failed to enable proxy: ${err}\n`);
     logger.error(`Failed to enable proxy: ${err}`);
     process.exit(1);
+    // eslint-disable-next-line no-unsafe-finally
+    return;
+  }
+
+  // Step 3: sync Claude settings with proxy env
+  try {
+    if (getNeverClaudeSettings()) {
+      backupClaudeSettings();
+      setNeverClaudeSettings(false);
+    }
+    writeEnvToClaudeSettings(getProxyEnv());
+  } catch (err) {
+    logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   process.stdout.write('OpenPowers proxy enabled\n');

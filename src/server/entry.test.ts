@@ -15,12 +15,17 @@ const mockListenFn = vi.fn().mockReturnValue(mockServerReturn);
 
 const appPostMock = vi.fn();
 
-const { createAppMock } = vi.hoisted(() => ({
+const { createAppMock, proxyLoggerMock } = vi.hoisted(() => ({
   createAppMock: vi.fn(),
+  proxyLoggerMock: { info: vi.fn(), end: vi.fn((cb: () => void) => cb()) },
 }));
 
 vi.mock('./index.js', () => ({
   createApp: createAppMock,
+}));
+
+vi.mock('./anthropic/logger.js', () => ({
+  proxyLogger: proxyLoggerMock,
 }));
 
 const { existsSyncMock, mkdirSyncMock, appendFileSyncMock } = vi.hoisted(() => ({
@@ -58,7 +63,13 @@ beforeEach(() => {
   existsSyncMock.mockReturnValue(true);
   mockListenFn.mockReturnValue(mockServerReturn);
   appPostMock.mockReturnValue(undefined);
-  createAppMock.mockReturnValue({ listen: mockListenFn, post: appPostMock });
+  createAppMock.mockImplementation((options?: { beforeProxy?: (app: unknown) => void }) => {
+    const mockApp = { listen: mockListenFn, post: appPostMock };
+    if (options?.beforeProxy) {
+      options.beforeProxy(mockApp);
+    }
+    return mockApp;
+  });
 });
 
 afterEach(() => {
@@ -134,7 +145,7 @@ describe('POST /openpowers/api/shutdown', () => {
 
     // Extract the registered route handler
     const handlerCall = appPostMock.mock.calls.find(
-      ([path]: [string]) => path === '/openpowers/api/shutdown',
+      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
     );
     const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
     const resJson = vi.fn();
@@ -160,7 +171,7 @@ describe('POST /openpowers/api/shutdown', () => {
     await import('./entry.js');
 
     const handlerCall = appPostMock.mock.calls.find(
-      ([path]: [string]) => path === '/openpowers/api/shutdown',
+      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
     );
     const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
     const resJson = vi.fn();

@@ -16,17 +16,13 @@ import { logger } from './logger.js';
 // ---------------------------------------------------------------------------
 
 const ProviderSwitchSchema = z.object({
+  workflow: z.string(),
   explore: z.string(),
+  propose: z.string(),
   plan: z.string(),
   review: z.string(),
   coding: z.string(),
   finalize: z.string(),
-});
-
-const ProvidersSchema = z.object({
-  enable: z.boolean(),
-  default: z.string(),
-  switch: ProviderSwitchSchema,
 });
 
 const CodebasesSchema = z.object({
@@ -86,7 +82,7 @@ const EnhancementSchema = z.object({
  */
 export const OpenPowersConfigSchema = z.object({
   language: z.string(),
-  providers: ProvidersSchema,
+  switchProviders: ProviderSwitchSchema,
   project: ProjectSchema,
   experimental: ExperimentalSchema,
   enhancement: EnhancementSchema.optional(),

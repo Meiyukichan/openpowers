@@ -11,14 +11,20 @@ const {
   mockSetEnableOpenpowersProxy,
   mockIsPortInUse,
   mockStartBackendService,
+  mockGetNeverClaudeSettings,
+  mockSetNeverClaudeSettings,
 } = vi.hoisted(() => ({
   mockSetEnableOpenpowersProxy: vi.fn(),
   mockIsPortInUse: vi.fn(),
   mockStartBackendService: vi.fn(),
+  mockGetNeverClaudeSettings: vi.fn(),
+  mockSetNeverClaudeSettings: vi.fn(),
 }));
 
 vi.mock('../server/providers-store.js', () => ({
   setEnableOpenpowersProxy: mockSetEnableOpenpowersProxy,
+  getNeverClaudeSettings: mockGetNeverClaudeSettings,
+  setNeverClaudeSettings: mockSetNeverClaudeSettings,
 }));
 
 vi.mock('../utils/port-manager.js', () => ({
@@ -30,6 +36,33 @@ vi.mock('../server/service-manager.js', () => ({
   UI_PORT: 3939,
 }));
 
+// proxy env used by tests for verification
+const MOCK_PROXY_ENV: Record<string, string> = {
+  ANTHROPIC_BASE_URL: 'http://localhost:3939',
+  ANTHROPIC_AUTH_TOKEN: 'sk-1234',
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+  DISABLE_ERROR_REPORTING: '1',
+  DISABLE_NON_ESSENTIAL_MODEL_CALLS: '1',
+  DISABLE_TELEMETRY: '1',
+  NO_PROXY: 'localhost',
+};
+
+const {
+  mockGetProxyEnv,
+  mockWriteEnvToClaudeSettings,
+  mockBackupClaudeSettings,
+} = vi.hoisted(() => ({
+  mockGetProxyEnv: vi.fn(() => ({ ...MOCK_PROXY_ENV })),
+  mockWriteEnvToClaudeSettings: vi.fn(),
+  mockBackupClaudeSettings: vi.fn(),
+}));
+
+vi.mock('../server/claude-settings.js', () => ({
+  getProxyEnv: mockGetProxyEnv,
+  writeEnvToClaudeSettings: mockWriteEnvToClaudeSettings,
+  backupClaudeSettings: mockBackupClaudeSettings,
+}));
+
 type RunEnableFn = () => Promise<void>;
 type RegisterEnableCmdFn = (program: Command) => void;
 
@@ -39,9 +72,15 @@ describe('src/commands/enable.ts', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
     mockIsPortInUse.mockReset();
     mockStartBackendService.mockReset();
     mockSetEnableOpenpowersProxy.mockReset();
+    mockGetNeverClaudeSettings.mockReset();
+    mockSetNeverClaudeSettings.mockReset();
+    mockGetProxyEnv.mockReset();
+    mockWriteEnvToClaudeSettings.mockReset();
+    mockBackupClaudeSettings.mockReset();
 
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
@@ -52,6 +91,10 @@ describe('src/commands/enable.ts', () => {
     // Default: service already running
     mockIsPortInUse.mockResolvedValue(true);
     mockStartBackendService.mockReturnValue('http://localhost:3939/openpowers/ui');
+    // Default: neverClaudeSettings is true (first-time enable)
+    mockGetNeverClaudeSettings.mockReturnValue(true);
+    // getProxyEnv must return the env object
+    mockGetProxyEnv.mockReturnValue({ ...MOCK_PROXY_ENV });
 
     const mod = await import('./enable.js');
     runEnable = mod.runEnable;
@@ -171,13 +214,55 @@ describe('src/commands/enable.ts', () => {
       });
 
       it('should exit with code 1', async () => {
-        await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
+        await runEnable();
+        expect(process.exit).toHaveBeenCalledWith(1);
       });
 
       it('should output error to stderr', async () => {
         const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try { await runEnable(); } catch { /* expected */ }
         expect(stderrSpy).toHaveBeenCalled();
+      });
+    });
+
+    // ---- NEW: claude settings sync behavior ----
+
+    describe('claude settings sync after enabling proxy', () => {
+      it('should backup and clear neverClaudeSettings when flag is true (first write)', async () => {
+        mockGetNeverClaudeSettings.mockReturnValue(true);
+
+        await runEnable();
+
+        expect(mockBackupClaudeSettings).toHaveBeenCalledTimes(1);
+        expect(mockSetNeverClaudeSettings).toHaveBeenCalledWith(false);
+      });
+
+      it('should skip backup and setNeverClaudeSettings when flag is already false', async () => {
+        mockGetNeverClaudeSettings.mockReturnValue(false);
+
+        await runEnable();
+
+        expect(mockBackupClaudeSettings).not.toHaveBeenCalled();
+        expect(mockSetNeverClaudeSettings).not.toHaveBeenCalled();
+      });
+
+      it('should call writeEnvToClaudeSettings with proxy env after enabling', async () => {
+        await runEnable();
+
+        expect(mockWriteEnvToClaudeSettings).toHaveBeenCalledTimes(1);
+        expect(mockWriteEnvToClaudeSettings).toHaveBeenCalledWith(MOCK_PROXY_ENV);
+      });
+
+      it('should still output success even if sync functions throw', async () => {
+        mockBackupClaudeSettings.mockImplementation(() => {
+          throw new Error('backup failed');
+        });
+
+        await runEnable();
+
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          expect.stringContaining('enabled'),
+        );
       });
     });
   });

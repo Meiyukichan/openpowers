@@ -7,16 +7,71 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
 
-const { mockSetEnableOpenpowersProxy } = vi.hoisted(() => ({
+// ---- hoisted mocks ----
+
+const {
+  mockSetEnableOpenpowersProxy,
+  mockGetActiveProviderId,
+  mockGetProviderById,
+} = vi.hoisted(() => ({
   mockSetEnableOpenpowersProxy: vi.fn(),
+  mockGetActiveProviderId: vi.fn(() => null),
+  mockGetProviderById: vi.fn(),
 }));
 
 vi.mock('../server/providers-store.js', () => ({
   setEnableOpenpowersProxy: mockSetEnableOpenpowersProxy,
+  getActiveProviderId: mockGetActiveProviderId,
+  getProviderById: mockGetProviderById,
 }));
+
+const {
+  mockGetProviderEnv,
+  mockWriteEnvToClaudeSettings,
+  mockRestoreClaudeSettings,
+} = vi.hoisted(() => ({
+  mockGetProviderEnv: vi.fn(),
+  mockWriteEnvToClaudeSettings: vi.fn(),
+  mockRestoreClaudeSettings: vi.fn(() => true),
+}));
+
+vi.mock('../server/claude-settings.js', () => ({
+  getProviderEnv: mockGetProviderEnv,
+  writeEnvToClaudeSettings: mockWriteEnvToClaudeSettings,
+  restoreClaudeSettings: mockRestoreClaudeSettings,
+}));
+
+// ---- types ----
 
 type RunDisableFn = () => void;
 type RegisterDisableCmdFn = (program: Command) => void;
+
+// ---- sample provider ----
+
+const sampleProvider = {
+  id: 'prov-1',
+  name: 'TestProvider',
+  baseUrl: 'https://api.test.com',
+  apiKey: 'sk-test',
+  defaultModel: 'default-model',
+  haikuModel: 'haiku-model',
+  sonnetModel: 'sonnet-model',
+  opusModel: 'opus-model',
+};
+
+const sampleProviderEnv: Record<string, string> = {
+  ANTHROPIC_BASE_URL: 'https://api.test.com',
+  ANTHROPIC_AUTH_TOKEN: 'sk-test',
+  ANTHROPIC_MODEL: 'default-model',
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: 'haiku-model',
+  ANTHROPIC_DEFAULT_SONNET_MODEL: 'sonnet-model',
+  ANTHROPIC_DEFAULT_OPUS_MODEL: 'opus-model',
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+  DISABLE_ERROR_REPORTING: '1',
+  DISABLE_NON_ESSENTIAL_MODEL_CALLS: '1',
+  DISABLE_TELEMETRY: '1',
+  NO_PROXY: 'localhost',
+};
 
 describe('src/commands/disable.ts', () => {
   let runDisable: RunDisableFn;
@@ -24,10 +79,15 @@ describe('src/commands/disable.ts', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     vi.spyOn(process, 'exit').mockImplementation(((code: number) => {
       throw new Error(`process.exit called with code ${code}`);
     }) as never);
+
+    // Defaults for sync-related mocks
+    mockGetActiveProviderId.mockReturnValue(null);
+    mockRestoreClaudeSettings.mockReturnValue(true);
 
     const mod = await import('./disable.js');
     runDisable = mod.runDisable;
@@ -96,6 +156,59 @@ describe('src/commands/disable.ts', () => {
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
       consoleLogSpy.mockRestore();
+    });
+  });
+
+  // ---- NEW: claude settings sync behavior ----
+
+  describe('claude settings sync after disabling proxy', () => {
+    describe('with active provider', () => {
+      beforeEach(() => {
+        mockGetActiveProviderId.mockReturnValue('prov-1');
+        mockGetProviderById.mockReturnValue(sampleProvider);
+        mockGetProviderEnv.mockReturnValue(sampleProviderEnv);
+      });
+
+      it('should write provider env to Claude settings', () => {
+        runDisable();
+
+        expect(mockGetActiveProviderId).toHaveBeenCalledTimes(1);
+        expect(mockGetProviderById).toHaveBeenCalledWith('prov-1');
+        expect(mockGetProviderEnv).toHaveBeenCalledWith(sampleProvider);
+        expect(mockWriteEnvToClaudeSettings).toHaveBeenCalledWith(sampleProviderEnv);
+      });
+
+      it('should NOT call restoreClaudeSettings', () => {
+        runDisable();
+
+        expect(mockRestoreClaudeSettings).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('without active provider', () => {
+      beforeEach(() => {
+        mockGetActiveProviderId.mockReturnValue(null);
+      });
+
+      it('should call restoreClaudeSettings', () => {
+        runDisable();
+
+        expect(mockRestoreClaudeSettings).toHaveBeenCalledTimes(1);
+        expect(mockWriteEnvToClaudeSettings).not.toHaveBeenCalled();
+        expect(mockGetProviderEnv).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should still output success even if sync functions throw', () => {
+      mockRestoreClaudeSettings.mockImplementation(() => {
+        throw new Error('restore failed');
+      });
+
+      runDisable();
+
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('disabled'),
+      );
     });
   });
 });

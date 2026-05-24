@@ -45,16 +45,14 @@ vi.mock('url', () => ({
 
 const defaultConfigFixture = {
   language: 'chinese',
-  providers: {
-    enable: false,
-    default: 'mimo',
-    switch: {
-      explore: 'minimax',
-      plan: 'glm',
-      review: 'deepseek',
-      coding: 'minimax',
-      finalize: 'deepseek',
-    },
+  switchProviders: {
+    workflow: 'default',
+    explore: 'minimax',
+    propose: 'default',
+    plan: 'glm',
+    review: 'deepseek',
+    coding: 'minimax',
+    finalize: 'deepseek',
   },
   project: {
     sourcecode: './',
@@ -86,8 +84,14 @@ const defaultConfigFixture = {
 
 const overrideConfigFixture = {
   language: 'english',
-  providers: {
-    enable: true,
+  switchProviders: {
+    workflow: 'mimo',
+    explore: 'mimo',
+    propose: 'mimo',
+    plan: 'mimo',
+    review: 'mimo',
+    coding: 'mimo',
+    finalize: 'deepseek',
   },
   project: {
     sourcecode: 'src/',
@@ -177,11 +181,14 @@ describe('queryConfig', () => {
         path: 'docs/codebases',
       },
     },
-    providers: {
-      enable: false,
-      switch: {
-        explore: 'minimax',
-      },
+    switchProviders: {
+      workflow: 'default',
+      explore: 'minimax',
+      propose: 'default',
+      plan: 'default',
+      review: 'default',
+      coding: 'default',
+      finalize: 'default',
     },
   };
 
@@ -201,8 +208,17 @@ describe('queryConfig', () => {
   });
 
   it('should return the object itself when value is a plain object', () => {
-    const result = queryConfig(config, 'providers');
-    expect(result).toEqual({ enable: false, switch: { explore: 'minimax' } });
+    const result = queryConfig(config, 'switchProviders');
+    expect(result).toEqual({
+
+      finalize: 'default',
+      workflow: 'default',
+      explore: 'minimax',
+      propose: 'default',
+      plan: 'default',
+      review: 'default',
+      coding: 'default',
+    });
   });
 
   it('should return undefined when intermediate path segment is not an object', () => {
@@ -245,9 +261,18 @@ describe('loadConfig', () => {
 
     const result = loadConfig('/mock/cwd');
 
-    // language replaced, providers merged, project merged
+    // language replaced, switchProviders merged
     expect(result.language).toBe('english');
-    expect(result.providers).toEqual({ enable: true, default: 'mimo', switch: defaultConfigFixture.providers.switch });
+    expect(result.switchProviders).toEqual({
+
+      finalize: 'deepseek',
+      workflow: 'mimo',
+      explore: 'mimo',
+      propose: 'mimo',
+      plan: 'mimo',
+      review: 'mimo',
+      coding: 'mimo',
+    });
     expect(result.project.sourcecode).toBe('src/');
     expect(result.project.repositories).toEqual([{ path: '/custom', description: 'custom repo' }]);
   });

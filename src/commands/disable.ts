@@ -6,7 +6,16 @@
  */
 
 import { Command } from 'commander';
-import { setEnableOpenpowersProxy } from '../server/providers-store.js';
+import {
+  setEnableOpenpowersProxy,
+  getActiveProviderId,
+  getProviderById,
+} from '../server/providers-store.js';
+import {
+  getProviderEnv,
+  writeEnvToClaudeSettings,
+  restoreClaudeSettings,
+} from '../server/claude-settings.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -16,6 +25,22 @@ import { logger } from '../utils/logger.js';
 export function runDisable(): void {
   try {
     setEnableOpenpowersProxy(false);
+
+    // Sync Claude settings based on active provider existence
+    try {
+      const activeId = getActiveProviderId();
+      if (activeId) {
+        const provider = getProviderById(activeId);
+        if (provider) {
+          writeEnvToClaudeSettings(getProviderEnv(provider));
+        }
+      } else {
+        restoreClaudeSettings();
+      }
+    } catch (err) {
+      logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
     process.stdout.write('OpenPowers proxy disabled\n');
   } catch (err) {
     process.stderr.write(`Failed to disable proxy: ${err}\n`);

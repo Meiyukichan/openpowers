@@ -30,6 +30,7 @@ import {
   backupClaudeSettings,
   restoreClaudeSettings,
 } from '../claude-settings.js';
+import { logger } from '../../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -137,6 +138,11 @@ providersRouter.put('/active', (req, res) => {
   }
   try {
     setActiveProviderId(parsed.data.providerId);
+  } catch {
+    res.status(404).json({ error: `Provider not found: ${parsed.data.providerId}` });
+    return;
+  }
+  try {
     ensureFirstWriteBackup();
     if (getEnableOpenpowersProxy()) {
       writeEnvToClaudeSettings(getProxyEnv());
@@ -147,8 +153,9 @@ providersRouter.put('/active', (req, res) => {
       }
     }
     res.status(200).json({ activeProviderId: parsed.data.providerId });
-  } catch {
-    res.status(404).json({ error: `Provider not found: ${parsed.data.providerId}` });
+  } catch (err) {
+    logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(500).json({ error: 'Failed to sync Claude settings' });
   }
 });
 
@@ -202,22 +209,27 @@ providersRouter.put('/proxy', (req, res) => {
     res.status(400).json(formatZodError(parsed.error));
     return;
   }
-  setEnableOpenpowersProxy(parsed.data.enableOpenpowersProxy);
-  if (parsed.data.enableOpenpowersProxy) {
-    ensureFirstWriteBackup();
-    writeEnvToClaudeSettings(getProxyEnv());
-  } else {
-    const activeProviderId = getActiveProviderId();
-    if (activeProviderId) {
-      const provider = getProviderById(activeProviderId);
-      if (provider) {
-        writeEnvToClaudeSettings(getProviderEnv(provider));
-      }
+  try {
+    setEnableOpenpowersProxy(parsed.data.enableOpenpowersProxy);
+    if (parsed.data.enableOpenpowersProxy) {
+      ensureFirstWriteBackup();
+      writeEnvToClaudeSettings(getProxyEnv());
     } else {
-      restoreClaudeSettings();
+      const activeProviderId = getActiveProviderId();
+      if (activeProviderId) {
+        const provider = getProviderById(activeProviderId);
+        if (provider) {
+          writeEnvToClaudeSettings(getProviderEnv(provider));
+        }
+      } else {
+        restoreClaudeSettings();
+      }
     }
+    res.status(200).json({ enableOpenpowersProxy: parsed.data.enableOpenpowersProxy });
+  } catch (err) {
+    logger.error(`Failed to update proxy settings: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(500).json({ error: 'Failed to update proxy settings' });
   }
-  res.status(200).json({ enableOpenpowersProxy: parsed.data.enableOpenpowersProxy });
 });
 
 /**
@@ -281,8 +293,18 @@ providersRouter.delete('/:id', (req, res) => {
  * active provider is still cleared.
  */
 providersRouter.post('/reset', (_req, res) => {
-  restoreClaudeSettings();
-  clearActiveProviderId();
+  try {
+    restoreClaudeSettings();
+  } catch (err) {
+    logger.error(`Failed to restore Claude settings: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  try {
+    clearActiveProviderId();
+  } catch (err) {
+    logger.error(`Failed to clear active provider: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(500).json({ error: 'Failed to clear active provider' });
+    return;
+  }
   res.status(200).json({ activeProviderId: null });
 });
 

@@ -26,7 +26,7 @@ const defaultClientDir = path.join(moduleDirname, '..', 'client');
  *   Defaults to dist/client/ relative to the package root.
  * @returns Configured Express application instance
  */
-export function createApp(options?: { clientDir?: string }): express.Application {
+export function createApp(options?: { clientDir?: string; beforeProxy?: (app: express.Application) => void }): express.Application {
   const app = express.default();
   app.use(express.default.json({ limit: '50mb' }));
 
@@ -49,6 +49,11 @@ export function createApp(options?: { clientDir?: string }): express.Application
     app.use('/openpowers/ui', (_req, res) => {
       res.status(200).type('text/plain').send(message);
     });
+  }
+
+  // Hook for registering routes before the proxy catch-all intercepts all requests
+  if (options?.beforeProxy) {
+    options.beforeProxy(app);
   }
 
   // Proxy routes — always mounted; enabled/disabled checked per-request in the handler

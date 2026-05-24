@@ -9,6 +9,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createApp } from './index.js';
+import { proxyLogger } from './anthropic/logger.js';
 
 const ERROR_LOG_DIR = path.join(os.homedir(), '.openpowers', 'logs');
 const ERROR_LOG_FILE = path.join(ERROR_LOG_DIR, 'error.log');
@@ -27,26 +28,35 @@ function writeErrorLog(message: string): void {
 
 const port = process.env.OPENPOWERS_UI_PORT ? parseInt(process.env.OPENPOWERS_UI_PORT, 10) : 3939;
 
-const app = createApp();
+// Register the shutdown route via beforeProxy hook so it sits before the proxy catch-all
+import http from 'http';
+let server: http.Server;
 
-const server = app.listen(port, () => {
+const app = createApp({
+  beforeProxy: (app) => {
+    app.post('/openpowers/api/shutdown', (_req, res) => {
+      proxyLogger.info('Server shutdown requested, closing connections...');
+      res.json({ ok: true });
+      server.close((err?: Error) => {
+        if (err) {
+          writeErrorLog(`Server close error: ${err.message}`);
+          proxyLogger.info('Server shutdown complete');
+          proxyLogger.end(() => process.exit(1));
+          return;
+        }
+        proxyLogger.info('Server shutdown complete');
+        proxyLogger.end(() => process.exit(0));
+      });
+    });
+  },
+});
+
+server = app.listen(port, () => {
   // Server started
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   writeErrorLog(`Server error: ${err.message}`);
-});
-
-// Shutdown endpoint - gracefully closes the server after responding
-app.post('/openpowers/api/shutdown', (_req, res) => {
-  res.json({ ok: true });
-  server.close((err?: Error) => {
-    if (err) {
-      writeErrorLog(`Server close error: ${err.message}`);
-      process.exit(1);
-    }
-    process.exit(0);
-  });
 });
 
 // Prevent process exit on unhandled errors — keep the server alive
