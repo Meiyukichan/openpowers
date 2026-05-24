@@ -5,6 +5,7 @@
  */
 
 import { Command } from 'commander';
+import { restoreClaudeSettings } from '../server/claude-settings.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -16,7 +17,12 @@ export function registerRecoverCommand(program: Command): void {
     .command('recover')
     .description('Restore original claude configuration')
     .action(() => {
-      logger.info('claude configuration recovered (mock)');
-      process.stdout.write('claude 配置已还原（mock）\n');
+      const restored = restoreClaudeSettings();
+      if (restored) {
+        logger.info('Claude configuration restored successfully');
+        process.stdout.write('Claude configuration restored successfully.\n');
+      } else {
+        process.stdout.write('No backup found. Nothing to restore.\n');
+      }
     });
 }
