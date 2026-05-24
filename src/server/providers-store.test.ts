@@ -92,9 +92,9 @@ const sampleProvider = {
 
 const sampleProviderList = [sampleProvider];
 
-/** Builds a combined store JSON string: { activeProviderId, providers }. */
-function combinedStore(providers: typeof sampleProviderList, activeProviderId: string | null = null): string {
-  return JSON.stringify({ activeProviderId, providers });
+/** Builds a combined store JSON string: { activeProviderId, providers, neverClaudeSettings }. */
+function combinedStore(providers: typeof sampleProviderList, activeProviderId: string | null = null, neverClaudeSettings: boolean = true): string {
+  return JSON.stringify({ activeProviderId, providers, neverClaudeSettings });
 }
 
 beforeEach(() => {
@@ -155,6 +155,16 @@ describe('ensureProvidersFile', () => {
     mod.ensureProvidersFile();
 
     expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should include neverClaudeSettings: true in the default store data', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    mod.ensureProvidersFile();
+
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.neverClaudeSettings).toBe(true);
   });
 });
 
@@ -827,5 +837,98 @@ describe('getProviderByModels', () => {
 
     // Should return the first provider that matches
     expect(result).toEqual({ 'shared-model': provider2 });
+  });
+});
+
+// ---- NeverClaudeSettings Tests ----
+
+describe('getNeverClaudeSettings', () => {
+  it('should return true when providers.json does not exist', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const result = mod.getNeverClaudeSettings();
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true when combined store has neverClaudeSettings: true', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null, true));
+
+    const result = mod.getNeverClaudeSettings();
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false when combined store has neverClaudeSettings: false', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null, false));
+
+    const result = mod.getNeverClaudeSettings();
+
+    expect(result).toBe(false);
+  });
+
+  it('should return true when providers.json does not contain the field (backward compatibility)', () => {
+    existsSyncMock.mockReturnValue(true);
+    const jsonWithoutField = JSON.stringify({ activeProviderId: null, providers: sampleProviderList });
+    readFileSyncMock.mockReturnValue(jsonWithoutField);
+
+    const result = mod.getNeverClaudeSettings();
+
+    expect(result).toBe(true);
+  });
+
+  it('should return true when combined store has invalid JSON', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue('invalid-json');
+
+    const result = mod.getNeverClaudeSettings();
+
+    expect(result).toBe(true);
+  });
+});
+
+describe('setNeverClaudeSettings', () => {
+  it('should write neverClaudeSettings: false to the combined store file', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null, true));
+
+    mod.setNeverClaudeSettings(false);
+
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [filePath, content] = writeFileSyncMock.mock.calls[0];
+    expect(filePath).toBe(PROVIDERS_FILE);
+    const parsed = JSON.parse(content);
+    expect(parsed.neverClaudeSettings).toBe(false);
+    expect(parsed.activeProviderId).toBeNull();
+    expect(parsed.providers).toEqual(sampleProviderList);
+  });
+
+  it('should write neverClaudeSettings: true to the combined store file', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null, false));
+
+    mod.setNeverClaudeSettings(true);
+
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.neverClaudeSettings).toBe(true);
+  });
+
+  it('should preserve other fields when writing neverClaudeSettings', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000', true),
+    );
+
+    mod.setNeverClaudeSettings(false);
+
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.neverClaudeSettings).toBe(false);
+    expect(parsed.activeProviderId).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(parsed.providers).toEqual(sampleProviderList);
   });
 });

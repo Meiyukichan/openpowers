@@ -51,6 +51,7 @@ export type Provider = z.infer<typeof ProviderSchema>;
 const StoreDataSchema = z.object({
   activeProviderId: z.string().nullable(),
   enableOpenpowersProxy: z.boolean().nullable().default(false),
+  neverClaudeSettings: z.boolean().nullable().default(true),
   providers: z.array(ProviderSchema),
 });
 
@@ -102,6 +103,7 @@ export type ProviderUpdate = z.infer<typeof ProviderUpdateSchema>;
 const DEFAULT_STORE_DATA: StoreData = {
   activeProviderId: null,
   enableOpenpowersProxy: false,
+  neverClaudeSettings: true,
   providers: [
     {
       id: '00000000-0000-0000-0000-000000000001',
@@ -368,6 +370,29 @@ export function setEnableOpenpowersProxy(enabled: boolean): void {
   data.enableOpenpowersProxy = enabled;
   writeStoreData(data);
   logger.info(`OpenPowers proxy ${enabled ? 'enabled' : 'disabled'}`);
+}
+
+// ---------------------------------------------------------------------------
+// ClaudeSettings operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads the neverClaudeSettings flag from the store.
+ * @returns The current neverClaudeSettings state, or true if not set
+ */
+export function getNeverClaudeSettings(): boolean {
+  return readStoreData().neverClaudeSettings ?? true;
+}
+
+/**
+ * Sets the neverClaudeSettings flag.
+ * @param value - The new neverClaudeSettings state
+ */
+export function setNeverClaudeSettings(value: boolean): void {
+  const data = readStoreData();
+  data.neverClaudeSettings = value;
+  writeStoreData(data);
+  logger.info(`ClaudeSettings backup guard set to ${value}`);
 }
 
 // ---------------------------------------------------------------------------
