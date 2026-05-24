@@ -21,28 +21,21 @@ vi.mock('../utils/port-manager.js', () => ({
   waitForPortFree: waitForPortFreeMock,
 }));
 
-const { execSyncMock, spawnMock, unrefMock } = vi.hoisted(() => {
-  const unref = vi.fn();
-  return {
-    execSyncMock: vi.fn(),
-    spawnMock: vi.fn<(_cmd: string, _args: string[], _opts: Record<string, unknown>) => ({ unref: () => void })>(() => ({ unref })),
-    unrefMock: unref,
-  };
-});
+const { execSyncMock } = vi.hoisted(() => ({
+  execSyncMock: vi.fn(),
+}));
 
 vi.mock('child_process', () => ({
   execSync: execSyncMock,
-  spawn: spawnMock,
 }));
 
-const { existsSyncMock } = vi.hoisted(() => ({
-  existsSyncMock: vi.fn(),
+const { startBackendServiceMock } = vi.hoisted(() => ({
+  startBackendServiceMock: vi.fn<(port: number) => string>(),
 }));
 
-vi.mock('fs', () => ({
-  default: {
-    existsSync: existsSyncMock,
-  },
+vi.mock('../server/service-manager.js', () => ({
+  startBackendService: startBackendServiceMock,
+  UI_PORT: 3939,
 }));
 
 const { loggerMock } = vi.hoisted(() => ({
@@ -76,7 +69,7 @@ beforeEach(() => {
   isPortInUseMock.mockResolvedValue(false);
   killPortProcessMock.mockResolvedValue(undefined);
   waitForPortFreeMock.mockResolvedValue(undefined);
-  existsSyncMock.mockReturnValue(true);
+  startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
 });
 
 // ---- test suites ----
@@ -105,24 +98,21 @@ describe('registerUiCommand', () => {
 });
 
 describe('runUi', () => {
-  it('should spawn server on port 3939 when port is free', async () => {
+  it('should call startBackendService on port 3939 when port is free', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: false });
 
     expect(isPortInUseMock).toHaveBeenCalledWith(3939);
-    expect(spawnMock).toHaveBeenCalled();
-    const spawnArgs = (spawnMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
-    expect(String(spawnArgs[1])).toContain('entry.js');
-    const spawnOpts = spawnArgs[2] as { env: Record<string, string> };
-    expect(spawnOpts.env.OPENPOWERS_UI_PORT).toBe('3939');
+    expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
-  it('should open browser after spawning server', async () => {
+  it('should open browser after starting backend service', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: false });
 
+    expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
     expect(args).toContain('http://localhost:3939/openpowers/ui');
@@ -133,26 +123,23 @@ describe('runUi', () => {
 
     await runUi({ restart: false });
 
-    // Should just open browser, not spawn server
+    // Should just open browser, not start backend service
     expect(killPortProcessMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
+    expect(startBackendServiceMock).not.toHaveBeenCalled();
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
     expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 
-  it('should kill, wait for port free, then spawn on --restart', async () => {
+  it('should kill, wait for port free, then start backend on --restart', async () => {
     isPortInUseMock.mockResolvedValue(false);
 
     await runUi({ restart: true });
 
-    // Call order: kill → wait → spawn
+    // Call order: kill → wait → start backend
     expect(killPortProcessMock).toHaveBeenCalledWith(3939);
     expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
-    expect(spawnMock).toHaveBeenCalled();
-    const spawnArgs = (spawnMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
-    const spawnOpts = spawnArgs[2] as { env: Record<string, string> };
-    expect(spawnOpts.env.OPENPOWERS_UI_PORT).toBe('3939');
+    expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
   it('should not call isPortInUse on --restart (uses waitForPortFree instead)', async () => {
@@ -164,7 +151,7 @@ describe('runUi', () => {
     expect(isPortInUseMock).not.toHaveBeenCalled();
     expect(killPortProcessMock).toHaveBeenCalledWith(3939);
     expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
-    expect(spawnMock).toHaveBeenCalled();
+    expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
   it('should show retry message when port is not released in time on --restart', async () => {
@@ -175,40 +162,10 @@ describe('runUi', () => {
     await runUi({ restart: true });
 
     expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
-    expect(spawnMock).not.toHaveBeenCalled();
+    expect(startBackendServiceMock).not.toHaveBeenCalled();
     expect(stdoutSpy).toHaveBeenCalledWith(
       expect.stringContaining('not been released yet'),
     );
-
-    stdoutSpy.mockRestore();
-  });
-
-  it('should show message when dist/client/ does not exist', async () => {
-    isPortInUseMock.mockResolvedValue(false);
-    existsSyncMock.mockReturnValue(false);
-
-    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-
-    await runUi({ restart: false });
-
-    expect(stdoutSpy).toHaveBeenCalledWith(
-      expect.stringContaining('not been built'),
-    );
-
-    stdoutSpy.mockRestore();
-  });
-
-  it('should not show missing-build message when dist/client/ exists', async () => {
-    isPortInUseMock.mockResolvedValue(false);
-    existsSyncMock.mockReturnValue(true);
-
-    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-
-    await runUi({ restart: false });
-
-    const calls = stdoutSpy.mock.calls.flat();
-    const buildWarning = calls.filter((c) => typeof c === 'string' && c.includes('not been built'));
-    expect(buildWarning).toHaveLength(0);
 
     stdoutSpy.mockRestore();
   });
