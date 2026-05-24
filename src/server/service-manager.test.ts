@@ -8,11 +8,13 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
 // ---- mocks ----
 
-const { spawnMock, unrefMock } = vi.hoisted(() => {
+const { spawnMock, unrefMock, spawnPid } = vi.hoisted(() => {
   const unref = vi.fn();
+  const pid = 98765;
   return {
-    spawnMock: vi.fn<(_cmd: string, _args: string[], _opts: Record<string, unknown>) => ({ unref: () => void })>(() => ({ unref })),
+    spawnMock: vi.fn<(_cmd: string, _args: string[], _opts: Record<string, unknown>) => ({ unref: () => void, pid: number })>(() => ({ unref, pid })),
     unrefMock: unref,
+    spawnPid: pid,
   };
 });
 
@@ -20,13 +22,23 @@ vi.mock('child_process', () => ({
   spawn: spawnMock,
 }));
 
-const { existsSyncMock } = vi.hoisted(() => ({
+const { existsSyncMock, writeFileSyncMock, mkdirSyncMock } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
+  writeFileSyncMock: vi.fn(),
+  mkdirSyncMock: vi.fn(),
 }));
 
 vi.mock('fs', () => ({
   default: {
     existsSync: existsSyncMock,
+    writeFileSync: writeFileSyncMock,
+    mkdirSync: mkdirSyncMock,
+  },
+}));
+
+vi.mock('os', () => ({
+  default: {
+    homedir: () => 'C:\\Users\\test',
   },
 }));
 
@@ -115,5 +127,33 @@ describe('startBackendService', () => {
     expect(buildWarning).toHaveLength(0);
 
     stdoutSpy.mockRestore();
+  });
+});
+
+describe('spawnServer PID file', () => {
+  it('should write child.pid to ~/.openpowers/.openpowers.pid on spawn', () => {
+    startBackendService(3939);
+
+    expect(writeFileSyncMock).toHaveBeenCalled();
+    const filePath = writeFileSyncMock.mock.calls[0][0] as string;
+    expect(filePath).toContain('.openpowers\\.openpowers.pid');
+
+    const fileContent = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(fileContent);
+    expect(parsed.pid).toBe(spawnPid);
+    expect(parsed.port).toBe(3939);
+  });
+
+  it('should overwrite PID file on re-spawn', () => {
+    startBackendService(8080);
+    startBackendService(9090);
+
+    // Each spawn should write to the PID file
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(2);
+
+    const secondContent = writeFileSyncMock.mock.calls[1][1] as string;
+    const parsed = JSON.parse(secondContent);
+    expect(parsed.pid).toBe(spawnPid);
+    expect(parsed.port).toBe(9090);
   });
 });

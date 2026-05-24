@@ -7,6 +7,7 @@
 
 import net from 'net';
 import os from 'os';
+import http from 'http';
 import { execSync } from 'child_process';
 import { logger } from './logger.js';
 
@@ -191,4 +192,97 @@ function parseWindowsNetstatOutput(output: string): string[] {
   }
 
   return Array.from(pidSet);
+}
+
+/** Maximum wait time for graceful shutdown polling (3 seconds). */
+const GRACEFUL_MAX_WAIT_MS = 3000;
+
+/** Polling interval for graceful shutdown port check (300ms). */
+const GRACEFUL_POLL_INTERVAL_MS = 300;
+
+/**
+ * Gracefully shuts down the backend service on the given port by sending
+ * an HTTP POST shutdown request, then polling for port release.
+ * Falls back to killPortProcess + waitForPortFree if graceful shutdown fails.
+ * @param port - The port number of the backend service to shut down
+ */
+export async function gracefulShutdown(port: number): Promise<void> {
+  const inUse = await isPortInUse(port);
+  if (!inUse) {
+    return;
+  }
+
+  logger.info(`Attempting graceful shutdown on port ${port}`);
+
+  let httpSucceeded = false;
+
+  try {
+    await sendShutdownRequest(port);
+    httpSucceeded = true;
+  } catch (err) {
+    logger.warn(`Graceful shutdown HTTP request failed on port ${port}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  if (httpSucceeded) {
+    // Poll for port release, up to 3 seconds
+    const start = Date.now();
+    while (Date.now() - start < GRACEFUL_MAX_WAIT_MS) {
+      const stillInUse = await isPortInUse(port);
+      if (!stillInUse) {
+        logger.info(`Port ${port} released after graceful shutdown`);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, GRACEFUL_POLL_INTERVAL_MS));
+    }
+    logger.warn(`Port ${port} not released within ${GRACEFUL_MAX_WAIT_MS}ms, falling back to force kill`);
+  }
+
+  // Fallback: force kill the process
+  await killPortProcess(port);
+  await waitForPortFree(port);
+}
+
+/**
+ * Sends an HTTP POST request to the shutdown endpoint.
+ * @param port - The port number of the target service
+ * @returns A promise that resolves when the request succeeds (200)
+ * @throws Error if the request fails, times out, or returns non-200
+ */
+function sendShutdownRequest(port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const options: http.RequestOptions = {
+      hostname: 'localhost',
+      port,
+      path: '/openpowers/api/shutdown',
+      method: 'POST',
+      timeout: 2000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': 0,
+      },
+    };
+
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve();
+        } else {
+          reject(new Error(`Shutdown returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Shutdown request timed out'));
+    });
+
+    req.end();
+  });
 }

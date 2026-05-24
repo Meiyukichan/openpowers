@@ -7,7 +7,7 @@
 import { Command } from 'commander';
 import os from 'os';
 import { execSync } from 'child_process';
-import { isPortInUse, killPortProcess, waitForPortFree } from '../utils/port-manager.js';
+import { isPortInUse, gracefulShutdown } from '../utils/port-manager.js';
 import { logger } from '../utils/logger.js';
 import { startBackendService, UI_PORT } from '../server/service-manager.js';
 
@@ -35,16 +35,11 @@ function openBrowser(url: string): void {
 export async function runUi(options: { restart?: boolean }): Promise<void> {
   const port = UI_PORT;
 
-  // Handle --restart: kill any process on the port first, then spawn directly
+  // Handle --restart: gracefully shut down the existing service, then spawn a new one
   if (options.restart) {
-    logger.info('Restart requested, killing existing process on port 3939');
-    await killPortProcess(port);
-    try {
-      await waitForPortFree(port);
-    } catch {
-      process.stdout.write('Port 3939 has not been released yet, please retry in a moment.\n');
-      return;
-    }
+    logger.info('Restart requested, shutting down existing service gracefully');
+    await gracefulShutdown(port);
+    logger.info('Graceful shutdown complete, starting new service');
     const restartUrl = startBackendService(port);
     openBrowser(restartUrl);
     return;

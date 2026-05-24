@@ -37,6 +37,18 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   writeErrorLog(`Server error: ${err.message}`);
 });
 
+// Shutdown endpoint - gracefully closes the server after responding
+app.post('/openpowers/api/shutdown', (_req, res) => {
+  res.json({ ok: true });
+  server.close((err?: Error) => {
+    if (err) {
+      writeErrorLog(`Server close error: ${err.message}`);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+});
+
 // Prevent process exit on unhandled errors — keep the server alive
 process.on('uncaughtException', (err) => {
   writeErrorLog(`Uncaught exception: ${err.message}\n${err.stack || ''}`);

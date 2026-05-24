@@ -9,16 +9,18 @@ import { Command } from 'commander';
 
 // ---- mocks ----
 
-const { isPortInUseMock, killPortProcessMock, waitForPortFreeMock } = vi.hoisted(() => ({
+const { isPortInUseMock, killPortProcessMock, waitForPortFreeMock, gracefulShutdownMock } = vi.hoisted(() => ({
   isPortInUseMock: vi.fn(),
   killPortProcessMock: vi.fn(),
   waitForPortFreeMock: vi.fn(),
+  gracefulShutdownMock: vi.fn(),
 }));
 
 vi.mock('../utils/port-manager.js', () => ({
   isPortInUse: isPortInUseMock,
   killPortProcess: killPortProcessMock,
   waitForPortFree: waitForPortFreeMock,
+  gracefulShutdown: gracefulShutdownMock,
 }));
 
 const { execSyncMock } = vi.hoisted(() => ({
@@ -69,6 +71,7 @@ beforeEach(() => {
   isPortInUseMock.mockResolvedValue(false);
   killPortProcessMock.mockResolvedValue(undefined);
   waitForPortFreeMock.mockResolvedValue(undefined);
+  gracefulShutdownMock.mockResolvedValue(undefined);
   startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
 });
 
@@ -131,42 +134,41 @@ describe('runUi', () => {
     expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 
-  it('should kill, wait for port free, then start backend on --restart', async () => {
-    isPortInUseMock.mockResolvedValue(false);
-
+  it('should call gracefulShutdown and then start backend on --restart', async () => {
     await runUi({ restart: true });
 
-    // Call order: kill → wait → start backend
-    expect(killPortProcessMock).toHaveBeenCalledWith(3939);
-    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
+    // Call order: gracefulShutdown → start backend
+    expect(gracefulShutdownMock).toHaveBeenCalledWith(3939);
     expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
-  it('should not call isPortInUse on --restart (uses waitForPortFree instead)', async () => {
-    isPortInUseMock.mockResolvedValue(false);
-
+  it('should not call isPortInUse or killPortProcess directly on --restart', async () => {
     await runUi({ restart: true });
 
-    // --restart path should NOT call isPortInUse
+    // --restart path should use gracefulShutdown, not direct kill/isPortInUse
     expect(isPortInUseMock).not.toHaveBeenCalled();
-    expect(killPortProcessMock).toHaveBeenCalledWith(3939);
-    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
+    expect(killPortProcessMock).not.toHaveBeenCalled();
+    expect(waitForPortFreeMock).not.toHaveBeenCalled();
+    expect(gracefulShutdownMock).toHaveBeenCalledWith(3939);
     expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
-  it('should show retry message when port is not released in time on --restart', async () => {
-    waitForPortFreeMock.mockRejectedValue(new Error('Port 3939 is still occupied after 15000ms'));
+  it('should propagate gracefulShutdown error to caller on --restart', async () => {
+    const shutdownError = new Error('Port 3939 is still occupied after 15000ms');
+    gracefulShutdownMock.mockRejectedValue(shutdownError);
 
-    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    await expect(runUi({ restart: true })).rejects.toThrow('Port 3939 is still occupied after 15000ms');
+    expect(gracefulShutdownMock).toHaveBeenCalledWith(3939);
+    expect(startBackendServiceMock).not.toHaveBeenCalled();
+  });
 
+  it('should open browser after graceful restart', async () => {
     await runUi({ restart: true });
 
-    expect(waitForPortFreeMock).toHaveBeenCalledWith(3939);
-    expect(startBackendServiceMock).not.toHaveBeenCalled();
-    expect(stdoutSpy).toHaveBeenCalledWith(
-      expect.stringContaining('not been released yet'),
-    );
-
-    stdoutSpy.mockRestore();
+    expect(gracefulShutdownMock).toHaveBeenCalledWith(3939);
+    expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
+    expect(execSyncMock).toHaveBeenCalled();
+    const args = execSyncMock.mock.calls[0][0] as string;
+    expect(args).toContain('http://localhost:3939/openpowers/ui');
   });
 });

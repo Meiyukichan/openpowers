@@ -4,13 +4,16 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 
 // ---- mocks ----
 
 const mockServerOn = vi.fn();
-const mockServerReturn = { on: mockServerOn };
+const mockServerClose = vi.fn();
+const mockServerReturn = { on: mockServerOn, close: mockServerClose };
 const mockListenFn = vi.fn().mockReturnValue(mockServerReturn);
+
+const appPostMock = vi.fn();
 
 const { createAppMock } = vi.hoisted(() => ({
   createAppMock: vi.fn(),
@@ -40,13 +43,22 @@ vi.mock('os', () => ({
   },
 }));
 
+let exitSpy: ReturnType<typeof vi.spyOn>;
+
+beforeAll(() => {
+  exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+    // no-op to prevent actual exit during tests
+  }) as never);
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.unstubAllEnvs();
   vi.resetModules();
   existsSyncMock.mockReturnValue(true);
   mockListenFn.mockReturnValue(mockServerReturn);
-  createAppMock.mockReturnValue({ listen: mockListenFn });
+  appPostMock.mockReturnValue(undefined);
+  createAppMock.mockReturnValue({ listen: mockListenFn, post: appPostMock });
 });
 
 afterEach(() => {
@@ -108,5 +120,58 @@ describe('server entry', () => {
     const errorHandler = mockServerOn.mock.calls.find(([event]) => event === 'error')?.[1] as (err: Error) => void;
     errorHandler(new Error('test'));
     expect(mkdirSyncMock).toHaveBeenCalled();
+  });
+});
+
+describe('POST /openpowers/api/shutdown', () => {
+  it('should register the shutdown endpoint on the app', async () => {
+    await import('./entry.js');
+    expect(appPostMock).toHaveBeenCalledWith('/openpowers/api/shutdown', expect.any(Function));
+  });
+
+  it('should respond with {ok: true} and then trigger server.close', async () => {
+    await import('./entry.js');
+
+    // Extract the registered route handler
+    const handlerCall = appPostMock.mock.calls.find(
+      ([path]: [string]) => path === '/openpowers/api/shutdown',
+    );
+    const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
+    const resJson = vi.fn();
+    const mockRes = { json: resJson };
+
+    // Call the shutdown handler
+    shutdownHandler({}, mockRes);
+
+    // Verify response sent immediately
+    expect(resJson).toHaveBeenCalledWith({ ok: true });
+
+    // Verify server.close was called (which calls process.exit(0) on success)
+    expect(mockServerClose).toHaveBeenCalled();
+    const closeCallback = mockServerClose.mock.calls[0][0] as ((err?: Error) => void) | undefined;
+    if (closeCallback) {
+      // Simulate successful close
+      closeCallback();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    }
+  });
+
+  it('should call process.exit(1) when server.close fails', async () => {
+    await import('./entry.js');
+
+    const handlerCall = appPostMock.mock.calls.find(
+      ([path]: [string]) => path === '/openpowers/api/shutdown',
+    );
+    const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
+    const resJson = vi.fn();
+    const mockRes = { json: resJson };
+
+    shutdownHandler({}, mockRes);
+
+    const closeCallback = mockServerClose.mock.calls[0][0] as ((err?: Error) => void) | undefined;
+    if (closeCallback) {
+      closeCallback(new Error('close error'));
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    }
   });
 });

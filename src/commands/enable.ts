@@ -11,6 +11,27 @@ import { startBackendService, UI_PORT } from '../server/service-manager.js';
 import { isPortInUse } from '../utils/port-manager.js';
 import { logger } from '../utils/logger.js';
 
+/** Max wait time for the backend service to start listening (10 seconds). */
+const SERVICE_START_TIMEOUT_MS = 10000;
+
+/** Polling interval between port checks (200ms). */
+const PORT_CHECK_INTERVAL_MS = 2000;
+
+/**
+ * Polls isPortInUse until the port is occupied or the timeout expires.
+ * @returns true if the port became occupied, false on timeout
+ */
+async function waitForPortInUse(port: number, timeoutMs: number): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isPortInUse(port)) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, PORT_CHECK_INTERVAL_MS));
+  }
+  return false;
+}
+
 /**
  * Enables the OpenPowers proxy: ensures the backend service is running first,
  * then writes the proxy configuration flag.
@@ -23,8 +44,9 @@ export async function runEnable(): Promise<void> {
     // Service is not running — start it
     startBackendService(UI_PORT);
 
-    // Verify the service started
-    if (!(await isPortInUse(UI_PORT))) {
+    // Wait for the service to start listening
+    const started = await waitForPortInUse(UI_PORT, SERVICE_START_TIMEOUT_MS);
+    if (!started) {
       const msg = 'Backend service did not start. Please check the logs for details.';
       process.stderr.write(`${msg}\n`);
       logger.error(msg);

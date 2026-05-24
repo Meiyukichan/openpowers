@@ -44,8 +44,9 @@ describe('src/commands/enable.ts', () => {
     mockSetEnableOpenpowersProxy.mockReset();
 
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-    vi.spyOn(process, 'exit').mockImplementation(((code: number) => {
-      throw new Error(`process.exit called with code ${code}`);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process, 'exit').mockImplementation((() => {
+      // do nothing, just record
     }) as never);
 
     // Default: service already running
@@ -125,27 +126,39 @@ describe('src/commands/enable.ts', () => {
 
     describe('service not running, fails to start', () => {
       beforeEach(() => {
+        vi.useFakeTimers();
         mockIsPortInUse.mockReset();
         mockIsPortInUse.mockResolvedValue(false);  // never starts
       });
 
-      it('should exit with code 1', async () => {
-        await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      async function runAndDrainTimers(): Promise<void> {
+        const promise = runEnable();
+        await vi.advanceTimersByTimeAsync(10000);
+        await promise.catch(() => { /* expected - process.exit throws */ });
+      }
+
+      it('should exit with code 1 after timeout', async () => {
+        await expect(runAndDrainTimers()).resolves.toBeUndefined();
+        expect(process.exit).toHaveBeenCalledWith(1);
       });
 
       it('should NOT call setEnableOpenpowersProxy', async () => {
-        try { await runEnable(); } catch { /* expected */ }
+        await runAndDrainTimers();
         expect(mockSetEnableOpenpowersProxy).not.toHaveBeenCalled();
       });
 
       it('should call startBackendService', async () => {
-        try { await runEnable(); } catch { /* expected */ }
+        await runAndDrainTimers();
         expect(mockStartBackendService).toHaveBeenCalledWith(3939);
       });
 
       it('should output error to stderr', async () => {
         const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-        try { await runEnable(); } catch { /* expected */ }
+        await runAndDrainTimers();
         expect(stderrSpy).toHaveBeenCalled();
       });
     });

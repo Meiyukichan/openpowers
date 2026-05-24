@@ -6,6 +6,7 @@
 
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { logger } from '../utils/logger.js';
@@ -17,8 +18,12 @@ export const UI_PORT = 3939;
 const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
 const serverEntryPath = path.join(moduleDirname, '..', '..', 'dist', 'server', 'entry.js');
 
+/** Path to the PID file that records the spawned child process ID and port. */
+const PID_FILE = path.join(os.homedir(), '.openpowers', '.openpowers.pid');
+
 /**
  * Spawns the backend server in a detached background child process.
+ * Writes the child PID and port to the PID file.
  * @param port - Port number for the server to listen on
  */
 function spawnServer(port: number): void {
@@ -28,6 +33,14 @@ function spawnServer(port: number): void {
     env: { ...process.env, OPENPOWERS_UI_PORT: String(port) },
     windowsHide: true,
   });
+
+  // Write PID file for graceful shutdown support
+  const pidDir = path.dirname(PID_FILE);
+  if (!fs.existsSync(pidDir)) {
+    fs.mkdirSync(pidDir, { recursive: true });
+  }
+  fs.writeFileSync(PID_FILE, JSON.stringify({ pid: child.pid, port }, null, 2), 'utf-8');
+
   child.unref();
 }
 
