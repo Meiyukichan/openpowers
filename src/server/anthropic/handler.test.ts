@@ -20,6 +20,7 @@ const {
   getEnableOpenpowersProxyMock,
   proxyLoggerMock,
   createSessionLoggerMock,
+  writeSessionBodyJsonMock,
 } = vi.hoisted(() => ({
   axiosMock: vi.fn(),
   isAxiosErrorMock: vi.fn(
@@ -35,6 +36,7 @@ const {
     error: vi.fn(),
   },
   createSessionLoggerMock: vi.fn(),
+  writeSessionBodyJsonMock: vi.fn(),
 }));
 
 // Attach isAxiosError to the default axios mock so that `axios.isAxiosError()` works
@@ -55,6 +57,7 @@ vi.mock('./logger.js', () => ({
 
 vi.mock('../../utils/session.js', () => ({
   getProviderBySessionId: getProviderBySessionIdMock,
+  writeSessionBodyJson: writeSessionBodyJsonMock,
 }));
 
 // ---------------------------------------------------------------------------

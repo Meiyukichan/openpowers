@@ -93,3 +93,21 @@ export function getProviderBySessionId(sessionId: string): Provider | null {
   const result = getProviderByModels([modelValue]);
   return result[modelValue] ?? null;
 }
+
+/**
+ * Writes the raw request body JSON to the session's anthropic.json file for debugging.
+ * Creates the session directory if it does not exist.
+ * @param sessionId - The session identifier
+ * @param rawBody - The raw request body string to write
+ */
+export function writeSessionBodyJson(sessionId: string, rawBody: string): void {
+  try {
+    const sessionDir = path.join(SESSIONS_DIR, sessionId);
+    if (!fs.existsSync(sessionDir)) {
+      fs.mkdirSync(sessionDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(sessionDir, 'anthropic.json'), JSON.stringify(JSON.parse(rawBody), null, 2), 'utf-8');
+  } catch {
+    // Silent fallback
+  }
+}
