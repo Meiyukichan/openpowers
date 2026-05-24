@@ -105,7 +105,7 @@ beforeEach(() => {
 // ---- test suites ----
 
 describe('ensureProvidersFile', () => {
-  it('should create providers.json with sample data when file does not exist', () => {
+  it('should create providers.json with default store data when file does not exist', () => {
     existsSyncMock.mockReturnValue(false);
 
     mod.ensureProvidersFile();
@@ -117,36 +117,11 @@ describe('ensureProvidersFile', () => {
     const parsed = JSON.parse(content);
     expect(parsed).toHaveProperty('activeProviderId');
     expect(parsed).toHaveProperty('providers');
+    expect(parsed).toHaveProperty('neverClaudeSettings');
     expect(Array.isArray(parsed.providers)).toBe(true);
-    expect(parsed.providers.length).toBeGreaterThan(0);
-    // Sample data should have required fields
-    for (const provider of parsed.providers) {
-      expect(provider).toHaveProperty('id');
-      expect(provider).toHaveProperty('name');
-      expect(provider).toHaveProperty('createdAt');
-      expect(provider).toHaveProperty('defaultModel');
-      expect(provider).toHaveProperty('sonnetModel');
-      expect(provider).toHaveProperty('opusModel');
-      expect(provider).toHaveProperty('haikuModel');
-    }
-  });
-
-  it('should have valid SVG icon filenames for default providers', () => {
-    existsSyncMock.mockReturnValue(false);
-
-    mod.ensureProvidersFile();
-
-    const [, content] = writeFileSyncMock.mock.calls[0];
-    const parsed = JSON.parse(content);
-
-    const anthropic = parsed.providers.find((p: { name: string }) => p.name === 'Anthropic');
-    const openai = parsed.providers.find((p: { name: string }) => p.name === 'OpenAI');
-
-    expect(anthropic).toBeDefined();
-    expect(openai).toBeDefined();
-    // pif-001: icon values must be valid SVG filenames registered in ICON_MAP
-    expect(anthropic.icon).toBe('anthropic.svg');
-    expect(openai.icon).toBe('openai.svg');
+    expect(parsed.providers).toEqual([]);
+    expect(parsed.neverClaudeSettings).toBe(true);
+    expect(parsed.activeProviderId).toBeNull();
   });
 
   it('should not overwrite existing providers.json', () => {
@@ -607,6 +582,37 @@ describe('getActiveProviderId', () => {
     const result = mod.getActiveProviderId();
 
     expect(result).toBeNull();
+  });
+});
+
+describe('getActiveProvider', () => {
+  it('should return null when combined store has no activeProviderId', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null));
+
+    const result = mod.getActiveProvider();
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null when activeProviderId is set but provider not found in list', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, 'nonexistent-id'));
+
+    const result = mod.getActiveProvider();
+
+    expect(result).toBeNull();
+  });
+
+  it('should return the provider object when activeProviderId matches a provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000'));
+
+    const result = mod.getActiveProvider();
+
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(result!.name).toBe('Test Provider');
   });
 });
 

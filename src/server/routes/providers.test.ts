@@ -21,6 +21,7 @@ const {
   getNeverClaudeSettingsMock,
   setNeverClaudeSettingsMock,
   getProviderByIdMock,
+  getActiveProviderMock,
   getEnableOpenpowersProxyMock,
   setEnableOpenpowersProxyMock,
   clearActiveProviderIdMock,
@@ -35,6 +36,7 @@ const {
   getNeverClaudeSettingsMock: vi.fn(),
   setNeverClaudeSettingsMock: vi.fn(),
   getProviderByIdMock: vi.fn(),
+  getActiveProviderMock: vi.fn(),
   getEnableOpenpowersProxyMock: vi.fn(),
   setEnableOpenpowersProxyMock: vi.fn(),
   clearActiveProviderIdMock: vi.fn(),
@@ -89,6 +91,7 @@ vi.mock('../providers-store.js', async (importOriginal) => {
     getNeverClaudeSettings: getNeverClaudeSettingsMock,
     setNeverClaudeSettings: setNeverClaudeSettingsMock,
     getProviderById: getProviderByIdMock,
+    getActiveProvider: getActiveProviderMock,
     getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
     setEnableOpenpowersProxy: setEnableOpenpowersProxyMock,
     clearActiveProviderId: clearActiveProviderIdMock,
@@ -571,7 +574,7 @@ describe('Provider Routes', () => {
     });
 
     it('should disable proxy and write provider env when active provider exists', async () => {
-      getActiveProviderIdMock.mockReturnValue('550e8400-e29b-41d4-a716-446655440000');
+      getActiveProviderMock.mockReturnValue(sampleProvider);
 
       const res = await request(app)
         .put('/openpowers/api/providers/proxy')
@@ -580,13 +583,13 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ enableOpenpowersProxy: false });
       expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(false);
-      expect(getProviderByIdMock).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
+      expect(getActiveProviderMock).toHaveBeenCalled();
       expect(getProviderEnvMock).toHaveBeenCalledWith(sampleProvider);
       expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
     });
 
     it('should disable proxy and restore backup when no active provider exists', async () => {
-      getActiveProviderIdMock.mockReturnValue(null);
+      getActiveProviderMock.mockReturnValue(null);
       restoreClaudeSettingsMock.mockReturnValue(true);
 
       const res = await request(app)

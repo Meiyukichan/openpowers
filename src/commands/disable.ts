@@ -8,8 +8,7 @@
 import { Command } from 'commander';
 import {
   setEnableOpenpowersProxy,
-  getActiveProviderId,
-  getProviderById,
+  getActiveProvider,
 } from '../server/providers-store.js';
 import {
   getProviderEnv,
@@ -28,12 +27,9 @@ export function runDisable(): void {
 
     // Sync Claude settings based on active provider existence
     try {
-      const activeId = getActiveProviderId();
-      if (activeId) {
-        const provider = getProviderById(activeId);
-        if (provider) {
-          writeEnvToClaudeSettings(getProviderEnv(provider));
-        }
+      const activeProvider = getActiveProvider();
+      if (activeProvider) {
+        writeEnvToClaudeSettings(getProviderEnv(activeProvider));
       } else {
         restoreClaudeSettings();
       }

@@ -11,18 +11,15 @@ import { Command } from 'commander';
 
 const {
   mockSetEnableOpenpowersProxy,
-  mockGetActiveProviderId,
-  mockGetProviderById,
+  mockGetActiveProvider,
 } = vi.hoisted(() => ({
   mockSetEnableOpenpowersProxy: vi.fn(),
-  mockGetActiveProviderId: vi.fn(() => null),
-  mockGetProviderById: vi.fn(),
+  mockGetActiveProvider: vi.fn(() => null),
 }));
 
 vi.mock('../server/providers-store.js', () => ({
   setEnableOpenpowersProxy: mockSetEnableOpenpowersProxy,
-  getActiveProviderId: mockGetActiveProviderId,
-  getProviderById: mockGetProviderById,
+  getActiveProvider: mockGetActiveProvider,
 }));
 
 const {
@@ -86,7 +83,7 @@ describe('src/commands/disable.ts', () => {
     }) as never);
 
     // Defaults for sync-related mocks
-    mockGetActiveProviderId.mockReturnValue(null);
+    mockGetActiveProvider.mockReturnValue(null);
     mockRestoreClaudeSettings.mockReturnValue(true);
 
     const mod = await import('./disable.js');
@@ -164,16 +161,14 @@ describe('src/commands/disable.ts', () => {
   describe('claude settings sync after disabling proxy', () => {
     describe('with active provider', () => {
       beforeEach(() => {
-        mockGetActiveProviderId.mockReturnValue('prov-1');
-        mockGetProviderById.mockReturnValue(sampleProvider);
+        mockGetActiveProvider.mockReturnValue(sampleProvider as any);
         mockGetProviderEnv.mockReturnValue(sampleProviderEnv);
       });
 
       it('should write provider env to Claude settings', () => {
         runDisable();
 
-        expect(mockGetActiveProviderId).toHaveBeenCalledTimes(1);
-        expect(mockGetProviderById).toHaveBeenCalledWith('prov-1');
+        expect(mockGetActiveProvider).toHaveBeenCalledTimes(1);
         expect(mockGetProviderEnv).toHaveBeenCalledWith(sampleProvider);
         expect(mockWriteEnvToClaudeSettings).toHaveBeenCalledWith(sampleProviderEnv);
       });
@@ -187,7 +182,7 @@ describe('src/commands/disable.ts', () => {
 
     describe('without active provider', () => {
       beforeEach(() => {
-        mockGetActiveProviderId.mockReturnValue(null);
+        mockGetActiveProvider.mockReturnValue(null);
       });
 
       it('should call restoreClaudeSettings', () => {

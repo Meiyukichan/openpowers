@@ -19,6 +19,7 @@ import {
   getNeverClaudeSettings,
   setNeverClaudeSettings,
   getProviderById,
+  getActiveProvider,
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
@@ -215,12 +216,9 @@ providersRouter.put('/proxy', (req, res) => {
       ensureFirstWriteBackup();
       writeEnvToClaudeSettings(getProxyEnv());
     } else {
-      const activeProviderId = getActiveProviderId();
-      if (activeProviderId) {
-        const provider = getProviderById(activeProviderId);
-        if (provider) {
-          writeEnvToClaudeSettings(getProviderEnv(provider));
-        }
+      const activeProvider = getActiveProvider();
+      if (activeProvider) {
+        writeEnvToClaudeSettings(getProviderEnv(activeProvider));
       } else {
         restoreClaudeSettings();
       }

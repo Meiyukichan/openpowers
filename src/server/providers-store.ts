@@ -104,38 +104,7 @@ const DEFAULT_STORE_DATA: StoreData = {
   activeProviderId: null,
   enableOpenpowersProxy: false,
   neverClaudeSettings: true,
-  providers: [
-    {
-      id: '00000000-0000-0000-0000-000000000001',
-      name: 'Anthropic',
-      notes: 'Official Anthropic API',
-      websiteUrl: 'https://www.anthropic.com',
-      apiKey: '',
-      baseUrl: 'https://api.anthropic.com',
-      icon: 'anthropic.svg',
-      iconColor: '#d97706',
-      defaultModel: '',
-      sonnetModel: '',
-      opusModel: '',
-      haikuModel: '',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000002',
-      name: 'OpenAI',
-      notes: 'OpenAI compatible API',
-      websiteUrl: 'https://openai.com',
-      apiKey: '',
-      baseUrl: 'https://api.openai.com',
-      icon: 'openai.svg',
-      iconColor: '#10a37f',
-      defaultModel: '',
-      sonnetModel: '',
-      opusModel: '',
-      haikuModel: '',
-      createdAt: new Date().toISOString(),
-    },
-  ],
+  providers: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -321,6 +290,17 @@ export function deleteProvider(id: string): boolean {
  */
 export function getActiveProviderId(): string | null {
   return readStoreData().activeProviderId;
+}
+
+/**
+ * Reads the currently active provider from the store.
+ * Returns null if no active provider is set.
+ * @returns The active provider object, or null if none is set
+ */
+export function getActiveProvider(): Provider | null {
+  const data = readStoreData();
+  if (data.activeProviderId === null) return null;
+  return data.providers.find((p) => p.id === data.activeProviderId) ?? null;
 }
 
 /**
