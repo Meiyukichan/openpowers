@@ -43,6 +43,7 @@ export async function isPortInUse(port: number): Promise<boolean> {
  * @param port - The port number whose occupying processes will be killed
  */
 export async function killPortProcess(port: number): Promise<void> {
+  logger.info(`Attempting to kill processes on port ${port}`);
   const platform = os.platform();
 
   if (platform === 'win32') {
@@ -50,6 +51,7 @@ export async function killPortProcess(port: number): Promise<void> {
   } else {
     await killPortProcessUnix(port);
   }
+  logger.info(`Finished killing processes on port ${port}`);
 }
 
 /** Default maximum wait time for port to become free (15 seconds). */
@@ -182,7 +184,8 @@ function parseWindowsNetstatOutput(output: string): string[] {
     const parts = trimmed.split(/\s+/);
     // Last column is the PID
     const pid = parts[parts.length - 1];
-    if (pid && /^\d+$/.test(pid)) {
+    // PID 0 is the System Idle Process and cannot be terminated
+    if (pid && /^\d+$/.test(pid) && pid !== '0') {
       pidSet.add(pid);
     }
   }

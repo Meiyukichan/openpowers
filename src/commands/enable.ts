@@ -12,17 +12,24 @@ import { isPortInUse } from '../utils/port-manager.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Enables the OpenPowers proxy: checks port availability, writes the proxy
- * configuration flag, starts the backend service, and verifies it is running.
- * On failure at any step, logs the error and exits with code 1.
+ * Enables the OpenPowers proxy: ensures the backend service is running first,
+ * then writes the proxy configuration flag.
+ * The proxy handler checks the flag per-request, so no restart is needed.
+ * On failure, logs the error and exits with code 1.
  */
 export async function runEnable(): Promise<void> {
-  // Step 1: reject if the backend service is already running (port in use)
-  if (await isPortInUse(UI_PORT)) {
-    const msg = 'Backend service is already running. Please stop it first before enabling the proxy.';
-    process.stderr.write(`${msg}\n`);
-    logger.error(msg);
-    process.exit(1);
+  // Step 1: ensure the backend service is running
+  if (!(await isPortInUse(UI_PORT))) {
+    // Service is not running — start it
+    startBackendService(UI_PORT);
+
+    // Verify the service started
+    if (!(await isPortInUse(UI_PORT))) {
+      const msg = 'Backend service did not start. Please check the logs for details.';
+      process.stderr.write(`${msg}\n`);
+      logger.error(msg);
+      process.exit(1);
+    }
   }
 
   // Step 2: write the proxy configuration flag
@@ -34,18 +41,6 @@ export async function runEnable(): Promise<void> {
     process.exit(1);
   }
 
-  // Step 3: start the backend service
-  startBackendService(UI_PORT);
-
-  // Step 4: verify the backend service is running
-  if (!(await isPortInUse(UI_PORT))) {
-    const msg = 'Backend service did not start. Please check the logs for details.';
-    process.stderr.write(`${msg}\n`);
-    logger.error(msg);
-    process.exit(1);
-  }
-
-  // Step 5: success
   process.stdout.write('OpenPowers proxy enabled\n');
 }
 

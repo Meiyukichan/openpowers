@@ -39,7 +39,6 @@ describe('src/commands/enable.ts', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // Reset mock implementations so mockResolvedValueOnce chains from previous tests don't leak
     mockIsPortInUse.mockReset();
     mockStartBackendService.mockReset();
     mockSetEnableOpenpowersProxy.mockReset();
@@ -49,11 +48,8 @@ describe('src/commands/enable.ts', () => {
       throw new Error(`process.exit called with code ${code}`);
     }) as never);
 
-    // Default mocks for the success path:
-    // isPortInUse initially false (port free), then true after startBackendService
-    mockIsPortInUse
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+    // Default: service already running
+    mockIsPortInUse.mockResolvedValue(true);
     mockStartBackendService.mockReturnValue('http://localhost:3939/openpowers/ui');
 
     const mod = await import('./enable.js');
@@ -80,119 +76,96 @@ describe('src/commands/enable.ts', () => {
   });
 
   describe('runEnable', () => {
-    it('should call setEnableOpenpowersProxy with true', async () => {
-      await runEnable();
-      expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
-      expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call startBackendService with UI_PORT when port is free', async () => {
-      await runEnable();
-      expect(mockStartBackendService).toHaveBeenCalledWith(3939);
-      expect(mockStartBackendService).toHaveBeenCalledTimes(1);
-    });
-
-    it('should check isPortInUse before and after starting service', async () => {
-      await runEnable();
-      expect(mockIsPortInUse).toHaveBeenCalledTimes(2);
-      expect(mockIsPortInUse).toHaveBeenCalledWith(3939);
-    });
-
-    it('should output a success message via process.stdout.write', async () => {
-      await runEnable();
-      expect(process.stdout.write).toHaveBeenCalledWith(
-        expect.stringContaining('enabled')
-      );
-    });
-
-    it('should call process.exit(1) when setEnableOpenpowersProxy throws', async () => {
-      mockSetEnableOpenpowersProxy.mockImplementationOnce(() => {
-        throw new Error('file system error');
+    describe('service already running', () => {
+      it('should call setEnableOpenpowersProxy with true', async () => {
+        await runEnable();
+        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
+        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledTimes(1);
       });
 
-      await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
-    });
-
-    it('should output error message when setEnableOpenpowersProxy throws', async () => {
-      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      mockSetEnableOpenpowersProxy.mockImplementationOnce(() => {
-        throw new Error('disk full');
+      it('should NOT call startBackendService', async () => {
+        await runEnable();
+        expect(mockStartBackendService).not.toHaveBeenCalled();
       });
 
-      try {
+      it('should output a success message', async () => {
         await runEnable();
-      } catch {
-        // expected
-      }
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          expect.stringContaining('enabled'),
+        );
+      });
 
-      expect(stderrSpy).toHaveBeenCalled();
-    });
-
-    it('should not use console.log', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log');
-
-      await runEnable();
-
-      expect(consoleLogSpy).not.toHaveBeenCalled();
-      consoleLogSpy.mockRestore();
-    });
-
-    // New test: port already in use before enable
-    it('should reject when the UI port is already in use', async () => {
-      // Override the default mock: port is in use from the start
-      mockIsPortInUse.mockReset();
-      mockIsPortInUse.mockResolvedValue(true);
-
-      await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
-
-      // setEnableOpenpowersProxy must NOT be called
-      expect(mockSetEnableOpenpowersProxy).not.toHaveBeenCalled();
-    });
-
-    it('should output error message when the UI port is already in use', async () => {
-      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      mockIsPortInUse.mockReset();
-      mockIsPortInUse.mockResolvedValue(true);
-
-      try {
+      it('should not use console.log', async () => {
+        const consoleLogSpy = vi.spyOn(console, 'log');
         await runEnable();
-      } catch {
-        // expected
-      }
-
-      expect(stderrSpy).toHaveBeenCalled();
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+        consoleLogSpy.mockRestore();
+      });
     });
 
-    // New test: service fails to start (port still not in use after startBackendService)
-    it('should exit with code 1 when backend service fails to start', async () => {
-      // Override: port is free initially, but still free after startBackendService
-      mockIsPortInUse.mockReset();
-      mockIsPortInUse
-        .mockResolvedValueOnce(false)  // before start: free
-        .mockResolvedValueOnce(false); // after start: still free (service didn't start)
+    describe('service not running, starts successfully', () => {
+      beforeEach(() => {
+        mockIsPortInUse.mockReset();
+        mockIsPortInUse
+          .mockResolvedValueOnce(false)  // service not running
+          .mockResolvedValueOnce(true);  // started successfully
+      });
 
-      await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
-
-      // setEnableOpenpowersProxy WAS called (it runs before startBackendService)
-      expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
-      // startBackendService WAS called
-      expect(mockStartBackendService).toHaveBeenCalledWith(3939);
-    });
-
-    it('should output error message when backend service fails to start', async () => {
-      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      mockIsPortInUse.mockReset();
-      mockIsPortInUse
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(false);
-
-      try {
+      it('should call startBackendService then setEnableOpenpowersProxy', async () => {
         await runEnable();
-      } catch {
-        // expected
-      }
+        expect(mockStartBackendService).toHaveBeenCalledWith(3939);
+        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
+      });
 
-      expect(stderrSpy).toHaveBeenCalled();
+      it('should check isPortInUse twice', async () => {
+        await runEnable();
+        expect(mockIsPortInUse).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('service not running, fails to start', () => {
+      beforeEach(() => {
+        mockIsPortInUse.mockReset();
+        mockIsPortInUse.mockResolvedValue(false);  // never starts
+      });
+
+      it('should exit with code 1', async () => {
+        await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
+      });
+
+      it('should NOT call setEnableOpenpowersProxy', async () => {
+        try { await runEnable(); } catch { /* expected */ }
+        expect(mockSetEnableOpenpowersProxy).not.toHaveBeenCalled();
+      });
+
+      it('should call startBackendService', async () => {
+        try { await runEnable(); } catch { /* expected */ }
+        expect(mockStartBackendService).toHaveBeenCalledWith(3939);
+      });
+
+      it('should output error to stderr', async () => {
+        const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try { await runEnable(); } catch { /* expected */ }
+        expect(stderrSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('setEnableOpenpowersProxy throws', () => {
+      beforeEach(() => {
+        mockSetEnableOpenpowersProxy.mockImplementation(() => {
+          throw new Error('disk full');
+        });
+      });
+
+      it('should exit with code 1', async () => {
+        await expect(runEnable()).rejects.toThrow('process.exit called with code 1');
+      });
+
+      it('should output error to stderr', async () => {
+        const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try { await runEnable(); } catch { /* expected */ }
+        expect(stderrSpy).toHaveBeenCalled();
+      });
     });
   });
 });

@@ -11,7 +11,6 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { providersRouter } from './routes/providers.js';
 import { createProxyRouter } from './anthropic/router.js';
-import { getEnableOpenpowersProxy } from './providers-store.js';
 
 // Resolve dist/client/ directory relative to the compiled output location.
 // At runtime: dist/server/index.js -> ../client -> dist/client/
@@ -52,10 +51,8 @@ export function createApp(options?: { clientDir?: string }): express.Application
     });
   }
 
-  // Proxy routes — mounted at root for /v1/* and other Anthropic API paths
-  if (getEnableOpenpowersProxy()) {
-    app.use(createProxyRouter());
-  }
+  // Proxy routes — always mounted; enabled/disabled checked per-request in the handler
+  app.use(createProxyRouter());
 
   return app;
 }

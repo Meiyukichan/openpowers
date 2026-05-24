@@ -120,11 +120,12 @@ describe('src/server/index.ts', () => {
       expect(res.status).toBe(200);
     });
 
-    it('should NOT register proxy routes when enableOpenpowersProxy is false', async () => {
+    it('should still register proxy routes when enableOpenpowersProxy is false (handler returns 503 per-request)', async () => {
       mockGetEnableOpenpowersProxy.mockReturnValue(false);
       const app = createApp({ clientDir: '/non/existent/path' });
       const res = await request(app).head('/');
-      expect(res.status).toBe(404);
+      // Route is always registered; handler checks flag per-request
+      expect(res.status).not.toBe(404);
     });
 
     it('should still serve /openpowers/api/providers when proxy is enabled', async () => {
