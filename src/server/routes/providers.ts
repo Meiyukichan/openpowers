@@ -16,10 +16,20 @@ import {
   clearActiveProviderId,
   getEnableOpenpowersProxy,
   setEnableOpenpowersProxy,
+  getNeverClaudeSettings,
+  setNeverClaudeSettings,
+  getProviderById,
   ProviderInputSchema,
   ProviderUpdateSchema,
 } from '../providers-store.js';
 import { readProviderTemplates, addProviderTemplate, deleteProviderTemplate } from '../../utils/provider-templates.js';
+import {
+  getProxyEnv,
+  getProviderEnv,
+  writeEnvToClaudeSettings,
+  backupClaudeSettings,
+  restoreClaudeSettings,
+} from '../claude-settings.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -54,6 +64,17 @@ function formatZodError(error: { issues: Array<{ path: readonly (string | number
 const SetActiveProviderSchema = z.object({
   providerId: z.string(),
 });
+
+/**
+ * If neverClaudeSettings is true, backs up Claude settings and disables
+ * the guard so subsequent writes skip backup.
+ */
+function ensureFirstWriteBackup(): void {
+  if (getNeverClaudeSettings()) {
+    backupClaudeSettings();
+    setNeverClaudeSettings(false);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -104,8 +125,9 @@ providersRouter.get('/active', (_req, res) => {
 
 /**
  * PUT /openpowers/api/providers/active
- * Sets the specified provider as the active provider. Validates the provider ID
- * exists before persisting the active state.
+ * Sets the specified provider as the active provider, then syncs Claude
+ * settings. When proxy is off, writes the provider's env; when proxy is on,
+ * writes proxy env. On first write, backs up existing settings.
  */
 providersRouter.put('/active', (req, res) => {
   const parsed = SetActiveProviderSchema.safeParse(req.body);
@@ -115,6 +137,15 @@ providersRouter.put('/active', (req, res) => {
   }
   try {
     setActiveProviderId(parsed.data.providerId);
+    ensureFirstWriteBackup();
+    if (getEnableOpenpowersProxy()) {
+      writeEnvToClaudeSettings(getProxyEnv());
+    } else {
+      const provider = getProviderById(parsed.data.providerId);
+      if (provider) {
+        writeEnvToClaudeSettings(getProviderEnv(provider));
+      }
+    }
     res.status(200).json({ activeProviderId: parsed.data.providerId });
   } catch {
     res.status(404).json({ error: `Provider not found: ${parsed.data.providerId}` });
@@ -161,7 +192,9 @@ const SetProxySchema = z.object({
 
 /**
  * PUT /openpowers/api/providers/proxy
- * Sets the enableOpenpowersProxy flag.
+ * Sets the enableOpenpowersProxy flag and syncs Claude settings.
+ * Enabling writes proxy env; disabling writes active provider env or
+ * restores settings from backup if no active provider is set.
  */
 providersRouter.put('/proxy', (req, res) => {
   const parsed = SetProxySchema.safeParse(req.body);
@@ -170,6 +203,20 @@ providersRouter.put('/proxy', (req, res) => {
     return;
   }
   setEnableOpenpowersProxy(parsed.data.enableOpenpowersProxy);
+  if (parsed.data.enableOpenpowersProxy) {
+    ensureFirstWriteBackup();
+    writeEnvToClaudeSettings(getProxyEnv());
+  } else {
+    const activeProviderId = getActiveProviderId();
+    if (activeProviderId) {
+      const provider = getProviderById(activeProviderId);
+      if (provider) {
+        writeEnvToClaudeSettings(getProviderEnv(provider));
+      }
+    } else {
+      restoreClaudeSettings();
+    }
+  }
   res.status(200).json({ enableOpenpowersProxy: parsed.data.enableOpenpowersProxy });
 });
 
@@ -229,9 +276,12 @@ providersRouter.delete('/:id', (req, res) => {
 
 /**
  * POST /openpowers/api/providers/reset
- * Clears the active provider (deactivates all providers).
+ * Restores Claude settings from backup (if available), then clears the
+ * active provider. If no backup exists, a warning is logged and the
+ * active provider is still cleared.
  */
 providersRouter.post('/reset', (_req, res) => {
+  restoreClaudeSettings();
   clearActiveProviderId();
   res.status(200).json({ activeProviderId: null });
 });

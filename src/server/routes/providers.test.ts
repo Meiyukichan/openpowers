@@ -18,6 +18,12 @@ const {
   ensureProvidersFileMock,
   getActiveProviderIdMock,
   setActiveProviderIdMock,
+  getNeverClaudeSettingsMock,
+  setNeverClaudeSettingsMock,
+  getProviderByIdMock,
+  getEnableOpenpowersProxyMock,
+  setEnableOpenpowersProxyMock,
+  clearActiveProviderIdMock,
 } = vi.hoisted(() => ({
   loadProvidersMock: vi.fn(),
   createProviderMock: vi.fn(),
@@ -26,6 +32,12 @@ const {
   ensureProvidersFileMock: vi.fn(),
   getActiveProviderIdMock: vi.fn(),
   setActiveProviderIdMock: vi.fn(),
+  getNeverClaudeSettingsMock: vi.fn(),
+  setNeverClaudeSettingsMock: vi.fn(),
+  getProviderByIdMock: vi.fn(),
+  getEnableOpenpowersProxyMock: vi.fn(),
+  setEnableOpenpowersProxyMock: vi.fn(),
+  clearActiveProviderIdMock: vi.fn(),
 }));
 
 const { loggerMock } = vi.hoisted(() => ({
@@ -37,8 +49,30 @@ const { loggerMock } = vi.hoisted(() => ({
   },
 }));
 
+const {
+  getProxyEnvMock,
+  getProviderEnvMock,
+  writeEnvToClaudeSettingsMock,
+  backupClaudeSettingsMock,
+  restoreClaudeSettingsMock,
+} = vi.hoisted(() => ({
+  getProxyEnvMock: vi.fn(),
+  getProviderEnvMock: vi.fn(),
+  writeEnvToClaudeSettingsMock: vi.fn(),
+  backupClaudeSettingsMock: vi.fn(),
+  restoreClaudeSettingsMock: vi.fn(),
+}));
+
 vi.mock('../../utils/logger.js', () => ({
   logger: loggerMock,
+}));
+
+vi.mock('../claude-settings.js', () => ({
+  getProxyEnv: getProxyEnvMock,
+  getProviderEnv: getProviderEnvMock,
+  writeEnvToClaudeSettings: writeEnvToClaudeSettingsMock,
+  backupClaudeSettings: backupClaudeSettingsMock,
+  restoreClaudeSettings: restoreClaudeSettingsMock,
 }));
 
 vi.mock('../providers-store.js', async (importOriginal) => {
@@ -52,6 +86,12 @@ vi.mock('../providers-store.js', async (importOriginal) => {
     ensureProvidersFile: ensureProvidersFileMock,
     getActiveProviderId: getActiveProviderIdMock,
     setActiveProviderId: setActiveProviderIdMock,
+    getNeverClaudeSettings: getNeverClaudeSettingsMock,
+    setNeverClaudeSettings: setNeverClaudeSettingsMock,
+    getProviderById: getProviderByIdMock,
+    getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
+    setEnableOpenpowersProxy: setEnableOpenpowersProxyMock,
+    clearActiveProviderId: clearActiveProviderIdMock,
   };
 });
 
@@ -82,6 +122,20 @@ const sampleProvider = {
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
+const sampleProviderEnv = {
+  ANTHROPIC_BASE_URL: '',
+  ANTHROPIC_AUTH_TOKEN: 'sk-test-key',
+  ANTHROPIC_MODEL: 'test-default-model',
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: 'test-haiku-model',
+  ANTHROPIC_DEFAULT_SONNET_MODEL: 'test-sonnet-model',
+  ANTHROPIC_DEFAULT_OPUS_MODEL: 'test-opus-model',
+};
+
+const sampleProxyEnv = {
+  ANTHROPIC_BASE_URL: 'http://localhost:3939',
+  ANTHROPIC_AUTH_TOKEN: 'sk-1234',
+};
+
 function createApp() {
   const app = express.default();
   app.use(express.default.json());
@@ -104,6 +158,13 @@ describe('Provider Routes', () => {
     vi.clearAllMocks();
     loadProvidersMock.mockReturnValue([sampleProvider]);
     readProviderTemplatesMock.mockReturnValue([]);
+    getNeverClaudeSettingsMock.mockReturnValue(true);
+    getEnableOpenpowersProxyMock.mockReturnValue(false);
+    getActiveProviderIdMock.mockReturnValue(null);
+    getProviderByIdMock.mockReturnValue(sampleProvider);
+    getProviderEnvMock.mockReturnValue(sampleProviderEnv);
+    getProxyEnvMock.mockReturnValue(sampleProxyEnv);
+    restoreClaudeSettingsMock.mockReturnValue(true);
   });
 
   // ---- GET /openpowers/api/providers ----
@@ -398,6 +459,163 @@ describe('Provider Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
+    });
+
+    it('should write provider env when proxy is off and neverClaudeSettings is true (first write)', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+      getNeverClaudeSettingsMock.mockReturnValue(true);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(200);
+      expect(backupClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(setNeverClaudeSettingsMock).toHaveBeenCalledWith(false);
+      expect(getProviderByIdMock).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
+      expect(getProviderEnvMock).toHaveBeenCalledWith(sampleProvider);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
+    });
+
+    it('should write provider env when proxy is off and neverClaudeSettings is false (subsequent write)', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+      getNeverClaudeSettingsMock.mockReturnValue(false);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(200);
+      expect(backupClaudeSettingsMock).not.toHaveBeenCalled();
+      expect(setNeverClaudeSettingsMock).not.toHaveBeenCalled();
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
+    });
+
+    it('should write proxy env when proxy is on', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+      getNeverClaudeSettingsMock.mockReturnValue(false);
+      getEnableOpenpowersProxyMock.mockReturnValue(true);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(200);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
+    });
+
+    it('should backup and write proxy env on first write when proxy is on', async () => {
+      setActiveProviderIdMock.mockReturnValue(undefined);
+      getNeverClaudeSettingsMock.mockReturnValue(true);
+      getEnableOpenpowersProxyMock.mockReturnValue(true);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/active')
+        .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
+
+      expect(res.status).toBe(200);
+      expect(backupClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(setNeverClaudeSettingsMock).toHaveBeenCalledWith(false);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
+    });
+  });
+
+  // ---- PUT /openpowers/api/providers/proxy ----
+
+  describe('PUT /openpowers/api/providers/proxy', () => {
+    it('should enable proxy, backup on first write, and write proxy env', async () => {
+      getNeverClaudeSettingsMock.mockReturnValue(true);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({ enableOpenpowersProxy: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ enableOpenpowersProxy: true });
+      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(true);
+      expect(backupClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(setNeverClaudeSettingsMock).toHaveBeenCalledWith(false);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
+    });
+
+    it('should enable proxy without backup when neverClaudeSettings is false', async () => {
+      getNeverClaudeSettingsMock.mockReturnValue(false);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({ enableOpenpowersProxy: true });
+
+      expect(res.status).toBe(200);
+      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(true);
+      expect(backupClaudeSettingsMock).not.toHaveBeenCalled();
+      expect(setNeverClaudeSettingsMock).not.toHaveBeenCalled();
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
+    });
+
+    it('should disable proxy and write provider env when active provider exists', async () => {
+      getActiveProviderIdMock.mockReturnValue('550e8400-e29b-41d4-a716-446655440000');
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({ enableOpenpowersProxy: false });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ enableOpenpowersProxy: false });
+      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(false);
+      expect(getProviderByIdMock).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
+      expect(getProviderEnvMock).toHaveBeenCalledWith(sampleProvider);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
+    });
+
+    it('should disable proxy and restore backup when no active provider exists', async () => {
+      getActiveProviderIdMock.mockReturnValue(null);
+      restoreClaudeSettingsMock.mockReturnValue(true);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({ enableOpenpowersProxy: false });
+
+      expect(res.status).toBe(200);
+      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(false);
+      expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(writeEnvToClaudeSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when enableOpenpowersProxy is missing', async () => {
+      const res = await request(app)
+        .put('/openpowers/api/providers/proxy')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+  });
+
+  // ---- POST /openpowers/api/providers/reset ----
+
+  describe('POST /openpowers/api/providers/reset', () => {
+    it('should restore backup and clear active provider', async () => {
+      restoreClaudeSettingsMock.mockReturnValue(true);
+
+      const res = await request(app).post('/openpowers/api/providers/reset');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ activeProviderId: null });
+      expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(clearActiveProviderIdMock).toHaveBeenCalledOnce();
+    });
+
+    it('should clear active provider even when backup is missing', async () => {
+      restoreClaudeSettingsMock.mockReturnValue(false);
+
+      const res = await request(app).post('/openpowers/api/providers/reset');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ activeProviderId: null });
+      expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
+      expect(clearActiveProviderIdMock).toHaveBeenCalledOnce();
     });
   });
 
