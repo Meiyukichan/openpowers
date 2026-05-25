@@ -6,7 +6,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}\"/scripts/openpowers_hooks.py"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-agent"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --after-agent"
           }
         ]
       }
