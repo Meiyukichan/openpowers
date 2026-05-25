@@ -285,13 +285,20 @@ providersRouter.delete('/templates/:name', (req, res) => {
 
 /**
  * DELETE /openpowers/api/providers/:id
- * Removes a provider from the configuration.
+ * Removes a provider from the configuration. If the deleted provider was
+ * the active provider and the proxy was disabled, restores the original
+ * Claude settings from backup.
  */
 providersRouter.delete('/:id', (req, res) => {
+  const wasActive = getActiveProviderId() === req.params.id;
+  const proxyDisabled = !getEnableOpenpowersProxy();
   const found = deleteProvider(req.params.id);
   if (!found) {
     res.status(404).json({ error: `Provider not found: ${req.params.id}` });
     return;
+  }
+  if (wasActive && proxyDisabled) {
+    restoreClaudeSettings();
   }
   res.status(204).send();
 });

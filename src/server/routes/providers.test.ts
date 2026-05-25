@@ -441,6 +441,54 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
     });
+
+    it('should restore Claude settings when deleting active provider with proxy disabled', async () => {
+      const providerId = '550e8400-e29b-41d4-a716-446655440000';
+      getActiveProviderIdMock.mockReturnValue(providerId);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      deleteProviderMock.mockReturnValue(true);
+
+      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+
+      expect(res.status).toBe(204);
+      expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
+    });
+
+    it('should not restore Claude settings when deleting active provider with proxy enabled', async () => {
+      const providerId = '550e8400-e29b-41d4-a716-446655440000';
+      getActiveProviderIdMock.mockReturnValue(providerId);
+      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      deleteProviderMock.mockReturnValue(true);
+
+      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+
+      expect(res.status).toBe(204);
+      expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it('should not restore Claude settings when deleting an inactive provider', async () => {
+      const providerId = '550e8400-e29b-41d4-a716-446655440000';
+      getActiveProviderIdMock.mockReturnValue('different-provider-id');
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      deleteProviderMock.mockReturnValue(true);
+
+      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+
+      expect(res.status).toBe(204);
+      expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 without side effects when deleting a non-existent provider', async () => {
+      getActiveProviderIdMock.mockReturnValue('550e8400-e29b-41d4-a716-446655440000');
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      deleteProviderMock.mockReturnValue(false);
+
+      const res = await request(app).delete('/openpowers/api/providers/non-existent-id');
+
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('error');
+      expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
+    });
   });
 
   // ---- GET /openpowers/api/providers/active ----
