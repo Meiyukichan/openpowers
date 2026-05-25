@@ -1,14 +1,1 @@
-{
-  "sessionId": "ccxzdfsdfsd-d87b-4c55-a972-904d424ee391",
-  "cwd": "D:/project-code/llm/openpowers",
-  "currentProvider": "default",
-  "switchProviders": {
-    "workflow": "default",
-    "explore": "MiniMax-M2.7",
-    "propose": "glm-5.1",
-    "plan": "deepseek-v4-pro",
-    "review": "deepseek-v4-pro",
-    "coding": "MiniMax-M2.7",
-    "finalize": "deepseek-v4-pro"
-  }
-}
+
