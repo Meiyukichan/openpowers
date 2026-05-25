@@ -28,6 +28,10 @@ const { mockLogger } = vi.hoisted(() => ({
   },
 }));
 
+const { mockRunUi } = vi.hoisted(() => ({
+  mockRunUi: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('ora', () => ({
   default: mockOra,
 }));
@@ -44,10 +48,14 @@ vi.mock('../utils/logger.js', () => ({
   logger: mockLogger,
 }));
 
+vi.mock('../commands/ui.js', () => ({
+  runUi: mockRunUi,
+}));
+
 import { execSync } from 'child_process';
 
 // Resolve the function types
-type RunInitFn = () => void;
+type RunInitFn = () => Promise<void>;
 type RegisterInitCmdFn = (program: Command) => void;
 
 describe('src/commands/init.ts', () => {
@@ -81,19 +89,31 @@ describe('src/commands/init.ts', () => {
       const subcommands = program.commands.map((cmd) => cmd.name());
       expect(subcommands).toContain('init');
     });
+
+    it('should use an async action handler that awaits runInit', async () => {
+      // Register the command and verify action handler can be invoked
+      // Commander v12+ supports .action() as a getter (no args)
+      const program = new Command();
+      registerInitCommand(program);
+
+      const initCmd = program.commands.find((cmd) => cmd.name() === 'init');
+      expect(initCmd).toBeDefined();
+
+      // The action handler should be a function
+      const handler = (initCmd as Record<string, unknown>)._actionHandler;
+      expect(typeof handler).toBe('function');
+    });
   });
 
   describe('runInit', () => {
     describe('Step 1: claude --version check', () => {
-      it('should proceed to next step when claude is installed', () => {
+      it('should proceed to next step when claude is installed', async () => {
         vi.mocked(execSync).mockReturnValueOnce(Buffer.from('Claude v1.0'));
 
         // Will fail on later steps that aren't mocked, but step 1 should proceed
-        try {
-          runInit();
-        } catch {
+        await runInit().catch(() => {
           // Expected because later steps aren't mocked
-        }
+        });
 
         expect(execSync).toHaveBeenCalledWith(
           'claude --version',
@@ -102,18 +122,18 @@ describe('src/commands/init.ts', () => {
         expect(mockSpinner.succeed).toHaveBeenCalled();
       });
 
-      it('should exit with code 1 when claude is not installed', () => {
+      it('should exit with code 1 when claude is not installed', async () => {
         vi.mocked(execSync).mockImplementationOnce(() => {
           throw new Error('command not found: claude');
         });
 
-        expect(() => runInit()).toThrow('process.exit called');
+        await expect(runInit()).rejects.toThrow('process.exit called');
 
         expect(mockSpinner.fail).toHaveBeenCalled();
         expect(mockLogger.error).toHaveBeenCalled();
       });
 
-      it('should show spinner with descriptive text for claude check', () => {
+      it('should show spinner with descriptive text for claude check', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''))
@@ -121,7 +141,7 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''));
 
-        runInit();
+        await runInit();
 
         // First call to ora should have the claude check text
         expect(mockOra).toHaveBeenCalledWith(expect.stringContaining('claude'));
@@ -129,7 +149,7 @@ describe('src/commands/init.ts', () => {
     });
 
     describe('Step 2: uninstall old plugin (error-tolerant)', () => {
-      it('should continue when uninstall plugin fails', () => {
+      it('should continue when uninstall plugin fails', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude --version
           .mockImplementationOnce(() => { throw new Error('not installed'); }) // uninstall fails
@@ -137,7 +157,7 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockReturnValueOnce(Buffer.from('')); // install plugin
 
-        expect(() => runInit()).not.toThrow();
+        await expect(runInit()).resolves.toBeUndefined();
 
         // Should have called succeed (silently ignores the error)
         expect(mockSpinner.succeed).toHaveBeenCalled();
@@ -147,7 +167,7 @@ describe('src/commands/init.ts', () => {
     });
 
     describe('Step 3: remove old marketplace (error-tolerant)', () => {
-      it('should continue when remove marketplace fails', () => {
+      it('should continue when remove marketplace fails', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
@@ -155,7 +175,7 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockReturnValueOnce(Buffer.from('')); // install plugin
 
-        expect(() => runInit()).not.toThrow();
+        await expect(runInit()).resolves.toBeUndefined();
 
         expect(mockSpinner.fail).not.toHaveBeenCalled();
         expect(mockLogger.warn).toHaveBeenCalled();
@@ -163,18 +183,16 @@ describe('src/commands/init.ts', () => {
     });
 
     describe('Step 4: add marketplace as marketplace', () => {
-      it('should add marketplace with path containing marketplace', () => {
+      it('should add marketplace with path containing marketplace', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
           .mockReturnValueOnce(Buffer.from('')) // remove
           .mockReturnValueOnce(Buffer.from('')); // add marketplace
 
-        try {
-          runInit();
-        } catch {
+        await runInit().catch(() => {
           // may throw for step 5
-        }
+        });
 
         const addCall = vi.mocked(execSync).mock.calls.find(
           (call) => typeof call[0] === 'string' && (call[0] as string).includes('marketplace add')
@@ -184,21 +202,21 @@ describe('src/commands/init.ts', () => {
         expect(addCall![0]).toMatch(/marketplace/);
       });
 
-      it('should exit with code 1 when marketplace add fails', () => {
+      it('should exit with code 1 when marketplace add fails', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
           .mockReturnValueOnce(Buffer.from('')) // remove
           .mockImplementationOnce(() => { throw new Error('add failed'); }); // add fails
 
-        expect(() => runInit()).toThrow('process.exit called');
+        await expect(runInit()).rejects.toThrow('process.exit called');
         expect(mockSpinner.fail).toHaveBeenCalled();
         expect(mockLogger.error).toHaveBeenCalled();
       });
     });
 
     describe('Step 5: install openpowers plugin', () => {
-      it('should show completion all succeed when plugin installs successfully', () => {
+      it('should show completion all succeed when plugin installs successfully', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
@@ -206,12 +224,12 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockReturnValueOnce(Buffer.from('')); // install plugin
 
-        runInit();
+        await runInit();
 
         expect(mockSpinner.succeed).toHaveBeenCalledTimes(5);
       });
 
-      it('should exit with code 1 when plugin install fails', () => {
+      it('should exit with code 1 when plugin install fails', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
           .mockReturnValueOnce(Buffer.from('')) // uninstall
@@ -219,14 +237,14 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockImplementationOnce(() => { throw new Error('install failed'); }); // install fails
 
-        expect(() => runInit()).toThrow('process.exit called');
+        await expect(runInit()).rejects.toThrow('process.exit called');
         expect(mockSpinner.fail).toHaveBeenCalled();
         expect(mockLogger.error).toHaveBeenCalled();
       });
     });
 
     describe('Spinner progress', () => {
-      it('should create a spinner for each of the 5 steps', () => {
+      it('should create a spinner for each of the 5 steps', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''))
@@ -234,13 +252,13 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''));
 
-        runInit();
+        await runInit();
 
         // ora should have been called 5 times (once per step)
         expect(mockOra).toHaveBeenCalledTimes(5);
       });
 
-      it('should show success indicator for each step on full success', () => {
+      it('should show success indicator for each step on full success', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''))
@@ -248,29 +266,27 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''));
 
-        runInit();
+        await runInit();
 
         expect(mockSpinner.succeed).toHaveBeenCalledTimes(5);
         expect(mockSpinner.fail).not.toHaveBeenCalled();
       });
 
-      it('should show failure indicator for failed non-tolerant steps', () => {
+      it('should show failure indicator for failed non-tolerant steps', async () => {
         vi.mocked(execSync).mockImplementationOnce(() => {
           throw new Error('command not found');
         });
 
-        try {
-          runInit();
-        } catch {
+        await runInit().catch(() => {
           // expected
-        }
+        });
 
         expect(mockSpinner.fail).toHaveBeenCalled();
       });
     });
 
     describe('execSync cwd option', () => {
-      it('should pass cwd parameter to every execSync call', () => {
+      it('should pass cwd parameter to every execSync call', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''))
@@ -278,7 +294,7 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''));
 
-        runInit();
+        await runInit();
 
         const calls = vi.mocked(execSync).mock.calls;
         // All 5 steps call execSync once each
@@ -290,7 +306,7 @@ describe('src/commands/init.ts', () => {
     });
 
     describe('Logger usage', () => {
-      it('should not use console.log', () => {
+      it('should not use console.log', async () => {
         const consoleLogSpy = vi.spyOn(console, 'log');
 
         vi.mocked(execSync)
@@ -300,7 +316,7 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from(''))
           .mockReturnValueOnce(Buffer.from(''));
 
-        runInit();
+        await runInit();
 
         expect(consoleLogSpy).not.toHaveBeenCalled();
         consoleLogSpy.mockRestore();
@@ -310,7 +326,7 @@ describe('src/commands/init.ts', () => {
     describe('Post-init workflow reminder', () => {
       const reminderMessage = 'Next steps: Open Claude Code and run /openpowers:workflow to start';
 
-      it('should print workflow reminder via process.stdout.write on successful init', () => {
+      it('should print UI starting message via process.stdout.write on successful init', async () => {
         const writeSpy = vi.spyOn(process.stdout, 'write');
 
         vi.mocked(execSync)
@@ -320,23 +336,21 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockReturnValueOnce(Buffer.from('')); // install plugin
 
-        runInit();
+        await runInit();
 
-        expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining(reminderMessage));
+        expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('OpenPowers UI is starting'));
       });
 
-      it('should NOT print workflow reminder when step 1 (claude check) fails', () => {
+      it('should NOT print workflow reminder when step 1 (claude check) fails', async () => {
         const writeSpy = vi.spyOn(process.stdout, 'write');
 
         vi.mocked(execSync).mockImplementationOnce(() => {
           throw new Error('command not found: claude');
         });
 
-        try {
-          runInit();
-        } catch {
+        await runInit().catch(() => {
           // expected process.exit throw
-        }
+        });
 
         // writeSpy might have been called with spinner output, but NOT with the reminder
         const reminderCalls = vi.mocked(writeSpy).mock.calls.filter(
@@ -345,7 +359,7 @@ describe('src/commands/init.ts', () => {
         expect(reminderCalls).toHaveLength(0);
       });
 
-      it('should NOT print workflow reminder when step 5 (plugin install) fails', () => {
+      it('should NOT print workflow reminder when step 5 (plugin install) fails', async () => {
         const writeSpy = vi.spyOn(process.stdout, 'write');
 
         vi.mocked(execSync)
@@ -355,16 +369,103 @@ describe('src/commands/init.ts', () => {
           .mockReturnValueOnce(Buffer.from('')) // add marketplace
           .mockImplementationOnce(() => { throw new Error('install failed'); }); // install fails
 
-        try {
-          runInit();
-        } catch {
+        await runInit().catch(() => {
           // expected process.exit throw
-        }
+        });
 
         const reminderCalls = vi.mocked(writeSpy).mock.calls.filter(
           (call) => typeof call[0] === 'string' && (call[0] as string).includes(reminderMessage)
         );
         expect(reminderCalls).toHaveLength(0);
+      });
+    });
+
+    describe('Async behavior', () => {
+      it('should return a Promise', () => {
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''))
+          .mockReturnValueOnce(Buffer.from(''));
+
+        const result = runInit();
+        expect(result).toBeInstanceOf(Promise);
+      });
+
+      it('should call runUi with { restart: true } after successful plugin install', async () => {
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockReturnValueOnce(Buffer.from('')); // install plugin
+
+        await runInit();
+
+        expect(mockRunUi).toHaveBeenCalledWith({ restart: true });
+      });
+
+      it('should NOT call runUi when step 5 (plugin install) fails', async () => {
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockImplementationOnce(() => { throw new Error('install failed'); }); // install fails
+
+        try {
+          await runInit();
+        } catch {
+          // expected process.exit throw
+        }
+
+        expect(mockRunUi).not.toHaveBeenCalled();
+      });
+
+      it('should log error but not exit when runUi throws after successful init', async () => {
+        mockRunUi.mockRejectedValueOnce(new Error('UI start failed'));
+
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockReturnValueOnce(Buffer.from('')); // install plugin
+
+        // should not throw (no process.exit)
+        await runInit();
+
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining('UI start failed')
+        );
+      });
+
+      it('should print UI auto-start completion message on successful init', async () => {
+        const writeSpy = vi.spyOn(process.stdout, 'write');
+
+        vi.mocked(execSync)
+          .mockReturnValueOnce(Buffer.from('')) // claude
+          .mockReturnValueOnce(Buffer.from('')) // uninstall
+          .mockReturnValueOnce(Buffer.from('')) // remove
+          .mockReturnValueOnce(Buffer.from('')) // add marketplace
+          .mockReturnValueOnce(Buffer.from('')); // install plugin
+
+        await runInit();
+
+        const writeCalls = vi.mocked(writeSpy).mock.calls
+          .filter((call) => typeof call[0] === 'string')
+          .map((call) => call[0] as string);
+
+        const hasUiMessage = writeCalls.some(
+          (msg) => msg.includes('OpenPowers UI')
+        );
+        const hasOldReminder = writeCalls.some(
+          (msg) => msg.includes('Next steps: Open Claude Code')
+        );
+
+        expect(hasUiMessage).toBe(true);
+        expect(hasOldReminder).toBe(false);
       });
     });
   });

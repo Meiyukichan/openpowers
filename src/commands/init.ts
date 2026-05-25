@@ -12,9 +12,10 @@ import { fileURLToPath } from 'url';
 import ora from 'ora';
 import chalk from 'chalk';
 import { logger } from '../utils/logger.js';
+import { runUi } from './ui.js';
 
 /**
- * Runs the five-step initialization flow for openpowers.
+ * Runs the five-step initialization flow for openpowers and auto-starts the UI.
  *
  * Steps:
  * 1. Check claude --version (fatal on failure)
@@ -22,11 +23,15 @@ import { logger } from '../utils/logger.js';
  * 3. Remove old marketplace (error-tolerant)
  * 4. Add marketplace as marketplace (fatal on failure)
  * 5. Install openpowers plugin (fatal on failure)
+ * 6. Auto-start the UI server after successful plugin installation
  *
  * Each step displays an ora spinner with chalk status indicators.
  * All operations are logged via the shared logger.
+ *
+ * If the UI auto-start fails, the error is logged but the initialization
+ * is considered successful (plugin installation is not rolled back).
  */
-export function runInit(): void {
+export async function runInit(): Promise<void> {
   // Step 1: Check claude --version
   const step1 = ora('Checking claude installation...').start();
   try {
@@ -95,7 +100,15 @@ export function runInit(): void {
     });
     step5.succeed(chalk.green('OpenPowers initialized successfully!'));
     logger.info('Plugin installed successfully');
-    process.stdout.write('Next steps: Open Claude Code and run /openpowers:workflow to start\n');
+    process.stdout.write('OpenPowers UI is starting...\n');
+
+    // Auto-start UI after successful plugin installation
+    try {
+      await runUi({ restart: true });
+    } catch (err) {
+      logger.error(`UI auto-start failed after init: ${err instanceof Error ? err.message : String(err)}`);
+      process.stdout.write(`OpenPowers UI failed to start: ${err instanceof Error ? err.message : String(err)}\n`);
+    }
   } catch (err) {
     step5.fail(chalk.red('Failed to install openpowers plugin'));
     logger.error(`Plugin install failed: ${err}`);
@@ -111,7 +124,13 @@ export function registerInitCommand(program: Command): void {
   program
     .command('init')
     .description('Initialize openpowers in the current project')
-    .action(() => {
-      runInit();
+    .action(async () => {
+      try {
+        await runInit();
+      } catch (err) {
+        logger.error(`Init command failed: ${err instanceof Error ? err.message : String(err)}`);
+        process.stdout.write(`Init failed: ${err instanceof Error ? err.message : String(err)}\n`);
+        process.exitCode = 1;
+      }
     });
 }
