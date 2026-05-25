@@ -371,6 +371,52 @@ describe('Provider Routes', () => {
       expect(res.body).toHaveProperty('error');
       expect(res.body).toHaveProperty('details');
     });
+
+    it('should sync Claude settings when editing active provider with proxy disabled', async () => {
+      getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      const updated = { ...sampleProvider, name: 'Updated' };
+      updateProviderMock.mockReturnValue(updated);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .send({ name: 'Updated' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(updated);
+      expect(getProviderEnvMock).toHaveBeenCalledWith(updated);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
+    });
+
+    it('should not sync Claude settings when editing active provider with proxy enabled', async () => {
+      getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
+      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      const updated = { ...sampleProvider, name: 'Updated' };
+      updateProviderMock.mockReturnValue(updated);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .send({ name: 'Updated' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(updated);
+      expect(writeEnvToClaudeSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it('should not sync Claude settings when editing an inactive provider', async () => {
+      getActiveProviderIdMock.mockReturnValue('different-provider-id');
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      const updated = { ...sampleProvider, name: 'Updated' };
+      updateProviderMock.mockReturnValue(updated);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .send({ name: 'Updated' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(updated);
+      expect(writeEnvToClaudeSettingsMock).not.toHaveBeenCalled();
+    });
   });
 
   // ---- DELETE /openpowers/api/providers/:id ----

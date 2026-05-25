@@ -233,6 +233,8 @@ providersRouter.put('/proxy', (req, res) => {
 /**
  * PUT /openpowers/api/providers/:id
  * Updates an existing provider. Only fields present in the body are modified.
+ * When the edited provider is the active provider and proxy is disabled,
+ * syncs the provider's model config to Claude settings.
  */
 providersRouter.put('/:id', (req, res) => {
   const parsed = ProviderUpdateSchema.safeParse(req.body);
@@ -240,11 +242,21 @@ providersRouter.put('/:id', (req, res) => {
     res.status(400).json(formatZodError(parsed.error));
     return;
   }
+  let provider;
   try {
-    const provider = updateProvider(req.params.id, parsed.data);
-    res.status(200).json(provider);
+    provider = updateProvider(req.params.id, parsed.data);
   } catch {
     res.status(404).json({ error: `Provider not found: ${req.params.id}` });
+    return;
+  }
+  try {
+    if (getActiveProviderId() === req.params.id && !getEnableOpenpowersProxy()) {
+      writeEnvToClaudeSettings(getProviderEnv(provider));
+    }
+    res.status(200).json(provider);
+  } catch (err) {
+    logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(500).json({ error: 'Failed to sync Claude settings' });
   }
 });
 
