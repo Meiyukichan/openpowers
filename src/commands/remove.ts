@@ -12,8 +12,8 @@ import chalk from 'chalk';
 import { logger } from '../utils/logger.js';
 
 // Plugin and marketplace identifiers (matching init.ts)
-const PLUGIN_NAME = 'openpowers-dev@openpowers-plugins-dev';
-const MARKETPLACE_NAME = 'openpowers-plugins-dev';
+const PLUGIN_NAME = 'openpowers@openpowers-plugins';
+const MARKETPLACE_NAME = 'openpowers-plugins';
 
 /**
  * Options for the remove command.

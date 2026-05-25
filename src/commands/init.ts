@@ -21,7 +21,7 @@ import { logger } from '../utils/logger.js';
  * 2. Uninstall old plugin (error-tolerant)
  * 3. Remove old marketplace (error-tolerant)
  * 4. Add marketplace as marketplace (fatal on failure)
- * 5. Install openpowers-dev plugin (fatal on failure)
+ * 5. Install openpowers plugin (fatal on failure)
  *
  * Each step displays an ora spinner with chalk status indicators.
  * All operations are logged via the shared logger.
@@ -42,7 +42,7 @@ export function runInit(): void {
   // Step 2: Uninstall old plugin (error-tolerant)
   const step2 = ora('Removing old openpowers plugin...').start();
   try {
-    execSync('claude plugin uninstall openpowers-dev@openpowers-plugins-dev', {
+    execSync('claude plugin uninstall openpowers@openpowers-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });
@@ -56,7 +56,7 @@ export function runInit(): void {
   // Step 3: Remove old marketplace (error-tolerant)
   const step3 = ora('Removing old marketplace...').start();
   try {
-    execSync('claude plugin marketplace remove openpowers-plugins-dev', {
+    execSync('claude plugin marketplace remove openpowers-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });
@@ -89,7 +89,7 @@ export function runInit(): void {
   // Step 5: Install openpowers plugin
   const step5 = ora('Installing openpowers plugin...').start();
   try {
-    execSync('claude plugin install openpowers-dev@openpowers-plugins-dev', {
+    execSync('claude plugin install openpowers@openpowers-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });

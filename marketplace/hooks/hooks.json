@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}\"/scripts/switch_agent.py"
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}\"/scripts/openpowers_hooks.py"
           }
         ]
       }
