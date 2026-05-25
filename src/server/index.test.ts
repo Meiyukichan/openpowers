@@ -70,6 +70,25 @@ describe('src/server/index.ts', () => {
       const res = await request(app).get('/openpowers/api/providers');
       expect(res.status).not.toBe(404);
     });
+
+    it('should have /openpowers/mcp endpoint accessible (not caught by proxy)', async () => {
+      const app = createApp({ clientDir: '/non/existent/path' });
+      const res = await request(app)
+        .post('/openpowers/mcp')
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-03-26',
+            capabilities: {},
+            clientInfo: { name: 'test', version: '1.0.0' },
+          },
+        });
+      // Route should not be 404 (missing) or 503 (caught by proxy catch-all when disabled)
+      expect(res.status).not.toBe(404);
+      expect(res.status).not.toBe(503);
+    });
   });
 
   describe('UI static file serving - when clientDir exists', () => {

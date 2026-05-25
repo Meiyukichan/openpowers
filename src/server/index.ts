@@ -11,6 +11,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { providersRouter } from './routes/providers.js';
 import { createProxyRouter } from './anthropic/router.js';
+import { mcpRouter } from './mcp/index.js';
 
 // Resolve dist/client/ directory relative to the compiled output location.
 // At runtime: dist/server/index.js -> ../client -> dist/client/
@@ -32,6 +33,7 @@ export function createApp(options?: { clientDir?: string; beforeProxy?: (app: ex
 
   // API routes
   app.use('/openpowers/api/providers', providersRouter);
+  app.use('/openpowers/mcp', mcpRouter);
 
   // Resolve client directory
   const clientDir = options?.clientDir ?? defaultClientDir;
