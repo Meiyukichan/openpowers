@@ -31,9 +31,9 @@ export const MARK_END_PROPOSE_TEXT =
  * Returns a text marker indicating the start of the propose phase.
  * @returns Content array with the begin marker text
  */
-export function handleMarkBeginPropose(): { content: Array<{ type: string; text: string }> } {
+export function handleMarkBeginPropose(): { content: Array<{ type: 'text'; text: string }> } {
   return {
-    content: [{ type: 'text', text: MARK_BEGIN_PROPOSE_TEXT }],
+    content: [{ type: 'text' as const, text: MARK_BEGIN_PROPOSE_TEXT }],
   };
 }
 
@@ -42,9 +42,9 @@ export function handleMarkBeginPropose(): { content: Array<{ type: string; text:
  * Returns a text marker indicating the end of the propose phase.
  * @returns Content array with the end marker text
  */
-export function handleMarkEndPropose(): { content: Array<{ type: string; text: string }> } {
+export function handleMarkEndPropose(): { content: Array<{ type: 'text'; text: string }> } {
   return {
-    content: [{ type: 'text', text: MARK_END_PROPOSE_TEXT }],
+    content: [{ type: 'text' as const, text: MARK_END_PROPOSE_TEXT }],
   };
 }
 
@@ -65,8 +65,8 @@ function createMcpServer(): McpServer {
     version: '1.0.0',
   });
 
-  server.tool('markBeginPropose', {}, handleMarkBeginPropose);
-  server.tool('markEndPropose', {}, handleMarkEndPropose);
+  server.tool('markBeginPropose', 'Marks the beginning of the propose phase', async () => handleMarkBeginPropose());
+  server.tool('markEndPropose', 'Marks the end of the propose phase', async () => handleMarkEndPropose());
 
   return server;
 }

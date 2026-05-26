@@ -9,5 +9,11 @@
     },
     "homepage": "https://github.com/Meiyukichan/openpowers",
     "repository": "https://github.com/Meiyukichan/openpowers",
-    "license": "MIT"
+    "license": "MIT",
+    "mcpServers": {
+        "openpowers-mcp-server": {
+            "type": "http",
+            "url": "http://localhost:3939/openpowers/mcp"
+        }
+    }
 }

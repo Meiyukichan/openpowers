@@ -100,7 +100,7 @@ describe('src/commands/init.ts', () => {
       expect(initCmd).toBeDefined();
 
       // The action handler should be a function
-      const handler = (initCmd as Record<string, unknown>)._actionHandler;
+      const handler = (initCmd as unknown as Record<string, unknown>)._actionHandler;
       expect(typeof handler).toBe('function');
     });
   });

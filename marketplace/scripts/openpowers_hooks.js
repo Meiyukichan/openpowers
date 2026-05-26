@@ -13,35 +13,25 @@ import child_process from 'child_process';
 const { fileURLToPath } = url;
 const { execSync } = child_process;
 
-// Purpose key regex pattern: matches "OpenPowers:<stage>:Purpose"
-const PURPOSE_KEY_PATTERN = /^OpenPowers:\s*([a-zA-Z]+)\s*:Purpose$/;
+// Regex patterns matching the original Python implementation:
+// Uses regex extraction from raw text to avoid JSON.parse failures
+// caused by encoding issues, malformed JSON, BOM characters, etc.
+
+/** Extract session_id: matches "session_id"\s*:\s*"([a-zA-Z0-9-]+)" */
+const SESSION_ID_PATTERN = /"session_id"\s*:\s*"([a-zA-Z0-9-]+)"/i;
+
+/** Extract OpenPowers:*:Purpose stage: matches OpenPowers:\s*([a-zA-Z]+)\s*:Purpose */
+const PURPOSE_PATTERN = /OpenPowers:\s*([a-zA-Z]+)\s*:Purpose/i;
+
+/** Extract cwd: matches "cwd"\s*:\s*"([^"]+)" */
+const CWD_PATTERN = /"cwd"\s*:\s*"([^"]+)"/i;
 
 /**
- * Recursively search an object for a key matching OpenPowers:*:Purpose
- * @param {object} obj - The object to search
- * @returns {string|null} The lowercase purpose stage, or null if not found
- */
-function extractPurpose(obj) {
-  if (typeof obj !== 'object' || obj === null) return null;
-
-  for (const key of Object.keys(obj)) {
-    const match = key.match(PURPOSE_KEY_PATTERN);
-    if (match) return match[1].toLowerCase();
-  }
-
-  for (const key of Object.keys(obj)) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      const result = extractPurpose(obj[key]);
-      if (result) return result;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Parse stdin JSON string to extract session_id, purpose, and cwd
- * @param {string} rawInput - Raw stdin text (JSON string)
+ * Parse stdin raw text to extract session_id, purpose, and cwd using regex.
+ * Uses regex-based extraction (not JSON.parse) to avoid failures caused
+ * by encoding issues, malformed JSON, BOM characters, or non-JSON content.
+ * Matches the original Python openpowers_hooks.py logic exactly.
+ * @param {string} rawInput - Raw stdin text
  * @returns {{ sessionId: string|undefined, purpose: string|undefined, cwd: string|undefined }}
  */
 export function parseStdin(rawInput) {
@@ -49,17 +39,14 @@ export function parseStdin(rawInput) {
     return { sessionId: undefined, purpose: undefined, cwd: undefined };
   }
 
-  let parsed;
-  try {
-    parsed = JSON.parse(rawInput);
-  } catch {
-    return { sessionId: undefined, purpose: undefined, cwd: undefined };
-  }
+  const sessionMatch = rawInput.match(SESSION_ID_PATTERN);
+  const purposeMatch = rawInput.match(PURPOSE_PATTERN);
+  const cwdMatch = rawInput.match(CWD_PATTERN);
 
   return {
-    sessionId: parsed.session_id,
-    purpose: extractPurpose(parsed) ?? undefined,
-    cwd: parsed.cwd,
+    sessionId: sessionMatch ? sessionMatch[1] : undefined,
+    purpose: purposeMatch ? purposeMatch[1].toLowerCase() : undefined,
+    cwd: cwdMatch ? cwdMatch[1] : undefined,
   };
 }
 
@@ -85,24 +72,6 @@ export function validateBeforeAgent(parsed) {
 }
 
 /**
- * Validate data for --after-agent mode
- * @param {{ sessionId?: string, cwd?: string }} parsed
- * @returns {string|null} Error message if invalid, null if valid
- */
-export function validateAfterAgent(parsed) {
-  if (!parsed.sessionId) {
-    return 'Missing required field: session_id';
-  }
-  if (!parsed.cwd) {
-    return 'Missing required field: cwd';
-  }
-  if (!fs.existsSync(parsed.cwd)) {
-    return `cwd path does not exist: ${parsed.cwd}`;
-  }
-  return null;
-}
-
-/**
  * Build the command array for --before-agent mode
  * @param {string} sessionId - The session ID
  * @param {string} purpose - The agent purpose (e.g. explore, plan)
@@ -110,6 +79,16 @@ export function validateAfterAgent(parsed) {
  */
 export function buildBeforeAgentCommand(sessionId, purpose) {
   return ['openpowers', 'agents', 'switch', purpose, '--session', sessionId];
+}
+
+/**
+ * Build the init command array
+ * @param {string} sessionId - The session ID
+ * @param {string} cwd - The working directory
+ * @returns {string[]} Command array
+ */
+export function buildInitCommand(sessionId, cwd) {
+  return ['openpowers', 'agents', 'init', '--session', sessionId, '--cwd', cwd];
 }
 
 /**
@@ -122,20 +101,36 @@ export function buildAfterAgentCommand(sessionId) {
 }
 
 /**
- * Execute a command via execSync
+ * Execute a command via execSync and return the captured result.
+ * Mirrors Python's subprocess.run with capture_output=True.
  * @param {string[]} commandArgs - Command arguments array
  * @param {string} cwd - Working directory for the command
+ * @returns {{ stdout: string, stderr: string, status: number } | null} Result or null on failure
  */
 export function executeCommand(commandArgs, cwd) {
   const command = commandArgs.join(' ');
   try {
-    execSync(command, {
+    const stdout = execSync(command, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd,
     });
+    return {
+      stdout: stdout.trimEnd(),
+      stderr: '',
+      status: 0,
+    };
   } catch (e) {
     process.stderr.write(`Hook command failed: ${e.message}\n`);
+    // e.stdout / e.stderr are available on ExecSyncError when stdio is piped
+    if (e.stdout !== undefined || e.stderr !== undefined || e.status !== undefined) {
+      return {
+        stdout: (typeof e.stdout === 'string' ? e.stdout : '').trimEnd(),
+        stderr: (typeof e.stderr === 'string' ? e.stderr : '').trimEnd(),
+        status: e.status,
+      };
+    }
+    return null;
   }
 }
 
@@ -146,7 +141,7 @@ export function executeCommand(commandArgs, cwd) {
  */
 export function writeLog(sessionId, message) {
   try {
-    const logDir = path.join(os.homedir(), '.openpowers', 'logs');
+    const logDir = path.join(os.homedir(), '.openpowers', 'logs', 'hooks');
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
@@ -194,25 +189,51 @@ export function main() {
       writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
       writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: ${parsed.purpose}`);
       writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+      // Initialize the agent session first
+      const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+      const initCommandStr = initCommand.join(' ');
+      writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
+      const initResult = executeCommand(initCommand, parsed.cwd);
+      if (initResult !== null) {
+        writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
+      }
+
+      // Then switch to the target stage
       const command = buildBeforeAgentCommand(parsed.sessionId, parsed.purpose);
-      executeCommand(command, parsed.cwd);
-      writeLog(parsed.sessionId, `Result of switch-agent hook: completed`);
+      const commandStr = command.join(' ');
+      writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+      const result = executeCommand(command, parsed.cwd);
+      if (result !== null) {
+        writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+      }
     }
   } else if (isAfterAgent) {
-    error = validateAfterAgent(parsed);
+    error = validateBeforeAgent(parsed);
     if (!error) {
       writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
       writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+      // Initialize the agent session first
+      const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+      const initCommandStr = initCommand.join(' ');
+      writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
+      const initResult = executeCommand(initCommand, parsed.cwd);
+      if (initResult !== null) {
+        writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
+      }
+
+      // Then switch to workflow stage
       const command = buildAfterAgentCommand(parsed.sessionId);
-      executeCommand(command, parsed.cwd);
-      writeLog(parsed.sessionId, `Result of switch-agent hook: completed`);
+      const commandStr = command.join(' ');
+      writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+      const result = executeCommand(command, parsed.cwd);
+      if (result !== null) {
+        writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+      }
     }
   }
 
-  if (error) {
-    process.stderr.write(`${error}\n`);
-    process.exitCode = 1;
-  }
 }
 
 // Run main only when executed directly (not when imported for testing)

@@ -58,8 +58,8 @@ const hooksModule = await import('./openpowers_hooks.js');
 const {
   parseStdin,
   validateBeforeAgent,
-  validateAfterAgent,
   buildBeforeAgentCommand,
+  buildInitCommand,
   buildAfterAgentCommand,
   executeCommand,
   writeLog,
@@ -170,6 +170,173 @@ describe('parseStdin', () => {
     expect(result.purpose).toBeUndefined();
     expect(result.cwd).toBeUndefined();
   });
+
+  it('should extract fields from malformed text with encoding prefix that JSON.parse would reject', () => {
+    const input = '\uFEFF{"session_id":"abc-123","tool_input":{"OpenPowers:plan:Purpose":"task"},"cwd":"/tmp/path","trailing":"junk",more:broken}';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('abc-123');
+    expect(result.purpose).toBe('plan');
+    expect(result.cwd).toBe('/tmp/path');
+  });
+
+  it('should extract fields even when input is not valid JSON at all', () => {
+    const input = 'some_prefix "session_id" : "my-session-id", garbage text "cwd" : "/my/project/path" OpenPowers:coding:Purpose more_noise';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('my-session-id');
+    expect(result.purpose).toBe('coding');
+    expect(result.cwd).toBe('/my/project/path');
+  });
+
+  // -----------------------------------------------------------------------
+  // Encoding resilience tests — regex extraction must work regardless of
+  // text encoding quirks, BOM, Chinese characters, escaped unicode, etc.
+  // -----------------------------------------------------------------------
+
+  it('should handle Chinese characters in cwd path', () => {
+    const input = `{"session_id":"abc-123","cwd":"/home/用户/项目/我的代码","tool_input":{"OpenPowers:explore:Purpose":"探索任务"}}`;
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('abc-123');
+    expect(result.purpose).toBe('explore');
+    expect(result.cwd).toBe('/home/用户/项目/我的代码');
+  });
+
+  it('should handle Chinese characters in Windows-style cwd path', () => {
+    const input = `{"session_id":"win-001","cwd":"C:\\\\Users\\\\小明\\\\Documents\\\\项目","tool_input":{"OpenPowers:Review:Purpose":"review"}}`;
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('win-001');
+    expect(result.purpose).toBe('review');
+    // Regex captures the literal JSON-escaped path between quotes
+    expect(result.cwd).toBe('C:\\\\Users\\\\小明\\\\Documents\\\\项目');
+  });
+
+  it('should handle JSON-escaped unicode sequences (\\\\uXXXX)', () => {
+    const input = `{"session_id":"u-001","cwd":"/tmp/uni","tool_input":{"OpenPowers:plan:Purpose":"\\u8ba1\\u5212\\u4efb\\u52a1"}}`;
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('u-001');
+    expect(result.purpose).toBe('plan');
+    // cwd pattern "([^"]+)" captures the literal \\uXXXX string as-is
+    expect(result.cwd).toBe('/tmp/uni');
+  });
+
+  it('should handle UTF-8 BOM followed by Chinese content', () => {
+    const input = '\uFEFF{"session_id":"bom-cn","cwd":"/数据/测试","tool_input":{"OpenPowers:propose:Purpose":"提案"}}';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('bom-cn');
+    expect(result.purpose).toBe('propose');
+    expect(result.cwd).toBe('/数据/测试');
+  });
+
+  it('should handle raw bytes and non-printable characters around fields', () => {
+    const input = '\x00\x01text before\x02"session_id"\t:\n"hex-001"\r\n\x03"cwd":\r"/path/with\\n/newline/value"some junk\x04OpenPowers:workflow:Purpose trailing \x05';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('hex-001');
+    expect(result.purpose).toBe('workflow');
+    expect(result.cwd).toBe('/path/with\\n/newline/value');
+  });
+
+  it('should handle emoji and special Unicode characters in surrounding text', () => {
+    const input = '🎉🚀{"session_id":"emoji-001","cwd":"/home/user/项目🔥","tool_input":{"OpenPowers:plan:Purpose":"📋plan"}}✨🎯';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('emoji-001');
+    expect(result.purpose).toBe('plan');
+    expect(result.cwd).toBe('/home/user/项目🔥');
+  });
+
+  it('should handle mixed full-width and half-width characters', () => {
+    const input = '（全角括号）{"session_id"： "full-001"，"cwd" ： "Ｄ：／ｐｒｏｊｅｃｔ／ｍｙｆｏｌｄｅｒ" OpenPowers：coding：Purpose';
+
+    const result = parseStdin(input);
+
+    // Full-width colon ： won't match the pattern : so session_id/cwd won't extract
+    // But purpose pattern only looks for OpenPowers:word:Purpose in the text
+    expect(result.sessionId).toBeUndefined();
+    expect(result.purpose).toBeUndefined();
+    expect(result.cwd).toBeUndefined();
+  });
+
+  it('should handle extremely long input with fields buried deep', () => {
+    const noise = 'x'.repeat(10000);
+    const input = `${noise}"session_id":"deep-999"${noise}"cwd":"/deep/path"${noise}OpenPowers:review:Purpose${noise}`;
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('deep-999');
+    expect(result.purpose).toBe('review');
+    expect(result.cwd).toBe('/deep/path');
+  });
+
+  it('should pick the FIRST match when multiple session_id fields exist', () => {
+    const input = '{"session_id":"first-one","cwd":"/path1","tool_input":{"OpenPowers:explore:Purpose":"t1"},"other":{"session_id":"second-one","cwd":"/path2"}}';
+
+    const result = parseStdin(input);
+
+    // Regex is greedy-leftmost, first match wins
+    expect(result.sessionId).toBe('first-one');
+    expect(result.cwd).toBe('/path1');
+    expect(result.purpose).toBe('explore');
+  });
+
+  it('should handle JSON.stringify output exactly as before (backward compat)', () => {
+    const obj = {
+      session_id: 'compat-test',
+      cwd: '/home/user/project',
+      tool_input: {
+        'OpenPowers:plan:Purpose': 'plan task',
+      },
+    };
+    const input = JSON.stringify(obj);
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('compat-test');
+    expect(result.purpose).toBe('plan');
+    expect(result.cwd).toBe('/home/user/project');
+  });
+
+  it('should handle spaces in cwd path (e.g. Windows paths with spaces)', () => {
+    const input = `{"session_id":"spc-001","cwd":"C:\\\\Program Files\\\\My App\\\\data","tool_input":{"OpenPowers:finalize:Purpose":"done"}}`;
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('spc-001');
+    expect(result.purpose).toBe('finalize');
+    // Regex captures the literal JSON-escaped path between quotes
+    expect(result.cwd).toBe('C:\\\\Program Files\\\\My App\\\\data');
+  });
+
+  it('should handle session_id with mixed case and return as-is', () => {
+    const input = '{"session_id":"AbC-123-XyZ-456","cwd":"/tmp","OpenPowers:explore:Purpose":"x"}';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('AbC-123-XyZ-456');
+    expect(result.purpose).toBe('explore');
+  });
+
+  it('should handle cwd with special characters like - _ . in path', () => {
+    const input = '{"session_id":"path-001","cwd":"/home/user/my-project_v2.0-beta/test_dir"}';
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('path-001');
+    expect(result.cwd).toBe('/home/user/my-project_v2.0-beta/test_dir');
+  });
 });
 
 describe('validateBeforeAgent', () => {
@@ -237,66 +404,6 @@ describe('validateBeforeAgent', () => {
   });
 });
 
-describe('validateAfterAgent', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should return null when session_id and cwd are valid', () => {
-    existsSyncMock.mockReturnValue(true);
-
-    const result = validateAfterAgent({
-      sessionId: 'abc-123',
-      cwd: '/valid/path',
-    });
-
-    expect(result).toBeNull();
-  });
-
-  it('should return error when session_id is missing', () => {
-    existsSyncMock.mockReturnValue(true);
-
-    const result = validateAfterAgent({
-      sessionId: undefined,
-      cwd: '/valid/path',
-    });
-
-    expect(result).toContain('session_id');
-  });
-
-  it('should return error when cwd is missing', () => {
-    const result = validateAfterAgent({
-      sessionId: 'abc-123',
-      cwd: undefined,
-    });
-
-    expect(result).toContain('cwd');
-  });
-
-  it('should return error when cwd path does not exist', () => {
-    existsSyncMock.mockReturnValue(false);
-
-    const result = validateAfterAgent({
-      sessionId: 'abc-123',
-      cwd: '/nonexistent/path',
-    });
-
-    expect(result).toContain('does not exist');
-  });
-
-  it('should not require purpose field', () => {
-    existsSyncMock.mockReturnValue(true);
-
-    const result = validateAfterAgent({
-      sessionId: 'abc-123',
-      purpose: undefined,
-      cwd: '/valid/path',
-    });
-
-    expect(result).toBeNull();
-  });
-});
-
 describe('buildBeforeAgentCommand', () => {
   it('should build correct command for --before-agent mode', () => {
     const result = buildBeforeAgentCommand('session-001', 'explore');
@@ -308,6 +415,14 @@ describe('buildBeforeAgentCommand', () => {
     const result = buildBeforeAgentCommand('abc-456', 'plan');
 
     expect(result).toEqual(['openpowers', 'agents', 'switch', 'plan', '--session', 'abc-456']);
+  });
+});
+
+describe('buildInitCommand', () => {
+  it('should build correct init command with session ID and cwd', () => {
+    const result = buildInitCommand('session-003', '/test/cwd');
+
+    expect(result).toEqual(['openpowers', 'agents', 'init', '--session', 'session-003', '--cwd', '/test/cwd']);
   });
 });
 
@@ -324,30 +439,56 @@ describe('executeCommand', () => {
     vi.clearAllMocks();
   });
 
-  it('should execute command with given cwd', () => {
-    execSyncMock.mockReturnValue('output');
+  it('should execute command and return result with stdout, stderr, status', () => {
+    execSyncMock.mockReturnValue('switch successful\n');
 
     const command = ['openpowers', 'agents', 'switch', 'explore', '--session', 'abc'];
-    executeCommand(command, '/some/cwd');
+    const result = executeCommand(command, '/some/cwd');
 
     expect(execSyncMock).toHaveBeenCalledTimes(1);
     const callArgs = execSyncMock.mock.calls[0];
     expect(callArgs[0]).toContain('openpowers');
     expect(callArgs[0]).toContain('switch');
     expect(callArgs[1]).toMatchObject({ cwd: '/some/cwd' });
+    expect(result).toEqual({ stdout: 'switch successful', stderr: '', status: 0 });
   });
 
-  it('should handle execSync errors and log to stderr', () => {
+  it('should trim trailing newlines from stdout', () => {
+    execSyncMock.mockReturnValue('output with newlines\n\n\n');
+
+    const result = executeCommand(['echo', 'test'], '/tmp');
+
+    expect(result).toEqual({ stdout: 'output with newlines', stderr: '', status: 0 });
+  });
+
+  it('should handle execSync errors and return error result with stderr', () => {
+    const execError = Object.assign(new Error('command failed'), {
+      stdout: '',
+      stderr: 'error output from stderr',
+      status: 1,
+    });
     execSyncMock.mockImplementation(() => {
-      throw new Error('command failed');
+      throw execError;
     });
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-    expect(() => {
-      executeCommand(['openpowers', 'agents', 'switch', 'workflow', '--session', 'abc'], '/cwd');
-    }).not.toThrow();
+    const result = executeCommand(['openpowers', 'agents', 'switch', 'workflow', '--session', 'abc'], '/cwd');
 
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Hook command failed'));
+    expect(result).toEqual({ stdout: '', stderr: 'error output from stderr', status: 1 });
+
+    stderrSpy.mockRestore();
+  });
+
+  it('should return null for non-exec errors without stdout/stderr', () => {
+    execSyncMock.mockImplementation(() => {
+      throw new Error('some unexpected error');
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    const result = executeCommand(['echo', 'test'], '/tmp');
+
+    expect(result).toBeNull();
 
     stderrSpy.mockRestore();
   });
@@ -365,7 +506,7 @@ describe('writeLog', () => {
     writeLog('test-session', 'Test log message');
 
     expect(mkdirSyncMock).toHaveBeenCalledWith(
-      path.join('/mock/home', '.openpowers', 'logs'),
+      path.join('/mock/home', '.openpowers', 'logs', 'hooks'),
       { recursive: true },
     );
   });
@@ -383,7 +524,7 @@ describe('writeLog', () => {
 
     writeLog('my-session-123', 'Accepted hook request');
 
-    const logFile = path.join('/mock/home', '.openpowers', 'logs', 'hooks-my-session-123.log');
+    const logFile = path.join('/mock/home', '.openpowers', 'logs', 'hooks', 'hooks-my-session-123.log');
     expect(appendFileSyncMock).toHaveBeenCalledTimes(1);
     expect(appendFileSyncMock.mock.calls[0][0]).toBe(logFile);
     expect(appendFileSyncMock.mock.calls[0][1]).toContain('Accepted hook request');
@@ -441,7 +582,7 @@ describe('main', () => {
     expect(process.exitCode).toBe(1);
   });
 
-  it('should handle --before-agent with valid stdin and execute the switch command', () => {
+  it('should handle --before-agent with valid stdin and execute init then switch commands', () => {
     process.argv = ['node', '/fake/path/script.js', '--before-agent'];
     const stdinJson = JSON.stringify({
       session_id: 'abc-123-def',
@@ -455,35 +596,56 @@ describe('main', () => {
 
     main();
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    const execCallArg = execSyncMock.mock.calls[0][0];
-    expect(execCallArg).toContain('openpowers');
-    expect(execCallArg).toContain('explore');
-    expect(execCallArg).toContain('--session');
-    expect(execCallArg).toContain('abc-123-def');
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: init command
+    const initCallArg = execSyncMock.mock.calls[0][0];
+    expect(initCallArg).toContain('openpowers');
+    expect(initCallArg).toContain('agents init');
+    expect(initCallArg).toContain('--session');
+    expect(initCallArg).toContain('abc-123-def');
+    expect(initCallArg).toContain('--cwd');
+    expect(initCallArg).toContain('/home/user/project');
+    // Second call: switch command
+    const switchCallArg = execSyncMock.mock.calls[1][0];
+    expect(switchCallArg).toContain('openpowers');
+    expect(switchCallArg).toContain('explore');
+    expect(switchCallArg).toContain('--session');
+    expect(switchCallArg).toContain('abc-123-def');
     expect(process.exitCode).toBeUndefined();
   });
 
-  it('should handle --after-agent with valid stdin and execute the workflow switch', () => {
+  it('should handle --after-agent with valid stdin and execute init then workflow switch', () => {
     process.argv = ['node', '/fake/path/script.js', '--after-agent'];
     const stdinJson = JSON.stringify({
       session_id: 'xyz-789',
       cwd: '/tmp/test',
+      tool_input: {
+        'OpenPowers:review:Purpose': 'review task',
+      },
     });
     mockStdin(stdinJson);
     execSyncMock.mockReturnValue('output');
 
     main();
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    const execCallArg = execSyncMock.mock.calls[0][0];
-    expect(execCallArg).toContain('workflow');
-    expect(execCallArg).toContain('--session');
-    expect(execCallArg).toContain('xyz-789');
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: init command
+    const initCallArg = execSyncMock.mock.calls[0][0];
+    expect(initCallArg).toContain('openpowers');
+    expect(initCallArg).toContain('agents init');
+    expect(initCallArg).toContain('--session');
+    expect(initCallArg).toContain('xyz-789');
+    expect(initCallArg).toContain('--cwd');
+    expect(initCallArg).toContain('/tmp/test');
+    // Second call: switch to workflow
+    const switchCallArg = execSyncMock.mock.calls[1][0];
+    expect(switchCallArg).toContain('workflow');
+    expect(switchCallArg).toContain('--session');
+    expect(switchCallArg).toContain('xyz-789');
     expect(process.exitCode).toBeUndefined();
   });
 
-  it('should exit with error when --before-agent input is missing session_id', () => {
+  it('should silently skip when --before-agent input is missing session_id', () => {
     process.argv = ['node', '/fake/path/script.js', '--before-agent'];
     const stdinJson = JSON.stringify({
       cwd: '/home/user/project',
@@ -492,12 +654,13 @@ describe('main', () => {
 
     main();
 
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('session_id'));
-    expect(process.exitCode).toBe(1);
+    // Hook fires for all agents, silently skip non-targeted ones
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
     expect(execSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should exit with error when --before-agent cwd does not exist', () => {
+  it('should silently skip when --before-agent cwd does not exist', () => {
     process.argv = ['node', '/fake/path/script.js', '--before-agent'];
     const stdinJson = JSON.stringify({
       session_id: 'abc-123',
@@ -511,12 +674,13 @@ describe('main', () => {
 
     main();
 
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('does not exist'));
-    expect(process.exitCode).toBe(1);
+    // Hook fires for all agents, silently skip non-targeted ones
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
     expect(execSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should write log entries for before-agent on success', () => {
+  it('should write log entries with command and full result for before-agent on success', () => {
     process.argv = ['node', '/fake/path/script.js', '--before-agent'];
     const stdinJson = JSON.stringify({
       session_id: 'log-test-1',
@@ -526,19 +690,29 @@ describe('main', () => {
       },
     });
     mockStdin(stdinJson);
-    execSyncMock.mockReturnValue('output');
+    execSyncMock.mockReturnValue('switch successful');
 
     main();
 
-    // writeLog should have been called 4 times (3 info + 1 result)
-    expect(appendFileSyncMock).toHaveBeenCalledTimes(4);
-    const logFile = path.join('/mock/home', '.openpowers', 'logs', 'hooks-log-test-1.log');
+    // writeLog calls: 3 accept logs + 1 Running init + 1 Result init + 1 Running switch + 1 Result switch = 7
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(7);
+    const logFile = path.join('/mock/home', '.openpowers', 'logs', 'hooks', 'hooks-log-test-1.log');
+
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- session-id: log-test-1'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- openpowers-purpose: plan'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- cwd: /test/cwd'));
+    expect(logLines).toContainEqual(expect.stringContaining('Running command: openpowers agents init --session log-test-1 --cwd /test/cwd (cwd: /test/cwd)'));
+    expect(logLines).toContainEqual(expect.stringContaining("Result of init-agent hook: returncode=0, stdout='switch successful', stderr=''"));
+    expect(logLines).toContainEqual(expect.stringContaining('Running command: openpowers agents switch plan --session log-test-1 (cwd: /test/cwd)'));
+    expect(logLines).toContainEqual(expect.stringContaining("Result of switch-agent hook: returncode=0, stdout='switch successful', stderr=''"));
+
     for (const call of appendFileSyncMock.mock.calls) {
       expect(call[0]).toBe(logFile);
     }
   });
 
-  it('should handle stdin read failure gracefully and produce validation error', () => {
+  it('should handle stdin read failure gracefully — silently skip', () => {
     process.argv = ['node', '/fake/path/script.js', '--before-agent'];
     readSyncMock.mockImplementation(() => {
       throw new Error('EBADF: bad file descriptor');
@@ -546,13 +720,13 @@ describe('main', () => {
 
     main();
 
-    // stdin read failure results in empty rawInput, parseStdin returns all undefined,
-    // validateBeforeAgent returns error about missing session_id
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('session_id'));
-    expect(process.exitCode).toBe(1);
+    // stdin read failure results in empty input, silently skip
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+    expect(execSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should exit with error when --after-agent input is missing session_id', () => {
+  it('should silently skip when --after-agent input is missing session_id', () => {
     process.argv = ['node', '/fake/path/script.js', '--after-agent'];
     const stdinJson = JSON.stringify({
       cwd: '/test/cwd',
@@ -561,7 +735,8 @@ describe('main', () => {
 
     main();
 
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('session_id'));
-    expect(process.exitCode).toBe(1);
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+    expect(execSyncMock).not.toHaveBeenCalled();
   });
 });
