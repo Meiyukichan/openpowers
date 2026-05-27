@@ -2,7 +2,7 @@
 
 > 从 [OpenSpec](https://github.com/anthropics/openspec) + [SuperPowers](https://github.com/obra/superpowers) 演进而来，专为 Claude Code 打造，在同一个会话中自由切换不同供应商模型，并提供结构化 SDD+TDD 开发工作流的插件系统。
 
-OpenPowers 是一个面向 **Claude Code** 的插件化开发工具包。它在 Claude Code 中提供一套完整的 **SDD（规范驱动开发）+ TDD（测试驱动开发）** 工作流，并通过内置的 **Anthropic API 代理**，实现在**同一个会话**中自由切换多个 AI 模型供应商的能力。
+[OpenPowers](https://github.com/Meiyukichan/openpowers) 是一个面向 **Claude Code** 的插件化开发工具包。它在 Claude Code 中提供一套完整的 **SDD（规范驱动开发）+ TDD（测试驱动开发）** 工作流，并通过内置的 **Anthropic API 代理**，实现在**同一个会话**中自由切换多个 AI 模型供应商的能力。
 
 ---
 

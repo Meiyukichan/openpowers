@@ -2,7 +2,7 @@
 
 > Evolved from [OpenSpec](https://github.com/anthropics/openspec) + [SuperPowers](https://github.com/obra/superpowers), a plugin system purpose-built for Claude Code that lets you switch between different provider models within the same session, backed by a structured SDD+TDD development workflow.
 
-OpenPowers is a plugin-based development toolkit for **Claude Code**. It provides a complete **SDD (Spec-Driven Development) + TDD (Test-Driven Development)** workflow within Claude Code, and through its built-in **Anthropic API proxy**, enables seamless switching between multiple AI model providers within a **single session**.
+[OpenPowers](https://github.com/Meiyukichan/openpowers) is a plugin-based development toolkit for **Claude Code**. It provides a complete **SDD (Spec-Driven Development) + TDD (Test-Driven Development)** workflow within Claude Code, and through its built-in **Anthropic API proxy**, enables seamless switching between multiple AI model providers within a **single session**.
 
 ---
 

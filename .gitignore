@@ -17,7 +17,6 @@ build/
 CLAUDE.md
 full_coverage.txt
 .playwright-mcp/
-bin/
 example/
 docs/
 package-lock.json
