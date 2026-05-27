@@ -110,9 +110,12 @@ export function buildAfterAgentCommand(sessionId) {
  * Mirrors Python's subprocess.run with capture_output=True.
  * @param {string[]} commandArgs - Command arguments array
  * @param {string} cwd - Working directory for the command
+ * @param {{ silent?: boolean }} [options] - Options
+ * @param {boolean} [options.silent=false] - If true, suppress stderr output on failure
  * @returns {{ stdout: string, stderr: string, status: number } | null} Result or null on failure
  */
-export function executeCommand(commandArgs, cwd) {
+export function executeCommand(commandArgs, cwd, options) {
+  const silent = options && options.silent ? options.silent : false;
   const command = commandArgs.join(' ');
   try {
     const stdout = execSync(command, {
@@ -126,7 +129,9 @@ export function executeCommand(commandArgs, cwd) {
       status: 0,
     };
   } catch (e) {
-    process.stderr.write(`Hook command failed: ${e.message}\n`);
+    if (!silent) {
+      process.stderr.write(`Hook command failed: ${e.message}\n`);
+    }
     // e.stdout / e.stderr are available on ExecSyncError when stdio is piped
     if (e.stdout !== undefined || e.stderr !== undefined || e.status !== undefined) {
       return {
@@ -246,7 +251,7 @@ export function runInitAgent(parsed) {
   }
 
   const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
-  executeCommand(initCommand, parsed.cwd);
+  executeCommand(initCommand, parsed.cwd, { silent: true });
 }
 
 /**

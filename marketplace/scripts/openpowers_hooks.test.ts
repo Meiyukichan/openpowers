@@ -548,6 +548,19 @@ describe('executeCommand', () => {
 
     stderrSpy.mockRestore();
   });
+
+  it('should NOT write to stderr on failure when silent option is true', () => {
+    execSyncMock.mockImplementation(() => {
+      throw new Error('command failed silently');
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    executeCommand(['openpowers', 'agents', 'init', '--session', 's', '--cwd', '/tmp'], '/tmp', { silent: true });
+
+    expect(stderrSpy).not.toHaveBeenCalled();
+
+    stderrSpy.mockRestore();
+  });
 });
 
 describe('writeLog', () => {
@@ -852,6 +865,23 @@ describe('runInitAgent', () => {
     expect(callArg).toContain('session-xyz');
     expect(callArg).toContain('--cwd');
     expect(callArg).toContain('/another/path');
+  });
+
+  it('should NOT write to stderr when init command fails (execSync throws)', () => {
+    execSyncMock.mockImplementation(() => {
+      throw new Error('init command failed');
+    });
+
+    runInitAgent({
+      sessionId: 'session-err',
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
   });
 });
 
