@@ -32,7 +32,7 @@ OpenPowers is a plugin-based development toolkit for **Claude Code**. It provide
 ### Install
 
 ```bash
-npm i -g @meyukichan/openpowers
+npm i -g @meiyukichan/openpowers
 ```
 
 ### Initialize

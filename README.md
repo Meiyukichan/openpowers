@@ -32,7 +32,7 @@ OpenPowers 是一个面向 **Claude Code** 的插件化开发工具包。它在 
 ### 安装
 
 ```bash
-npm i -g @meyukichan/openpowers
+npm i -g @meiyukichan/openpowers
 ```
 
 ### 初始化
