@@ -1,0 +1,8 @@
+{
+  "session_id": "b1babf3a-dfa8-4771-8ff9-34873374523c",
+  "transcript_path": "C:\\Users\\snowYuki\\.claude\\projects\\D--project-code-llm-openpowers\\b1babf3a-dfa8-4771-8ff9-34873374523c.jsonl",
+  "cwd": "D:\\project-code\\llm\\openpowers",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "/openpowers:workflow"
+}

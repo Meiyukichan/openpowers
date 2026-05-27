@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { prepareModifiedHeaders, getTimeoutForPath, detectStreamRequest, proxyRequestHandler, mapModel } from './handler.js';
+import { prepareModifiedHeaders, getTimeoutForPath, detectStreamRequest, proxyRequestHandler, mapModel, tryLogLastMessage } from './handler.js';
 import type { Request, Response } from 'express';
 
 // ---------------------------------------------------------------------------
@@ -448,6 +448,117 @@ describe('mapModel', () => {
       sonnetModel: 'anthropic/sonnet',
     });
     expect(mapModel('claude-haiku-sonnet', provider)).toBe('anthropic/haiku');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tryLogLastMessage
+// ---------------------------------------------------------------------------
+
+describe('tryLogLastMessage', () => {
+  const logger = { info: vi.fn() };
+
+  beforeEach(() => {
+    logger.info.mockClear();
+  });
+
+  it('logs last message when status is 200 and body has non-empty messages array', () => {
+    const body = {
+      messages: [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi there' },
+      ],
+    };
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, body);
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const msg = logger.info.mock.calls[0][0] as string;
+    expect(msg).toContain('200 OK');
+    expect(msg).toContain('last message:');
+    expect(msg).toContain('"role":"assistant"');
+  });
+
+  it('logs last message when status is 400 and body has non-empty messages array', () => {
+    const body = {
+      messages: [
+        { role: 'user', content: 'hello' },
+      ],
+    };
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 400, body);
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const msg = logger.info.mock.calls[0][0] as string;
+    expect(msg).toContain('400 Bad Request');
+    expect(msg).toContain('last message:');
+  });
+
+  it('does NOT log when status is 200 but messages array is empty', () => {
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, { messages: [] });
+
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('does NOT log when status is 200 but body has no messages field', () => {
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, { id: 'msg_123', content: [{ text: 'Hello' }] });
+
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('does NOT log and does NOT throw when body is a non-JSON string', () => {
+    expect(() => {
+      tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, 'plain text response');
+    }).not.toThrow();
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('does NOT log and does NOT throw when body is null', () => {
+    expect(() => {
+      tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, null);
+    }).not.toThrow();
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('does NOT log when status is 500 even with non-empty messages', () => {
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 500, {
+      messages: [{ role: 'assistant', content: 'Hello' }],
+    });
+
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('does NOT log when status is 200 but messages is not an array', () => {
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, { messages: 'not-an-array' });
+
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('formats the log entry with providerModel and clientModel', () => {
+    const body = {
+      messages: [{ role: 'assistant', content: 'Response text' }],
+    };
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, body, 'claude-sonnet', 'gpt-4');
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const msg = logger.info.mock.calls[0][0] as string;
+    expect(msg).toContain('api.example.com:claude-sonnet');
+    expect(msg).toContain('gpt-4:POST');
+    expect(msg).toContain('200 OK');
+    expect(msg).toContain('last message:');
+  });
+
+  it('formats the log entry without optional model params', () => {
+    const body = {
+      messages: [{ role: 'assistant', content: 'Hello' }],
+    };
+    tryLogLastMessage(logger, 'api.example.com', 'POST', '/v1/messages', 200, body);
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const msg = logger.info.mock.calls[0][0] as string;
+    expect(msg).toContain('api.example.com');
+    expect(msg).toContain('"POST /v1/messages HTTP/1.1"');
+    expect(msg).toContain('200 OK');
+    expect(msg).toContain('last message:');
+    expect(msg).toContain('"role":"assistant"');
   });
 });
 

@@ -21,6 +21,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --init-agent"
+          }
+        ]
+      }
     ]
   }
 }
