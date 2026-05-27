@@ -13,7 +13,6 @@ openspec/
 dist/
 coverage/
 openpowers/
-docs/
 build/
 CLAUDE.md
 full_coverage.txt
