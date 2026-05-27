@@ -97,11 +97,11 @@ export function buildInitCommand(sessionId, cwd) {
 }
 
 /**
- * Build the command array for --after-agent mode
+ * Build the workflow switch command array
  * @param {string} sessionId - The session ID
  * @returns {string[]} Command array
  */
-export function buildAfterAgentCommand(sessionId) {
+export function buildWorkflowCommand(sessionId) {
   return ['openpowers', 'agents', 'switch', 'workflow', '--session', sessionId];
 }
 
@@ -220,7 +220,7 @@ export function runAfterAgent(parsed) {
   }
 
   // Then switch to workflow stage
-  const command = buildAfterAgentCommand(parsed.sessionId);
+  const command = buildWorkflowCommand(parsed.sessionId);
   const commandStr = command.join(' ');
   writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
   const result = executeCommand(command, parsed.cwd);
@@ -233,7 +233,7 @@ export function runAfterAgent(parsed) {
  * Handle --init-agent mode: silently init agent session on UserPromptSubmit.
  * Only processes when prompt matches /openpowers:workflow prefix and all
  * required fields (session_id, cwd) are present and cwd path exists.
- * Completely silent — no stdout, stderr, or log output.
+ * No stdout/stderr output; writes execution log to the hooks log file.
  * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
  */
 export function runInitAgent(parsed) {
@@ -251,7 +251,20 @@ export function runInitAgent(parsed) {
   }
 
   const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
-  executeCommand(initCommand, parsed.cwd, { silent: true });
+  let commandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  let result = executeCommand(initCommand, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+
+  const command = buildWorkflowCommand(parsed.sessionId);
+  commandStr = command.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  result = executeCommand(command, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
 }
 
 /**

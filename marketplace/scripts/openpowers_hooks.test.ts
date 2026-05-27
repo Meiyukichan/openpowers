@@ -60,7 +60,7 @@ const {
   validateBeforeAgent,
   buildBeforeAgentCommand,
   buildInitCommand,
-  buildAfterAgentCommand,
+  buildWorkflowCommand,
   executeCommand,
   writeLog,
   runBeforeAgent,
@@ -482,9 +482,9 @@ describe('buildInitCommand', () => {
   });
 });
 
-describe('buildAfterAgentCommand', () => {
+describe('buildWorkflowCommand', () => {
   it('should build correct command with workflow for --after-agent mode', () => {
-    const result = buildAfterAgentCommand('session-002');
+    const result = buildWorkflowCommand('session-002');
 
     expect(result).toEqual(['openpowers', 'agents', 'switch', 'workflow', '--session', 'session-002']);
   });
@@ -837,16 +837,34 @@ describe('runInitAgent', () => {
       prompt: '/openpowers:workflow',
     });
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    const callArg = execSyncMock.mock.calls[0][0];
-    expect(callArg).toContain('openpowers');
-    expect(callArg).toContain('agents init');
-    expect(callArg).toContain('--session');
-    expect(callArg).toContain('session-abc');
-    expect(callArg).toContain('--cwd');
-    expect(callArg).toContain('/valid/project/path');
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: agents init
+    const initCallArg = execSyncMock.mock.calls[0][0];
+    expect(initCallArg).toContain('openpowers');
+    expect(initCallArg).toContain('agents init');
+    expect(initCallArg).toContain('--session');
+    expect(initCallArg).toContain('session-abc');
+    expect(initCallArg).toContain('--cwd');
+    expect(initCallArg).toContain('/valid/project/path');
+    // Second call: switch to workflow
+    const switchCallArg = execSyncMock.mock.calls[1][0];
+    expect(switchCallArg).toContain('openpowers');
+    expect(switchCallArg).toContain('agents switch');
+    expect(switchCallArg).toContain('workflow');
+    expect(switchCallArg).toContain('--session');
+    expect(switchCallArg).toContain('session-abc');
     expect(stderrSpy).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
+
+    // Verify writeLog was called for init command/result + switch command/result
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(4);
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines[0]).toContain('Running command:');
+    expect(logLines[0]).toContain('/valid/project/path');
+    expect(logLines[1]).toContain('Result of init-agent hook: returncode=0');
+    expect(logLines[1]).toContain('init successful');
+    expect(logLines[2]).toContain('Running command:');
+    expect(logLines[3]).toContain('Result of switch-agent hook:');
   });
 
   it('should execute with prompt that has additional content after /openpowers:workflow', () => {
@@ -859,12 +877,19 @@ describe('runInitAgent', () => {
       prompt: '/openpowers:workflow start new task',
     });
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    const callArg = execSyncMock.mock.calls[0][0];
-    expect(callArg).toContain('--session');
-    expect(callArg).toContain('session-xyz');
-    expect(callArg).toContain('--cwd');
-    expect(callArg).toContain('/another/path');
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    const initCallArg = execSyncMock.mock.calls[0][0];
+    expect(initCallArg).toContain('--session');
+    expect(initCallArg).toContain('session-xyz');
+    expect(initCallArg).toContain('--cwd');
+    expect(initCallArg).toContain('/another/path');
+
+    // Verify writeLog was called for init + switch
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines[0]).toContain('Running command:');
+    expect(logLines[1]).toContain('Result of init-agent hook:');
+    expect(logLines[2]).toContain('Running command:');
+    expect(logLines[3]).toContain('Result of switch-agent hook:');
   });
 
   it('should NOT write to stderr when init command fails (execSync throws)', () => {
@@ -879,7 +904,7 @@ describe('runInitAgent', () => {
       prompt: '/openpowers:workflow',
     });
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
     expect(stderrSpy).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
   });
@@ -1096,7 +1121,7 @@ describe('main', () => {
 
     main();
 
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
     const callArg = execSyncMock.mock.calls[0][0];
     expect(callArg).toContain('openpowers');
     expect(callArg).toContain('agents init');

@@ -84,59 +84,42 @@ export function detectStreamRequest(contentType: string | undefined, rawBody: st
 // Response headers to exclude when copying from upstream to client
 const RESPONSE_HOP_BY_HOP_HEADERS = ['content-length', 'transfer-encoding'];
 
-// HTTP status code to phrase mapping for log formatting
-const STATUS_PHRASES: Record<number, string> = {
-  200: 'OK',
-  400: 'Bad Request',
-};
-
 /**
- * Attempts to extract and log the last message from the response body's messages array.
- * Only logs when status is 200 or 400 and the body contains a non-empty messages array.
+ * Attempts to extract and log the last message from the request body's messages array.
+ * Logs via logger.info() when the body contains a non-empty messages array.
  * Silently skips if body is invalid JSON, messages is missing, or messages is empty.
- * @param logger - The active logger instance (must have info method)
+ * Logs an error via logger.error() if extraction fails unexpectedly.
+ * @param logger - The active logger instance (must have info and error methods)
  * @param providerHost - Provider host string for log prefix
  * @param method - HTTP method for log prefix
  * @param url - Request URL path for log prefix
- * @param status - HTTP response status code
- * @param bodyData - The response body (object or string)
+ * @param bodyData - The request body string
  * @param providerModel - Optional provider model name for log prefix
  * @param clientModel - Optional client model name for log prefix
  */
 export function tryLogLastMessage(
-  logger: { info: (msg: string) => void },
+  logger: { info: (msg: string) => void; error: (msg: string) => void },
   providerHost: string,
   method: string,
   url: string,
-  status: number,
-  bodyData: unknown,
+  bodyData: string,
   providerModel?: string,
   clientModel?: string,
 ): void {
-  if (status !== 200 && status !== 400) {
-    return;
-  }
   try {
-    let body: Record<string, unknown>;
-    if (typeof bodyData === 'string') {
-      body = JSON.parse(bodyData);
-    } else if (typeof bodyData === 'object' && bodyData !== null) {
-      body = bodyData as Record<string, unknown>;
-    } else {
-      return;
-    }
+    const body: Record<string, unknown> = JSON.parse(bodyData);
     const messages = body.messages;
     if (!Array.isArray(messages) || messages.length === 0) {
       return;
     }
     const lastMessage = messages[messages.length - 1];
-    const phrase = STATUS_PHRASES[status] || '';
     const hostPart = providerModel ? `${providerHost}:${providerModel}` : providerHost;
     const methodPart = clientModel ? `${clientModel}:${method}` : method;
-    const entry = `${hostPart} - "${methodPart} ${url} HTTP/1.1" ${status} ${phrase} last message: ${JSON.stringify(lastMessage)}`;
+    const entry = `${hostPart} - "${methodPart} ${url} HTTP/1.1" last message: ${JSON.stringify(lastMessage)}`;
     logger.info(entry);
-  } catch {
-    // Silently skip if body is not JSON or any error occurs
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    logger.error(`Failed to extract last message from request body: ${errMsg}`);
   }
 }
 
@@ -316,6 +299,9 @@ export async function proxyRequestHandler(
   }
 
   try {
+    // Log last message from request body before forwarding to upstream
+    tryLogLastMessage(activeLogger, providerHost, req.method as string, reqPath, rawBody, providerModel, clientModel);
+
     const upstreamRes = await axios(config);
 
     // Handle stream response
@@ -390,10 +376,6 @@ export async function proxyRequestHandler(
       if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
         activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${fullBody}`);
       }
-
-      // Log last message from response body (non-SSE stream buffered path)
-      tryLogLastMessage(activeLogger, providerHost, req.method as string, reqPath, upstreamRes.status, fullBody, providerModel, clientModel);
-
       return;
     }
 
@@ -413,9 +395,6 @@ export async function proxyRequestHandler(
     if (upstreamRes.status < 200 || upstreamRes.status >= 300) {
       activeLogger.warn(`Upstream returned ${upstreamRes.status}: ${JSON.stringify(upstreamRes.data)}`);
     }
-
-    // Log last message from response body (non-stream path)
-    tryLogLastMessage(activeLogger, providerHost, req.method as string, reqPath, upstreamRes.status, upstreamRes.data, providerModel, clientModel);
   } catch (err: unknown) {
     handleAxiosError(err, res, providerHost, req.method, reqPath, activeLogger, onResponse, providerModel, clientModel);
   }
@@ -462,10 +441,6 @@ function handleAxiosError(
       res.json(err.response.data);
     }
     onResponse?.({ providerHost, method, url: reqPath, status: upstreamStatus, providerModel, clientModel, logger });
-
-    // Log last message from response body (axios error path)
-    tryLogLastMessage(logger, providerHost, method, reqPath, upstreamStatus, err.response.data, providerModel, clientModel);
-
     return;
   }
 
