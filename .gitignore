@@ -21,3 +21,4 @@ full_coverage.txt
 bin/
 example/
 docs/
+package-lock.json
