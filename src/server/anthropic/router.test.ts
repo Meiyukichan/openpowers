@@ -22,6 +22,18 @@ vi.mock('./handler.js', () => ({
   proxyRequestHandler: proxyRequestHandlerMock,
 }));
 
+// Mock logger for testing logRequest
+const { proxyLoggerMockForRouter } = vi.hoisted(() => ({
+  proxyLoggerMockForRouter: {
+    info: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('./logger.js', () => ({
+  proxyLogger: proxyLoggerMockForRouter,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -45,6 +57,141 @@ beforeEach(async () => {
   // Always re-import the router fresh to pick up mocks
   const mod = await import('./router.js');
   createProxyRouter = mod.createProxyRouter;
+});
+
+// ---------------------------------------------------------------------------
+// logRequest — status-based logging with LogRequestOptions
+// ---------------------------------------------------------------------------
+
+describe('logRequest', () => {
+  /** Holds the logRequest function after dynamic import. */
+  let logRequest: (options: Record<string, unknown>) => void;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // Dynamic import to get logRequest (will be exported after GREEN phase)
+    const mod = await import('./router.js');
+    logRequest = (mod as Record<string, unknown>).logRequest as (options: Record<string, unknown>) => void;
+  });
+
+  it('uses logger.info when status < 400 (status 200)', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 200,
+      logger,
+    });
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('uses logger.info when status < 400 (status 302)', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'GET',
+      url: '/redirect',
+      status: 302,
+      logger,
+    });
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('uses logger.error when status >= 400 (status 400)', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 400,
+      logger,
+    });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('uses logger.error when status >= 400 (status 502)', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 502,
+      logger,
+    });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('uses proxyLogger when no logger is provided and status is 200', () => {
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'GET',
+      url: '/v1/models',
+      status: 200,
+    });
+    expect(proxyLoggerMockForRouter.info).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses proxyLogger.error when no logger is provided and status is 500', () => {
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'GET',
+      url: '/v1/models',
+      status: 500,
+    });
+    expect(proxyLoggerMockForRouter.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('formats entry with required fields only', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 200,
+      logger,
+    });
+    const msg = logger.info.mock.calls[0][0];
+    expect(msg).toContain('api.example.com');
+    expect(msg).toContain('POST /v1/messages');
+    expect(msg).toContain('200');
+    expect(msg).toContain('OK');
+  });
+
+  it('formats entry with providerModel and clientModel', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 200,
+      providerModel: 'claude-sonnet',
+      clientModel: 'gpt-4',
+      logger,
+    });
+    const msg = logger.info.mock.calls[0][0];
+    expect(msg).toContain('api.example.com:claude-sonnet');
+    expect(msg).toContain('gpt-4:POST');
+  });
+
+  it('formats entry with errorMsg', () => {
+    const logger = { info: vi.fn(), error: vi.fn() };
+    logRequest({
+      providerHost: 'api.example.com',
+      method: 'POST',
+      url: '/v1/messages',
+      status: 502,
+      errorMsg: 'Connection refused',
+      logger,
+    });
+    const msg = logger.error.mock.calls[0][0];
+    expect(msg).toContain('502 Bad Gateway');
+    expect(msg).toContain('Connection refused');
+  });
 });
 
 // ---------------------------------------------------------------------------
