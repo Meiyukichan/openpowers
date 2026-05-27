@@ -213,7 +213,7 @@ In this phase, you must dispatch a `Planning Phase Subagent` using the following
 
 ```
 Task tool (general-purpose):
-  description: "Create change plan: [change name]"
+  description: "OpenPowers:plan:Purpose Create change plan: [change name]"
   prompt: |
     You are creating a change plan: [change name]
 
@@ -330,7 +330,7 @@ Dispatch a `Finalize Phase Subagent` using the following Task template:
 
 ```
 Task tool (general-purpose):
-  description: "Finalize change: [change name]"
+  description: "OpenPowers:finalize:Purpose Finalize change: [change name]"
   prompt: |
     You are finalizing change: [change name]
 
@@ -375,7 +375,7 @@ Dispatch an `Archive Phase Subagent` using the following Task template:
 
 ```
 Task tool (general-purpose):
-  description: "Archive change: [change name]"
+  description: "OpenPowers:finalize:Purpose Archive change: [change name]"
   prompt: |
     You are archiving change: [change name]
 

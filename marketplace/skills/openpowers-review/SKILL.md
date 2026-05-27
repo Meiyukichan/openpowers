@@ -41,7 +41,7 @@ Dispatch the `review sub-agent` strictly following the parameter format below:
 
 ```
 Task tool (general-purpose):
-  description: "Review {review type}: {change name <name>}"
+  description: "OpenPowers:review:Purpose Review {review type}: {change name <name>}"
   prompt: |
     You are reviewing {review type}: {change name <name>}
 

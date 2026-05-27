@@ -4,7 +4,7 @@ Strictly dispatch the `reference explorer subagent` using the following paramete
 
 ```
 Task tool (general-purpose):
-  description: "Explore references for {feature-id}: {feature name}"
+  description: "OpenPowers:explore:Purpose Explore references for {feature-id}: {feature name}"
   prompt: |
     You are exploring references for {feature-id}: {feature name}.
 

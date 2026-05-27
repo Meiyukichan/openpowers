@@ -4,7 +4,7 @@ Dispatch the `Spec Review Subagent` strictly according to the following paramete
 
 ```
 Task tool (general-purpose):
-  description: "Review spec compliance for {feature-id}: {feature name}"
+  description: "OpenPowers:review:Purpose Review spec compliance for {feature-id}: {feature name}"
   prompt: |
     You are reviewing spec compliance for {feature-id}: {feature name}.
 

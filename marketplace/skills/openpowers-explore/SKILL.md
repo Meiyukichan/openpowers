@@ -39,7 +39,7 @@ You **MUST** dispatch the `codebase explorer subagent` strictly in the following
 
 ```
 Task tool (general-purpose):
-  description: "Explore {`explore_content`}"
+  description: "OpenPowers:explore:Purpose Explore {`explore_content`}"
   prompt: |
     You are exploring {explore type}: {`explore_content`}
 
