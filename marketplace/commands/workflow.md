@@ -140,7 +140,7 @@ Exploration completed. Auto entering propose.
 Create a formal change proposal with all artifacts.
 
 ### Execution Steps
-In this phase, you must strictly and accurately follow these steps (do NOT dispatch a subagent in this phase: propose):
+In this phase, you must strictly and accurately follow these steps (do NOT dispatch a subagent in this phase: propose and do NOT stop after completing brainstorm to ask user whether to proceed to propose --- just go straight into propose (openpowers-propose)):
 
 #### 1. Pre-Execution
 
