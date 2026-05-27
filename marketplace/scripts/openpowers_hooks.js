@@ -26,27 +26,32 @@ const PURPOSE_PATTERN = /OpenPowers:\s*([a-zA-Z]+)\s*:Purpose/i;
 /** Extract cwd: matches "cwd"\s*:\s*"([^"]+)" */
 const CWD_PATTERN = /"cwd"\s*:\s*"([^"]+)"/i;
 
+/** Extract prompt: matches only /openpowers:workflow prefix */
+const PROMPT_PATTERN = /"prompt"\s*:\s*"(\/openpowers:workflow[^"]*)"/i;
+
 /**
- * Parse stdin raw text to extract session_id, purpose, and cwd using regex.
+ * Parse stdin raw text to extract session_id, purpose, cwd, and prompt using regex.
  * Uses regex-based extraction (not JSON.parse) to avoid failures caused
  * by encoding issues, malformed JSON, BOM characters, or non-JSON content.
  * Matches the original Python openpowers_hooks.py logic exactly.
  * @param {string} rawInput - Raw stdin text
- * @returns {{ sessionId: string|undefined, purpose: string|undefined, cwd: string|undefined }}
+ * @returns {{ sessionId: string|undefined, purpose: string|undefined, cwd: string|undefined, prompt: string|undefined }}
  */
 export function parseStdin(rawInput) {
   if (!rawInput || !rawInput.trim()) {
-    return { sessionId: undefined, purpose: undefined, cwd: undefined };
+    return { sessionId: undefined, purpose: undefined, cwd: undefined, prompt: undefined };
   }
 
   const sessionMatch = rawInput.match(SESSION_ID_PATTERN);
   const purposeMatch = rawInput.match(PURPOSE_PATTERN);
   const cwdMatch = rawInput.match(CWD_PATTERN);
+  const promptMatch = rawInput.match(PROMPT_PATTERN);
 
   return {
     sessionId: sessionMatch ? sessionMatch[1] : undefined,
     purpose: purposeMatch ? purposeMatch[1].toLowerCase() : undefined,
     cwd: cwdMatch ? cwdMatch[1] : undefined,
+    prompt: promptMatch ? promptMatch[1] : undefined,
   };
 }
 
@@ -155,14 +160,105 @@ export function writeLog(sessionId, message) {
 }
 
 /**
- * Main entry point - reads stdin, determines mode, and executes
+ * Handle --before-agent mode: validate input, init session, and switch to target stage.
+ * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ */
+export function runBeforeAgent(parsed) {
+  const error = validateBeforeAgent(parsed);
+  if (error) {
+    return;
+  }
+
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: ${parsed.purpose}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  // Initialize the agent session first
+  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+  const initCommandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
+  const initResult = executeCommand(initCommand, parsed.cwd);
+  if (initResult !== null) {
+    writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
+  }
+
+  // Then switch to the target stage
+  const command = buildBeforeAgentCommand(parsed.sessionId, parsed.purpose);
+  const commandStr = command.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(command, parsed.cwd);
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
+ * Handle --after-agent mode: validate input, init session, and switch to workflow stage.
+ * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ */
+export function runAfterAgent(parsed) {
+  const error = validateBeforeAgent(parsed);
+  if (error) {
+    return;
+  }
+
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  // Initialize the agent session first
+  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+  const initCommandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
+  const initResult = executeCommand(initCommand, parsed.cwd);
+  if (initResult !== null) {
+    writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
+  }
+
+  // Then switch to workflow stage
+  const command = buildAfterAgentCommand(parsed.sessionId);
+  const commandStr = command.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(command, parsed.cwd);
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
+ * Handle --init-agent mode: silently init agent session on UserPromptSubmit.
+ * Only processes when prompt matches /openpowers:workflow prefix and all
+ * required fields (session_id, cwd) are present and cwd path exists.
+ * Completely silent — no stdout, stderr, or log output.
+ * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ */
+export function runInitAgent(parsed) {
+  if (!parsed.prompt) {
+    return;
+  }
+  if (!parsed.sessionId) {
+    return;
+  }
+  if (!parsed.cwd || !parsed.cwd.trim()) {
+    return;
+  }
+  if (!fs.existsSync(parsed.cwd)) {
+    return;
+  }
+
+  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+  executeCommand(initCommand, parsed.cwd);
+}
+
+/**
+ * Main entry point - reads stdin, determines mode, and delegates to handlers.
  */
 export function main() {
   const isBeforeAgent = process.argv.includes('--before-agent');
   const isAfterAgent = process.argv.includes('--after-agent');
+  const isInitAgent = process.argv.includes('--init-agent');
 
-  if (!isBeforeAgent && !isAfterAgent) {
-    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent\n');
+  if (!isBeforeAgent && !isAfterAgent && !isInitAgent) {
+    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent\n');
     process.exitCode = 1;
     return;
   }
@@ -182,58 +278,13 @@ export function main() {
 
   const parsed = parseStdin(rawInput);
 
-  let error;
   if (isBeforeAgent) {
-    error = validateBeforeAgent(parsed);
-    if (!error) {
-      writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
-      writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: ${parsed.purpose}`);
-      writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
-
-      // Initialize the agent session first
-      const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
-      const initCommandStr = initCommand.join(' ');
-      writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
-      const initResult = executeCommand(initCommand, parsed.cwd);
-      if (initResult !== null) {
-        writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
-      }
-
-      // Then switch to the target stage
-      const command = buildBeforeAgentCommand(parsed.sessionId, parsed.purpose);
-      const commandStr = command.join(' ');
-      writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
-      const result = executeCommand(command, parsed.cwd);
-      if (result !== null) {
-        writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
-      }
-    }
+    runBeforeAgent(parsed);
   } else if (isAfterAgent) {
-    error = validateBeforeAgent(parsed);
-    if (!error) {
-      writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
-      writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
-
-      // Initialize the agent session first
-      const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
-      const initCommandStr = initCommand.join(' ');
-      writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
-      const initResult = executeCommand(initCommand, parsed.cwd);
-      if (initResult !== null) {
-        writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
-      }
-
-      // Then switch to workflow stage
-      const command = buildAfterAgentCommand(parsed.sessionId);
-      const commandStr = command.join(' ');
-      writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
-      const result = executeCommand(command, parsed.cwd);
-      if (result !== null) {
-        writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
-      }
-    }
+    runAfterAgent(parsed);
+  } else if (isInitAgent) {
+    runInitAgent(parsed);
   }
-
 }
 
 // Run main only when executed directly (not when imported for testing)

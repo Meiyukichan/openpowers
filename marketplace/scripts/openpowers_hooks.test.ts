@@ -63,6 +63,9 @@ const {
   buildAfterAgentCommand,
   executeCommand,
   writeLog,
+  runBeforeAgent,
+  runAfterAgent,
+  runInitAgent,
   main,
 } = hooksModule;
 
@@ -337,6 +340,59 @@ describe('parseStdin', () => {
     expect(result.sessionId).toBe('path-001');
     expect(result.cwd).toBe('/home/user/my-project_v2.0-beta/test_dir');
   });
+
+  // -----------------------------------------------------------------------
+  // Prompt extraction tests — PROMPT_PATTERN matches /openpowers:workflow prefix only
+  // -----------------------------------------------------------------------
+
+  it('should extract prompt when it matches /openpowers:workflow prefix', () => {
+    const input = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/home/user/project',
+      prompt: '/openpowers:workflow',
+    });
+
+    const result = parseStdin(input);
+
+    expect(result.sessionId).toBe('abc-123');
+    expect(result.cwd).toBe('/home/user/project');
+    expect(result.prompt).toBe('/openpowers:workflow');
+  });
+
+  it('should extract prompt with additional content after /openpowers:workflow prefix', () => {
+    const input = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/home/user/project',
+      prompt: '/openpowers:workflow start a new task',
+    });
+
+    const result = parseStdin(input);
+
+    expect(result.prompt).toBe('/openpowers:workflow start a new task');
+  });
+
+  it('should return undefined for prompt when it does not match /openpowers:workflow prefix', () => {
+    const input = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/home/user/project',
+      prompt: '/some-other-command',
+    });
+
+    const result = parseStdin(input);
+
+    expect(result.prompt).toBeUndefined();
+  });
+
+  it('should return undefined for prompt when prompt field is absent', () => {
+    const input = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/home/user/project',
+    });
+
+    const result = parseStdin(input);
+
+    expect(result.prompt).toBeUndefined();
+  });
 });
 
 describe('validateBeforeAgent', () => {
@@ -542,6 +598,263 @@ describe('writeLog', () => {
   });
 });
 
+describe('runAfterAgent', () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.exitCode = undefined;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    existsSyncMock.mockReturnValue(true);
+    homedirMock.mockReturnValue('/mock/home');
+  });
+
+  afterAll(() => {
+    process.exitCode = undefined;
+  });
+
+  it('should silently skip when validation fails (missing session_id)', () => {
+    runAfterAgent({
+      sessionId: undefined,
+      purpose: 'review',
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should execute init and switch to workflow when validation passes', () => {
+    execSyncMock.mockReturnValue('output');
+
+    runAfterAgent({
+      sessionId: 'xyz-789',
+      purpose: 'review',
+      cwd: '/tmp/test',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: init
+    expect(execSyncMock.mock.calls[0][0]).toContain('agents init');
+    expect(execSyncMock.mock.calls[0][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[0][0]).toContain('xyz-789');
+    // Second call: switch to workflow
+    expect(execSyncMock.mock.calls[1][0]).toContain('workflow');
+    expect(execSyncMock.mock.calls[1][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[1][0]).toContain('xyz-789');
+  });
+
+  it('should write log entries for after-agent on success', () => {
+    execSyncMock.mockReturnValue('switch successful');
+
+    runAfterAgent({
+      sessionId: 'after-log',
+      purpose: 'finalize',
+      cwd: '/test/cwd',
+      prompt: undefined,
+    });
+
+    // 2 accept logs + 1 Running init + 1 Result init + 1 Running switch + 1 Result switch = 6
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(6);
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- session-id: after-log'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- cwd: /test/cwd'));
+  });
+});
+
+describe('runBeforeAgent', () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.exitCode = undefined;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    existsSyncMock.mockReturnValue(true);
+    homedirMock.mockReturnValue('/mock/home');
+  });
+
+  afterAll(() => {
+    process.exitCode = undefined;
+  });
+
+  it('should silently skip when validation fails (missing session_id)', () => {
+    runBeforeAgent({
+      sessionId: undefined,
+      purpose: 'explore',
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should execute init and switch commands when validation passes', () => {
+    execSyncMock.mockReturnValue('output');
+
+    runBeforeAgent({
+      sessionId: 'abc-123',
+      purpose: 'explore',
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: init
+    expect(execSyncMock.mock.calls[0][0]).toContain('agents init');
+    expect(execSyncMock.mock.calls[0][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[0][0]).toContain('abc-123');
+    // Second call: switch
+    expect(execSyncMock.mock.calls[1][0]).toContain('agents switch');
+    expect(execSyncMock.mock.calls[1][0]).toContain('explore');
+  });
+
+  it('should write log entries for before-agent on success', () => {
+    execSyncMock.mockReturnValue('switch successful');
+
+    runBeforeAgent({
+      sessionId: 'log-test',
+      purpose: 'plan',
+      cwd: '/test/cwd',
+      prompt: undefined,
+    });
+
+    // 3 accept logs + 1 Running init + 1 Result init + 1 Running switch + 1 Result switch = 7
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(7);
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- session-id: log-test'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- openpowers-purpose: plan'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- cwd: /test/cwd'));
+  });
+});
+
+describe('runInitAgent', () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.exitCode = undefined;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    existsSyncMock.mockReturnValue(true);
+  });
+
+  afterAll(() => {
+    process.exitCode = undefined;
+  });
+
+  it('should silently return when prompt is undefined', () => {
+    runInitAgent({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when session_id is missing', () => {
+    runInitAgent({
+      sessionId: undefined,
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when cwd is undefined', () => {
+    runInitAgent({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: undefined,
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when cwd is an empty string', () => {
+    runInitAgent({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '',
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when cwd path does not exist on disk', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    runInitAgent({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/nonexistent/path',
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(existsSyncMock).toHaveBeenCalledWith('/nonexistent/path');
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should execute openpowers agents init with session and cwd when all conditions are met', () => {
+    execSyncMock.mockReturnValue('init successful');
+
+    runInitAgent({
+      sessionId: 'session-abc',
+      purpose: undefined,
+      cwd: '/valid/project/path',
+      prompt: '/openpowers:workflow',
+    });
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const callArg = execSyncMock.mock.calls[0][0];
+    expect(callArg).toContain('openpowers');
+    expect(callArg).toContain('agents init');
+    expect(callArg).toContain('--session');
+    expect(callArg).toContain('session-abc');
+    expect(callArg).toContain('--cwd');
+    expect(callArg).toContain('/valid/project/path');
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should execute with prompt that has additional content after /openpowers:workflow', () => {
+    execSyncMock.mockReturnValue('init successful');
+
+    runInitAgent({
+      sessionId: 'session-xyz',
+      purpose: undefined,
+      cwd: '/another/path',
+      prompt: '/openpowers:workflow start new task',
+    });
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const callArg = execSyncMock.mock.calls[0][0];
+    expect(callArg).toContain('--session');
+    expect(callArg).toContain('session-xyz');
+    expect(callArg).toContain('--cwd');
+    expect(callArg).toContain('/another/path');
+  });
+});
+
 describe('main', () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
@@ -577,7 +890,7 @@ describe('main', () => {
     main();
 
     expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent'),
+      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent'),
     );
     expect(process.exitCode).toBe(1);
   });
@@ -738,5 +1051,78 @@ describe('main', () => {
     expect(stderrSpy).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
     expect(execSyncMock).not.toHaveBeenCalled();
+  });
+
+  // --init-agent specific tests
+  it('should handle --init-agent with valid prompt and execute init command', () => {
+    process.argv = ['node', '/fake/path/script.js', '--init-agent'];
+    const stdinJson = JSON.stringify({
+      session_id: 'init-123',
+      cwd: '/valid/path',
+      prompt: '/openpowers:workflow',
+    });
+    mockStdin(stdinJson);
+    execSyncMock.mockReturnValue('init successful');
+
+    main();
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const callArg = execSyncMock.mock.calls[0][0];
+    expect(callArg).toContain('openpowers');
+    expect(callArg).toContain('agents init');
+    expect(callArg).toContain('--session');
+    expect(callArg).toContain('init-123');
+    expect(callArg).toContain('--cwd');
+    expect(callArg).toContain('/valid/path');
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when --init-agent prompt does not match /openpowers:workflow prefix', () => {
+    process.argv = ['node', '/fake/path/script.js', '--init-agent'];
+    const stdinJson = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/valid/path',
+      prompt: '/other-command',
+    });
+    mockStdin(stdinJson);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when --init-agent session_id is missing', () => {
+    process.argv = ['node', '/fake/path/script.js', '--init-agent'];
+    const stdinJson = JSON.stringify({
+      cwd: '/valid/path',
+      prompt: '/openpowers:workflow',
+    });
+    mockStdin(stdinJson);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when --init-agent cwd does not exist', () => {
+    process.argv = ['node', '/fake/path/script.js', '--init-agent'];
+    const stdinJson = JSON.stringify({
+      session_id: 'abc-123',
+      cwd: '/nonexistent/path',
+      prompt: '/openpowers:workflow',
+    });
+    mockStdin(stdinJson);
+    existsSyncMock.mockReturnValue(false);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
   });
 });
