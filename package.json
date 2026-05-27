@@ -1,5 +1,5 @@
 {
-  "name": "openpowers",
+  "name": "@meiyukichan/openpowers",
   "version": "1.0.0",
   "description": "OpenPowers CLI - plugin-based development toolkit",
   "type": "module",

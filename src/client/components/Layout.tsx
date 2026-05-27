@@ -110,8 +110,8 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
             'div',
             {
               title: enableOpenpowersProxy
-                ? 'Claude Desktop local routing is running - 127.0.0.1:15721'
-                : 'Turn on Claude Desktop local routing for providers that need model mapping or format conversion. Configured address: 127.0.0.1:15721',
+                ? 'Anthropic API proxy is running - localhost:3939'
+                : 'Turn on Anthropic API proxy for providers that need model mapping or format conversion. Configured address: localhost:3939',
               className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
             },
             React.createElement(Radio, {
@@ -124,7 +124,7 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
                 type: 'button',
                 role: 'switch',
                 'aria-checked': enableOpenpowersProxy,
-                'aria-label': 'Toggle Claude Desktop local routing',
+                'aria-label': 'Toggle Anthropic API proxy',
                 onClick: onToggleProxy,
                 className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'

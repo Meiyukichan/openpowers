@@ -176,14 +176,14 @@ describe('Layout', () => {
     expect(screen.queryByText('确认还原')).not.toBeInTheDocument();
   });
 
-  it('renders Claude Desktop local routing toggle switch', () => {
+  it('renders Anthropic API proxy toggle switch', () => {
     render(
       React.createElement(Layout, {
         ...defaultProps,
         children: React.createElement('div', null, 'content'),
       }),
     );
-    const toggle = screen.getByRole('switch', { name: /toggle claude desktop local routing/i });
+    const toggle = screen.getByRole('switch', { name: /toggle anthropic api proxy/i });
     expect(toggle).toBeInTheDocument();
     expect(toggle.getAttribute('aria-checked')).toBe('false');
   });
