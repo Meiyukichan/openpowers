@@ -328,7 +328,7 @@ openpowers agents show plan --session <session-id>
 openpowers agents switch DeepSeek
 
 # 会话级切换供应商
-openpowers agents switch kimi --session <session-id>
+openpowers agents switch kimi2.6 --session <session-id>
 
 # 初始化会话设置
 openpowers agents init --session <session-id> --cwd /path/to/project
