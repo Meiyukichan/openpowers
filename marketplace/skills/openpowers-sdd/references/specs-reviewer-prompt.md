@@ -1,6 +1,6 @@
 # Spec Compliance Reviewer Prompt Template
 
-Dispatch the `Spec Review Subagent` strictly according to the following parameter format:
+Dispatch the `Spec Review Subagent` strictly according to the following parameter format (`OpenPowers:review:Purpose` is the critical description marker of `Spec Review Subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):

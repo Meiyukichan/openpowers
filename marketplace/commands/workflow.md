@@ -144,7 +144,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 
 #### 1. Pre-Execution
 
-- None
+- call mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markBeginPropose`
 
 #### 2. Phase Execution
 
@@ -153,7 +153,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 
 #### 3. Post-Execution
 
-- None
+- call mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose`
 
 ### Output
 `openpowers/changes/<name>/` containing `proposal.md`, `design.md`, `specs/**/*.md`
@@ -209,7 +209,7 @@ In this phase, you must strictly and accurately follow these steps (Note! In ste
 
 #### 2. Phase Execution
 
-In this phase, you must dispatch a `Planning Phase Subagent` using the following Task template:
+In this phase, you must dispatch a `Planning Phase Subagent` using the following Task template (`OpenPowers:plan:Purpose` is the critical description marker of `Planning Phase Subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):
@@ -326,7 +326,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 #### 2. Phase Execution
 
-Dispatch a `Finalize Phase Subagent` using the following Task template:
+Dispatch a `Finalize Phase Subagent` using the following Task template (`OpenPowers:finalize:Purpose` is the critical description marker of `Finalize Phase Subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):
@@ -371,7 +371,7 @@ In this phase, you must strictly and accurately follow these steps:
 
 #### 2. Phase Execution
 
-Dispatch an `Archive Phase Subagent` using the following Task template:
+Dispatch an `Archive Phase Subagent` using the following Task template (`OpenPowers:finalize:Purpose` is the critical description marker of `Archive Phase Subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):

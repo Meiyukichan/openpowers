@@ -149,7 +149,7 @@ openpowers [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `openpowers init` | Initialize the OpenPowers plugin (run once), auto-starts UI service after install |
+| `openpowers init` | Initialize the OpenPowers plugin (only needs to be run once per boot), auto-starts UI service after install |
 | `openpowers ui [--restart]` | Launch the Web UI management panel and open in browser |
 | `openpowers enable` | Enable the Anthropic API proxy, routing Claude Code requests to the active provider |
 | `openpowers disable` | Disable the proxy and restore original Claude Code settings |
@@ -328,7 +328,7 @@ openpowers agents show plan --session <session-id>
 openpowers agents switch DeepSeek
 
 # Switch provider per session
-openpowers agents switch kimi --session <session-id>
+openpowers agents switch kimi2.6 --session <session-id>
 
 # Initialize session settings
 openpowers agents init --session <session-id> --cwd /path/to/project

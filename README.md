@@ -149,7 +149,7 @@ openpowers [command] [options]
 
 | 命令 | 说明 |
 |------|------|
-| `openpowers init` | 初始化 OpenPowers 插件（仅需执行一次），安装完成后自动启动 UI 服务 |
+| `openpowers init` | 初始化 OpenPowers 插件（每次开机仅需执行一次），安装完成后自动启动 UI 服务 |
 | `openpowers ui [--restart]` | 启动 Web UI 管理面板并在浏览器中打开 |
 | `openpowers enable` | 开启 Anthropic API 代理，将 Claude Code 请求路由至活跃供应商 |
 | `openpowers disable` | 关闭代理，恢复原始 Claude Code 设置 |

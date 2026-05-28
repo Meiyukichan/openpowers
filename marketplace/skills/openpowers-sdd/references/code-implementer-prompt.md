@@ -1,6 +1,6 @@
 # Implementer Subagent Prompt Template
 
-Dispatch the `Implementer Subagent` strictly according to the following parameter format:
+Dispatch the `Implementer Subagent` strictly according to the following parameter format (`OpenPowers:coding:Purpose` is the critical description marker of `Implementer subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):

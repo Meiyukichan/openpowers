@@ -2,7 +2,7 @@
 
 **Dispatch only after spec compliance review has passed.**
 
-Dispatch the `Code Quality Review Subagent` strictly according to the following parameter format:
+Dispatch the `Code Quality Review Subagent` strictly according to the following parameter format (`OpenPowers:review:Purpose` is the critical description marker of `Code Quality Review Subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):

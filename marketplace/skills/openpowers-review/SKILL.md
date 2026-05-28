@@ -37,7 +37,7 @@ Returns two values in order:
 
 ## Review Dispatch Flow
 
-Dispatch the `review sub-agent` strictly following the parameter format below:
+Dispatch the `review sub-agent` strictly following the parameter format below (`OpenPowers:review:Purpose` is the critical description marker of `review sub-agent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):

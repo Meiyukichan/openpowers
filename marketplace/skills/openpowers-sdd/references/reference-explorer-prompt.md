@@ -1,6 +1,6 @@
 # Reference Explorer Subagent
 
-Strictly dispatch the `reference explorer subagent` using the following parameter format:
+Strictly dispatch the `reference explorer subagent` using the following parameter format (`OpenPowers:explore:Purpose` is the critical description marker of `reference explorer subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):
