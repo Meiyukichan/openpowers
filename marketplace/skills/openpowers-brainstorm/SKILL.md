@@ -313,3 +313,4 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do check exploration.md first** - Then explore the codebase as needed to ground discussions in reality
 - **Do question assumptions** - Including the user's and your own
+- **Pre-completion Reflection** - Before wrapping up the brainstorm, always reflect on whether you have clarified all the details that need to be confirmed with the user.

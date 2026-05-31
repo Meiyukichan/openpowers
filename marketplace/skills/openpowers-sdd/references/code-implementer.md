@@ -148,6 +148,10 @@ Review your work with fresh eyes. Ask yourself:
 
 If you find issues during self-review, fix them before reporting.
 
+## REA LAW
+
+- Modifying Git command like `git commit/push/merge/rebase/add/checkout` is absolutely FORBIDDEN! You can ONLY use read-only Git command such as 'git diff', 'git status'...
+
 ## Report Format
 
 When done, report:

@@ -87,3 +87,7 @@ Read the implementation code and test code. Verify against acceptance criteria i
 Report:
 - ✅ Spec compliant + tests covered (if every testable acceptance criterion is satisfied, tested, and nothing extra was built)
 - ❌ Issues found: {list which criteria are not met, not tested, or what extra work was done, with file:line references}
+
+## REA LAW
+
+- Modifying Git command like `git commit/push/merge/rebase/add/checkout` is absolutely FORBIDDEN! You can ONLY use read-only Git command such as 'git diff', 'git status'...

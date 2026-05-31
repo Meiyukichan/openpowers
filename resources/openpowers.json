@@ -24,21 +24,21 @@
         "references": []
     },
     "experimental": {
+        "explore": true,
         "websearch": true,
         "context7": true,
         "review": {
-            "propose": false,
-            "plan": false,
+            "openpowers": false,
             "specs": false,
             "code": true,
-            "acceptance": true
+            "integration": true
         },
         "prompt": {
             "reviewCode": null
         },
         "coverage": "70%",
         "budget": true,
-        "factor": 1.5
+        "factor": 1
     },
     "enhancement": {
         "context": null,

@@ -11,7 +11,7 @@ description: >
 
 Deeply understand existing implementations in the project that are relevant to the user's needs, providing factual basis for subsequent decisions.
 
-**RED LAW**: the openpowers-explore is forbidden from reading the any documents, especially the `current explorer template document`.
+**RED LAW**: the openpowers-explore is forbidden from reading the any documents, especially the `Current Instruction Documents`.
 
 ## Input Parameters
 
@@ -33,9 +33,9 @@ openpowers config show language
 
 - `language`: This skill **MUST** use the language as the default language for all user-facing responses and outputs. If the script returns no output or fails, fall back to Chinese.
 
-## Execution Flow
+## Execute Instruction
 
-You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format(**RED LAW**: Forbid openpowers-explore to read `current explorer template document` before dispatching the subagent. The subagent will read the template document. `OpenPowers:explore:Purpose` is the critical description marker of `codebase explorer subagent`, do NOT mistake it):
+You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format:
 
 ```
 Task tool (general-purpose):
@@ -63,16 +63,20 @@ Task tool (general-purpose):
 
     ## Execution Flow
     Strictly and accurately follow these steps:
-    1. Read the explorer template document: {`current explorer template document`}
+    1. Read the explorer template document: {`Current Instruction Documents`}
     2. Strictly follow the template's steps and requirements to execute the exploration task
 ```
 
-## Current Explorer Template Document
+### Current Instruction Documents
 
-- When `explore_type = project`, template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/references/explore-project.md`
-- When `explore_type = references`, template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/references/explore-references.md`
+- When `explore_type = project`, current instruction document: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/instructions/project.md`
+- When `explore_type = references`, current instruction document: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/instructions/references.md`
 
-**RED LAW**: the openpowers-explore is forbidden from reading the any documents, especially the `current explorer template document`.
+## RED LAW
+
+- Forbid openpowers-explore to read `Current Instruction Documents` before dispatching the subagent. The subagent will read the template document.
+- The openpowers-explore is forbidden from reading any documents, especially the `Current Instruction Documents`.
+- `OpenPowers:explore:Purpose` is the **critical** description marker of `codebase explorer subagent`, do NOT mistake it.
 
 ## Key Rules
 

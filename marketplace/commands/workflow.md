@@ -4,7 +4,7 @@ description: OpenPowers workflow command to help users take an initial idea (e.g
 
 # OpenPowers Workflow
 
-Transform initial ideas into fully implemented, tested features through a structured process: Explore → Propose → Review Propose → Plan → Review Plan → Subagent-Driven Development → Finalize → Archive.
+Transform initial ideas into fully implemented, tested features through a structured process: Explore → Propose → Plan → Review OpenPowers Artifacts → Subagent-Driven Development → Finalize.
 
 <HARD-GATE>
 Skipping any phase is forbidden. Each phase builds on the previous one. Skipping exploration leads to unclear requirements. Skipping proposal leads to inadequate design. Skipping planning leads to chaotic implementation.
@@ -46,7 +46,7 @@ openpowers config show language
 
 ## Phase Execution Rules
 
-1. **Sequential Execution:** Execute phases strictly in order: Explore → Propose → Review Propose → Plan → Review Plan → Subagent-Driven Development → Finalize → Archive. Skipping or executing out of order is forbidden.
+1. **Sequential Execution:** Execute phases strictly in order: Explore → Propose → Plan → Review OpenPowers Artifacts → Subagent-Driven Development → Finalize. Skipping or executing out of order is forbidden.
 
 2. **Auto Transition:** After completing a phase, immediately start the next phase — do NOT pause and ask the user to confirm. Do not output prompts like "Phase complete, continue?"
 
@@ -58,20 +58,16 @@ digraph workflow {
 
     "1. Explore" [shape=box, style=filled, fillcolor="#e6f3ff"];
     "2. Propose" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "3. Review Propose" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "4. Plan" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "5. Review Plan" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "6. Subagent-Driven Development" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "7. Finalize" [shape=box, style=filled, fillcolor="#e6f3ff"];
-    "8. Archive" [shape=box, style=filled, fillcolor="#e6f3ff"];
+    "3. Plan" [shape=box, style=filled, fillcolor="#e6f3ff"];
+    "4. Review OpenPowers Artifacts" [shape=box, style=filled, fillcolor="#e6f3ff"];
+    "5. Subagent-Driven Development" [shape=box, style=filled, fillcolor="#e6f3ff"];
+    "6. Finalize" [shape=box, style=filled, fillcolor="#e6f3ff"];
 
     "1. Explore" -> "2. Propose";
-    "2. Propose" -> "3. Review Propose";
-    "3. Review Propose" -> "4. Plan";
-    "4. Plan" -> "5. Review Plan";
-    "5. Review Plan" -> "6. Subagent-Driven Development";
-    "6. Subagent-Driven Development" -> "7. Finalize";
-    "7. Finalize" -> "8. Archive";
+    "2. Propose" -> "3. Plan";
+    "3. Plan" -> "4. Review OpenPowers Artifacts";
+    "4. Review OpenPowers Artifacts" -> "5. Subagent-Driven Development";
+    "5. Subagent-Driven Development" -> "6. Finalize";
 }
 ```
 
@@ -89,12 +85,11 @@ digraph workflow {
 | No change directory or change directory is empty | Phase 1: Explore | Start exploration |
 | `exploration.md` exists (no `proposal.md`) | Phase 1: Explore complete | Start Phase 2: Propose |
 | `proposal.md` + `design.md` + `specs/` partially missing | Phase 2: Propose partially complete | Continue Phase 2: Propose |
-| `proposal.md` + `design.md` + `specs/` complete | Phase 2: Propose complete | Start Phase 3: Review Propose |
-| `plan.json` exists, no features completed yet | Phase 4: Plan complete | Start Phase 5: Review Plan |
-| `plan.json`: some features completed/in_progress, some pending | Phase 6: Development in progress | Resume next feature |
-| All features completed | Phase 6: Development complete | Start Phase 7: Finalize |
-| Work integrated (merged/PR) | Phase 7: Finalize complete | Start Phase 8: Archive |
-| In archive directory | Phase 8: Archive complete | Workflow ended |
+| `proposal.md` + `design.md` + `specs/` complete | Phase 2: Propose complete | Start Phase 3: Plan |
+| `plan.json` exists, no features completed yet | Phase 3: Plan complete | Start Phase 4: Review OpenPowers Artifacts |
+| `plan.json`: some features completed/in_progress, some pending | Phase 5: Subagent-Driven Development in progress | Resume next feature |
+| All features completed | Phase 5: Subagent-Driven Development complete | Start Phase 6: Finalize |
+| Work integrated (merged/PR) and In archive directory | Phase 6: Finalize complete | Workflow ended |
 
 When multiple active changes exist, ask the user to choose which one to resume.
 
@@ -108,22 +103,12 @@ When multiple active changes exist, ask the user to choose which one to resume.
 Deeply explore ideas, understand context, investigate the codebase, clarify requirements.
 
 ### Execution Steps
-In this phase, you must strictly and accurately follow these steps:
+At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user). In this phase, you must strictly and accurately follow these steps:
 
-#### 1. Pre-Execution
-
-- At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user)
-
-#### 2. Phase Execution
-
-Invoke Skill: openpowers-explore to explore the codebase, with parameters:
+1. Invoke Skill: openpowers-explore to explore the project code, with parameters:
   - Exploration type: project
   - Exploration content: $ARGUMENTS
   - Output file path: `{cwd}/openpowers/changes/<name>/exploration.md`
-
-#### 3. Post-Execution
-
-- None
 
 ### Output
 `{cwd}/openpowers/changes/<name>/exploration.md`
@@ -144,102 +129,75 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 
 #### 1. Pre-Execution
 
-- call mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markBeginPropose`
+- You **MSUT** use mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markBeginPropose` to make a beiginning mark.
 
 #### 2. Phase Execution
 
-1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements.
-2. Invoke Skill: openpowers-propose to create a new change proposal
+1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements. And wait util this skill complete.
+2. When executation of openpowers-brainstorm complete, then invoke Skill: openpowers-propose to create a new change proposal
 
 #### 3. Post-Execution
 
-- call mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose`
+1. After completing openpowers-brainstorm and openpowers-propose, you **MUST** use the AskUserQuestion tool to ask the user to choose a workflow mode from the following options:
+   - Lite     (Extreme mode,  Code exploration ✅ | Propose & Plan ✅ | Artifacts review ❌ | Reference exploration ❌ | Feature Implement ✅ | Spec review ❌ | Code review ❌ | Final Integration ✅)
+   - Standard (Standard mode, Code exploration ✅ | Propose & Plan ✅ | Artifacts review ❌ | Reference exploration ✅ | Feature Implement ✅ | Spec review ❌ | Code review ✅ | Final Integration ✅)
+   - Max      (Full mode,     Code exploration ✅ | Propose & Plan ✅ | Artifacts review ✅ | Reference exploration ✅ | Feature Implement ✅ | Spec review ✅ | Code review ✅ | Final Integration ✅)
+
+  You need to determine a recommended option based on the scale of the demand (lite < 300, 300 < standard < 1000, max > 1000).
+  Then you **MUST** use following script to write OpenPowers config:
+  ```
+  openpowers config mode <lite/standard/max>
+  ```
+2. Limit feature count, you **MUST** use the AskUserQuestion tool to ask the user to limit the maximum number of plan features, with the following options:
+   - 0.5 (default, sum(features) <= 0.5 * ?(count of specs) = ?)
+   - 1   (sum(features) <= 1 * ?(count of specs) = ?)
+   - 1.5 (sum(features) <= 1.5 * ?(count of specs) = ?)
+  
+  You need to determine a recommended option based on the scale of the demand.
+  Then you **MUST** use following script to write OpenPowers config:
+  ```
+  openpowers config set experimental.factor <factor: 0.5/...>
+  ```
+3. You **MSUT** use mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose` to make a ending mark.
 
 ### Output
 `openpowers/changes/<name>/` containing `proposal.md`, `design.md`, `specs/**/*.md`
 
 ### Principle
-Generate all artifacts in one step.
+Generate all propose artifacts in one step.
 
 ### Transition
-"All artifacts created! Auto entering proposal review."
+"All propose proposes created! Auto entering plan."
 
-## Phase 3: Review Propose
-
-### Purpose
-Review the completeness, consistency, and feasibility of proposal artifacts.
-
-### Execution Steps
-In this phase, you must strictly and accurately follow these steps:
-
-#### 1. Pre-Execution
-
-- None
-
-#### 2. Phase Execution
-
-Invoke Skill: openpowers-review to review the proposal, with parameters:
-  - Review type: propose
-  - Change directory: `openpowers/changes/<name>/`
-
-#### 3. Post-Execution
-
-- None
-
-### Output
-Review passed (or modification suggestions).
-
-### Principle
-Proposal quality determines implementation quality. Do not overlook design flaws.
-
-### Transition
-"Proposal review passed. Auto entering planning."
-
-## Phase 4: Plan
+## Phase 3: Plan
 
 ### Purpose
 Decompose implementation tasks into independent, trackable features with their dependencies, managing the execution plan in JSON format.
 
 ### Execution Steps
-In this phase, you must strictly and accurately follow these steps (Note! In step 2 you must dispatch a subagent; directly invoking the skill openpowers-schema is forbidden):
+In this phase, you must strictly and accurately follow these steps (Note! directly invoking the skill openpowers-plan is forbidden):
 
-#### 1. Pre-Execution
+1. In this phase, you MUST dispatch a `Planning Phase Subagent` using the following Task template (`OpenPowers:plan:Purpose` is the critical description marker of `Planning Phase Subagent`, do NOT mistake it):
 
-- None
+  ```
+  Task tool (general-purpose):
+    description: "OpenPowers:plan:Purpose Create change plan: [change name]"
+    prompt: |
+      You are generating supplementary pre-dev docs and creating a change plan: [change name]
 
-#### 2. Phase Execution
+      ## Output Language
+      [`output language`]
 
-In this phase, you must dispatch a `Planning Phase Subagent` using the following Task template (`OpenPowers:plan:Purpose` is the critical description marker of `Planning Phase Subagent`, do NOT mistake it):
+      ## openpowers change
+      [`openpowers/changes/<name>/`]
 
-```
-Task tool (general-purpose):
-  description: "OpenPowers:plan:Purpose Create change plan: [change name]"
-  prompt: |
-    You are creating a change plan: [change name]
+      ## Project Path
+      [current project path]
 
-    ## Output Language
-    [`output language`]
+      ## Work Steps
 
-    ## openpowers change
-    [`openpowers/changes/<name>/`]
-
-    ## Project Path
-    [current project path]
-
-    ## Work Steps
-    **Must-follow red-line rule**: You must execute the following steps in strict order without skipping or ignoring any skill — this is absolutely intolerable!
-
-    1. Invoke Skill: openpowers-schema to generate supplementary pre-development docs
-    2. Invoke Skill: openpowers-plan to create the change plan
-
-    ## Execution Checklist
-    - [] Skill: openpowers-schema execution completed
-    - [] Skill: openpowers-plan execution completed
-```
-
-#### 3. Post-Execution
-
-- None
+      1. Invoke Skill: openpowers-plan to generate supplementary pre-dev docs and create the change plan
+  ```
 
 ### Output
 - `openpowers/changes/<name>/plan.json`, containing feature IDs, descriptions, acceptance criteria, file paths, dependencies, and status tracking
@@ -252,27 +210,16 @@ Features should be completable in one session, while delivering meaningful value
 ### Transition
 "Planning complete. Auto entering plan review."
 
-## Phase 5: Review Plan
+## Phase 4: Review OpenPowers Artifacts
 
 ### Purpose
-Review the feasibility of the development plan, the correctness of feature decomposition and dependencies.
+Review the completation and feasibility of the OpenPowers artifacts.
 
 ### Execution Steps
 In this phase, you must strictly and accurately follow these steps:
 
-#### 1. Pre-Execution
-
-- None
-
-#### 2. Phase Execution
-
-Invoke Skill: openpowers-review to review the plan, with parameters:
-  - Review type: plan
-  - Change directory: `openpowers/changes/<name>/`
-
-#### 3. Post-Execution
-
-- None
+1. Invoke Skill: openpowers-review to review the OpenPowers artifacts, with parameters:
+  - Change Directory: `openpowers/changes/<name>/`
 
 ### Output
 Review passed (or modification suggestions).
@@ -283,7 +230,7 @@ Plan quality determines development efficiency. Do not overlook unreasonable dec
 ### Transition
 "Plan review passed. Use the AskUserQuestion tool to ask the user whether to automatically enter subagent-driven development?"
 
-## Phase 6: Subagent-Driven Development
+## Phase 5: Subagent-Driven Development
 
 ### Purpose
 Execute each feature using a fresh subagent, with TDD and two-phase review.
@@ -291,17 +238,7 @@ Execute each feature using a fresh subagent, with TDD and two-phase review.
 ### Execution Steps
 In this phase, you must strictly and accurately follow these steps:
 
-#### 1. Pre-Execution
-
-- None
-
-#### 2. Phase Execution
-
-Invoke Skill: openpowers-sdd to execute the subagent-driven development phase. This skill processes features in full topological order. For each feature: dispatch implementer → implementer must use `openpowers-tdd` → spec compliance review → code quality review → mark feature complete.
-
-#### 3. Post-Execution
-
-- None
+1. Invoke Skill: openpowers-sdd to execute the subagent-driven development phase. This skill processes features in full topological order. For each feature: dispatch implementer → implementer must use `openpowers-tdd` → spec compliance review → code quality review → mark feature complete.
 
 ### Output
 All features implemented, tested, reviewed (feature-level).
@@ -312,98 +249,25 @@ Fresh subagent per feature + TDD + two-phase review = high quality.
 ### Transition
 "All features complete. Auto entering finalize."
 
-## Phase 7: Finalize
+## Phase 6: Finalize
 
 ### Purpose
-Complete the development work — merge, create PR, or clean up.
+Complete the development work — merge, create PR, clean up, or archive.
 
 ### Execution Steps
 In this phase, you must strictly and accurately follow these steps:
 
-#### 1. Pre-Execution
-
-- None
-
-#### 2. Phase Execution
-
-Dispatch a `Finalize Phase Subagent` using the following Task template (`OpenPowers:finalize:Purpose` is the critical description marker of `Finalize Phase Subagent`, do NOT mistake it):
-
-```
-Task tool (general-purpose):
-  description: "OpenPowers:finalize:Purpose Finalize change: [change name]"
-  prompt: |
-    You are finalizing change: [change name]
-
-    ## Output Language
-    [`output language`]
-
-    ## Project Path
-    [current project path]
-
-    ## Work Steps
-    1. Invoke Skill: openpowers-finalize to finalize the change
-```
-
-#### 3. Post-Execution
-
-- None
+1. Invoke Skill: openpowers-finalize to finalize this change:
+  - Change directory: `openpowers/changes/<name>/`
 
 ### Output
-Work integrated or preserved (tracked via git operations).
+Work integrated or preserved.
 
 ### Principle
 All tests must pass before any integration.
 
 ### Transition
-"Work complete! Auto entering archive."
-
-## Phase 8: Archive
-
-### Purpose
-Archive the completed change, sync specs to main specs, complete the workflow.
-
-### Execution Steps
-In this phase, you must strictly and accurately follow these steps:
-
-#### 1. Pre-Execution
-
-- None
-
-#### 2. Phase Execution
-
-Dispatch an `Archive Phase Subagent` using the following Task template (`OpenPowers:finalize:Purpose` is the critical description marker of `Archive Phase Subagent`, do NOT mistake it):
-
-```
-Task tool (general-purpose):
-  description: "OpenPowers:finalize:Purpose Archive change: [change name]"
-  prompt: |
-    You are archiving change: [change name]
-
-    ## Output Language
-    [`output language`]
-
-    ## openpowers change directory
-    [`openpowers/changes/<name>/`]
-
-    ## Project Path
-    [current project path]
-
-    ## Work Steps
-    1. Invoke Skill: openpowers-archive to archive the change
-```
-
-#### 3. Post-Execution
-
-- None
-
-### Output
-`openpowers/archive/YYYY-MM-DD-<name>/`, preserving all artifacts.
-
-### Principle
-Archive preserves the complete change history.
-
-### Transition
-"Archive complete! Workflow ended."
+"Work complete! Workflow ended."
 
 ## Core Principles
 
@@ -442,7 +306,7 @@ Archive preserves the complete change history.
 ## Final Rule
 
 ```
-Idea → Explore → Propose → Review Propose → Plan → Review Plan → Subagent-Driven Development (TDD) → Finalize → Archive
+Explore → Propose → Plan → Review OpenPowers Artifacts → Subagent-Driven Development → Finalize
 ```
 
 Every phase. Every feature. Every time.
