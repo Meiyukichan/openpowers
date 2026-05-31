@@ -52,9 +52,9 @@ Grouping result:
   Other: docs/design/PROPOSAL.md
 ```
 
-### Stage 3: Call openpowers-codebase-sync to Sync Codebase
+### Stage 3: Call openpowers-codebase to Sync Codebase
 
-For each group from Stage 2, **serially invoke** the sync codebase sub-agent using the Task tool with the following template:
+For each group from Stage 2, **serially invoke** the sync codebase sub-agent using the Task tool with the following template (`OpenPowers:finalize:Purpose` is the critical description marker of `sync codebase sub-agent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):
