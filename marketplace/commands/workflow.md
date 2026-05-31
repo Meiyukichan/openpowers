@@ -134,7 +134,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 #### 2. Phase Execution
 
 1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements. And wait util this skill complete.
-2. When executation of openpowers-brainstorm complete, then invoke Skill: openpowers-propose to create a new change proposal
+2. When executation of openpowers-brainstorm complete, then **automatically** invoke Skill: openpowers-propose to create a new change proposal.
 
 #### 3. Post-Execution
 
