@@ -24,9 +24,16 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
     const tools: Map<string, { handler: (...args: unknown[]) => unknown }> = new Map();
     this.config = config;
     this.tools = tools;
-    this.tool = vi.fn((name: string, _paramsSchema: unknown, handler: (...args: unknown[]) => unknown) => {
-      tools.set(name, { handler });
-    });
+    this.registerTool = vi.fn(
+      (
+        name: string,
+        regConfig: { description?: string; inputSchema?: unknown },
+        handler: (...args: unknown[]) => unknown,
+      ) => {
+        tools.set(name, { handler });
+        return this;
+      },
+    );
     this.connect = mockConnect;
     return this;
   }),
@@ -171,5 +178,66 @@ describe('Marker text content format', () => {
     const pattern = /^\[MARK_OPENPOWERS_PROPOSE_(BEGIN|END)\]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs\.$/;
     expect(pattern.test(MARK_BEGIN_PROPOSE_TEXT)).toBe(true);
     expect(pattern.test(MARK_END_PROPOSE_TEXT)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MCP server tool registration via McpServer#registerTool
+// ---------------------------------------------------------------------------
+
+describe('McpServer#registerTool tool registration', () => {
+  // Re-import the module so createMcpServer runs against the (mocked) McpServer.
+  // We must inspect the *McpServer instance created during request handling*
+  // (the implementation is invoked from inside the mcpRouter.post handler).
+  async function captureMcpServer(): Promise<{
+    server: any;
+  }> {
+    const { McpServer } = await import('@modelcontextprotocol/sdk/server/mcp.js');
+    (McpServer as unknown as { mockClear: () => void }).mockClear();
+    const app = express.default();
+    app.use(express.default.json());
+    app.use(mcpRouter);
+    await request(app)
+      .post('/')
+      .send({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'markBeginPropose', arguments: {} },
+      });
+    const server = (McpServer as unknown as { mock: { results: Array<{ value: any }> } }).mock
+      .results[0]?.value;
+    return { server };
+  }
+
+  it('should invoke registerTool exactly twice (once per tool)', async () => {
+    const { server } = await captureMcpServer();
+    expect(server.registerTool).toHaveBeenCalledTimes(2);
+  });
+
+  it('should register markBeginPropose with description and a delegating callback', async () => {
+    const { server } = await captureMcpServer();
+    const calls = server.registerTool.mock.calls as Array<
+      [string, { description?: string }, (...args: unknown[]) => unknown]
+    >;
+    const beginCall = calls.find((c) => c[0] === 'markBeginPropose');
+    expect(beginCall).toBeDefined();
+    expect(beginCall![1].description).toBe('Marks the beginning of the propose phase');
+    // Callback must delegate to handleMarkBeginPropose
+    const callbackResult = await beginCall![2]();
+    expect(callbackResult).toEqual(handleMarkBeginPropose());
+  });
+
+  it('should register markEndPropose with description and a delegating callback', async () => {
+    const { server } = await captureMcpServer();
+    const calls = server.registerTool.mock.calls as Array<
+      [string, { description?: string }, (...args: unknown[]) => unknown]
+    >;
+    const endCall = calls.find((c) => c[0] === 'markEndPropose');
+    expect(endCall).toBeDefined();
+    expect(endCall![1].description).toBe('Marks the end of the propose phase');
+    // Callback must delegate to handleMarkEndPropose
+    const callbackResult = await endCall![2]();
+    expect(callbackResult).toEqual(handleMarkEndPropose());
   });
 });

@@ -10,15 +10,19 @@ import type { OpenPowersConfig } from './config.js';
 
 // ---- mocks for loadConfig file I/O ----
 
-const { readFileSyncMock, existsSyncMock } = vi.hoisted(() => ({
+const { readFileSyncMock, existsSyncMock, mkdirSyncMock, writeFileSyncMock } = vi.hoisted(() => ({
   readFileSyncMock: vi.fn(),
   existsSyncMock: vi.fn(),
+  mkdirSyncMock: vi.fn(),
+  writeFileSyncMock: vi.fn(),
 }));
 
 vi.mock('fs', () => ({
   default: {
     readFileSync: readFileSyncMock,
     existsSync: existsSyncMock,
+    mkdirSync: mkdirSyncMock,
+    writeFileSync: writeFileSyncMock,
   },
 }));
 
@@ -64,6 +68,7 @@ const defaultConfigFixture = {
     references: [],
   },
   experimental: {
+    explore: true,
     websearch: true,
     context7: true,
     review: {
@@ -72,6 +77,7 @@ const defaultConfigFixture = {
       specs: false,
       code: true,
       acceptance: true,
+      openpowers: false,
     },
     prompt: {
       reviewCode: null as string | null,
@@ -336,5 +342,239 @@ describe('loadConfig', () => {
     readFileSyncMock.mockReturnValue('not valid json {{{');
 
     expect(() => loadConfig('/mock/cwd')).toThrow();
+  });
+
+  it('should preserve experimental.explore=true from default config after safeParse', () => {
+    existsSyncMock.mockImplementation((p: string) => {
+      // Only the default config file exists
+      return !p.includes('.claude');
+    });
+    readFileSyncMock.mockReturnValue(JSON.stringify(defaultConfigFixture));
+
+    const result = loadConfig('/mock/cwd');
+
+    expect(result.experimental).toBeDefined();
+    expect((result.experimental as Record<string, unknown>).explore).toBe(true);
+  });
+
+  it('should resolve experimental.explore to default true when user override omits it', () => {
+    existsSyncMock.mockReturnValue(true);
+    // Override has experimental object but no explore field
+    const overrideWithoutExplore = {
+      experimental: {
+        websearch: false,
+      },
+    };
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify(defaultConfigFixture))
+      .mockReturnValueOnce(JSON.stringify(overrideWithoutExplore));
+
+    const result = loadConfig('/mock/cwd');
+
+    expect((result.experimental as Record<string, unknown>).explore).toBe(true);
+  });
+
+  it('should emit logger.warn and strip the invalid field when override sets experimental.explore to a non-boolean', () => {
+    existsSyncMock.mockReturnValue(true);
+    const overrideWithBadExplore = {
+      experimental: {
+        explore: 'yes',
+      },
+    };
+    readFileSyncMock
+      .mockReturnValueOnce(JSON.stringify(defaultConfigFixture))
+      .mockReturnValueOnce(JSON.stringify(overrideWithBadExplore));
+
+    const result = loadConfig('/mock/cwd');
+
+    // logger.warn should be called for the failed safeParse on experimental.explore
+    expect(loggerWarnMock).toHaveBeenCalled();
+    const warnCalls = loggerWarnMock.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(warnCalls.some((m: string) => m.includes('experimental.explore'))).toBe(true);
+
+    // The invalid leaf is stripped so that `config show experimental.explore`
+    // degrades gracefully to `None` via formatValue's undefined branch.
+    expect((result.experimental as Record<string, unknown>).explore).toBeUndefined();
+  });
+});
+
+describe('readUserConfig', () => {
+  let readUserConfig: (cwd: string) => Record<string, unknown>;
+
+  beforeAll(async () => {
+    const mod = await import('./config.js');
+    readUserConfig = mod.readUserConfig;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should return the parsed JSON object when the override file exists', () => {
+    const userOverride = { language: 'english', experimental: { explore: false } };
+    readFileSyncMock.mockReturnValue(JSON.stringify(userOverride));
+
+    const result = readUserConfig('/mock/cwd');
+
+    expect(result).toEqual(userOverride);
+    const expectedPath = path.join('/mock/cwd', '.claude', 'openpowers.json');
+    expect(readFileSyncMock).toHaveBeenCalledWith(expectedPath, 'utf-8');
+  });
+
+  it('should return an empty object when the override file does not exist (ENOENT)', () => {
+    const enoent = new Error('ENOENT: no such file or directory') as NodeJS.ErrnoException;
+    enoent.code = 'ENOENT';
+    readFileSyncMock.mockImplementation(() => { throw enoent; });
+
+    const result = readUserConfig('/mock/cwd');
+
+    expect(result).toEqual({});
+  });
+
+  it('should return an empty object when the override file cannot be read (EACCES)', () => {
+    const eacces = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+    eacces.code = 'EACCES';
+    readFileSyncMock.mockImplementation(() => { throw eacces; });
+
+    const result = readUserConfig('/mock/cwd');
+
+    expect(result).toEqual({});
+  });
+
+  it('should return an empty object when the override file contains invalid JSON', () => {
+    readFileSyncMock.mockReturnValue('not valid json {{{');
+
+    const result = readUserConfig('/mock/cwd');
+
+    expect(result).toEqual({});
+  });
+});
+
+describe('writeUserConfig', () => {
+  let writeUserConfig: (cwd: string, data: Record<string, unknown>) => void;
+
+  beforeAll(async () => {
+    const mod = await import('./config.js');
+    writeUserConfig = mod.writeUserConfig;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create the .claude directory recursively and write a UTF-8 file', () => {
+    const data = { language: 'english' };
+
+    writeUserConfig('/mock/cwd', data);
+
+    const expectedDir = path.join('/mock/cwd', '.claude');
+    const expectedPath = path.join(expectedDir, 'openpowers.json');
+
+    expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [actualPath, actualBody, encoding] = writeFileSyncMock.mock.calls[0];
+    expect(actualPath).toBe(expectedPath);
+    expect(encoding).toBe('utf-8');
+    expect(typeof actualBody).toBe('string');
+  });
+
+  it('should serialize JSON with 2-space indentation and a trailing newline', () => {
+    const data = { language: 'english', nested: { a: 1 } };
+
+    writeUserConfig('/mock/cwd', data);
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    // 2-space indentation
+    expect(body.startsWith('{\n  "language"')).toBe(true);
+    // Ends with exactly one trailing newline
+    expect(body.endsWith('}\n')).toBe(true);
+    expect(body.endsWith('}\n\n')).toBe(false);
+    // Body without trailing newline parses back to the input data
+    expect(JSON.parse(body)).toEqual(data);
+  });
+});
+
+describe('setUserConfigValue', () => {
+  let setUserConfigValue: (cwd: string, keyPath: string, value: unknown) => unknown;
+
+  beforeAll(async () => {
+    const mod = await import('./config.js');
+    setUserConfigValue = mod.setUserConfigValue;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create intermediate objects and persist the value', () => {
+    // No existing override file
+    const enoent = new Error('ENOENT') as NodeJS.ErrnoException;
+    enoent.code = 'ENOENT';
+    readFileSyncMock.mockImplementation(() => { throw enoent; });
+
+    const result = setUserConfigValue('/mock/cwd', 'experimental.review.openpowers', true);
+
+    expect(result).toBe(true);
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed).toEqual({
+      experimental: {
+        review: {
+          openpowers: true,
+        },
+      },
+    });
+  });
+
+  it('should leave unrelated top-level keys untouched', () => {
+    const existing = {
+      language: 'english',
+      switchProviders: { workflow: 'mimo' },
+    };
+    readFileSyncMock.mockReturnValue(JSON.stringify(existing));
+
+    setUserConfigValue('/mock/cwd', 'experimental.explore', false);
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed.language).toBe('english');
+    expect(parsed.switchProviders).toEqual({ workflow: 'mimo' });
+    expect(parsed.experimental).toEqual({ explore: false });
+  });
+
+  it('should overwrite an existing leaf value at the given key path', () => {
+    const existing = {
+      experimental: {
+        explore: true,
+        websearch: true,
+      },
+    };
+    readFileSyncMock.mockReturnValue(JSON.stringify(existing));
+
+    const result = setUserConfigValue('/mock/cwd', 'experimental.explore', false);
+
+    expect(result).toBe(false);
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed.experimental.explore).toBe(false);
+    // Unrelated sibling preserved
+    expect(parsed.experimental.websearch).toBe(true);
+  });
+
+  it('should write the file to {cwd}/.claude/openpowers.json with proper formatting', () => {
+    const enoent = new Error('ENOENT') as NodeJS.ErrnoException;
+    enoent.code = 'ENOENT';
+    readFileSyncMock.mockImplementation(() => { throw enoent; });
+
+    setUserConfigValue('/mock/cwd', 'experimental.factor', 2);
+
+    const expectedDir = path.join('/mock/cwd', '.claude');
+    const expectedPath = path.join(expectedDir, 'openpowers.json');
+
+    expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
+    const [actualPath, , encoding] = writeFileSyncMock.mock.calls[0];
+    expect(actualPath).toBe(expectedPath);
+    expect(encoding).toBe('utf-8');
   });
 });

@@ -24,12 +24,23 @@ Ensure all externally promised features of the project are functional. When issu
 6. **Minimal Changes**  
    Fixes should be precise and restrained, changing only what is necessary. Do not use the opportunity to refactor or expand scope.
 
-7. **Test Cases First**  
+7. **Test Cases First**
    All test cases must pass self-check first to ensure clear acceptance criteria, executable and reproducible verification methods, avoiding false positives or missed defects due to flawed test cases.
+
+8. **Baseline Test Green**
+   The project's existing test suite (unit + integration) must be fully passing as the baseline before starting any functional verification. Pre-existing test failures are treated as P0 issues to fix first, ensuring the codebase is in a known-good state before feature-level checks begin.
 
 ## Workflow
 
-### 1. Environment Readiness Check
+### 1. Run Project Test Suite & Fix
+
+Run the project's full test suite (unit + integration) and ensure it passes before functional verification.
+
+- **Detect & Run**: Identify the test command (`package.json`, `pyproject.toml`, `Makefile`, `Cargo.toml`, etc.) and run the full suite.
+- **Fix Until Green**: Treat every failure as P0; follow Section 5's diagnosis & repair flow. Loop until fully passing.
+- **Block on Failures**: Do not proceed to functional verification while failures remain. Unfixed after 3 rounds → "Requires Manual Intervention".
+
+### 2. Environment Readiness Check
 
 Before starting functional verification, confirm infrastructure availability:
 
@@ -43,7 +54,7 @@ Before starting functional verification, confirm infrastructure availability:
 
 > If any check fails, fix the infrastructure first (start services, correct configuration, install missing dependencies, repair network, etc.). **Do not proceed to functional verification.**
 
-### 2. Define Full-Feature Verification Checklist
+### 3. Define Full-Feature Verification Checklist
 
 Collect feature from `openpowers/changes/<name>`.
 
@@ -61,8 +72,12 @@ The final checklist must include: **Feature Name**, **Priority**, **Acceptance C
 
 - **Backend API**: Send requests with `curl` / `httpie`, validate status codes and key response body fields.
 - **Frontend Application**: Start the frontend application, MUST use mcp **playwright** to visit pages, check key element rendering and interaction behavior; automatically check Network tab for API errors and Console tab for error-level logs via automation scripts; verify click interactions and page navigation work as expected. When using playwright-mcp-server, pay special attention to: (1) after user operations, verify the displayed data changes correctly; (2) for statistics dashboard, check consistency across related metrics and confirm aggregation accuracy; (3) compare UI display with Network API responses to flag inconsistencies.
+- **Desktop Application**: Drive the app via Playwright (Electron) or WinAppDriver / XCUITest, verify UI flows, native dialogs, and IPC.
+- **Mobile Application**: Install on emulator/device and drive via Appium / XCUITest / Espresso, verify UI flows, gestures, and platform behavior.
 - **CLI Tool**: Execute commands directly, check exit code, `stdout`, `stderr`.
+- **gRPC / RPC / SSE**: Call endpoints with `grpcurl` / `ghz` / `curl` (SSE), verify payloads, status, and streaming behavior.
 - **WebSocket**: Use `wscat` or scripts to establish connections and verify message sending/receiving.
+- **Message Queue / Event Stream**: Produce/consume via `kafka-console-*` / `rabbitmqadmin` or scripts, verify topic, payload, and offset/lag.
 - **Scheduled Tasks**: Trigger manually and check side effects (database changes, file generation, etc.).
 
 #### Test Case Self-Check (Critical)
@@ -75,15 +90,15 @@ Before starting official verification, each test case in the checklist must pass
 
 Correct flawed test cases or note limitations; **avoid putting immature test cases into formal verification**.
 
-### 3. Execute Full Verification
+### 4. Execute Full Verification
 
 - Execute verifications sequentially by priority order (P0 → P1 → P2).
 - Truthfully record **Pass** or **Fail** status for each item.
 - **If any P0 item fails, suspend P1/P2 verification and immediately enter the fix process.**
 
-### 4. Issue Diagnosis & Repair
+### 5. Issue Diagnosis & Repair
 
-#### 4.1 Diagnosis Process
+#### 5.1 Diagnosis Process
 
 For each failure item, complete the following steps:
 
@@ -92,7 +107,7 @@ For each failure item, complete the following steps:
 3. **Locate Root Cause**: Trace the complete path from request entry point to the error location.
 4. **Determine Repair Scope**: Identify whether the fix belongs to the configuration layer, data layer, or code layer.
 
-#### 4.2 Repair Scope
+#### 5.2 Repair Scope
 
 **Configuration Layer Fixes**
 
@@ -127,7 +142,7 @@ For each failure item, complete the following steps:
 - Code issues due to incompatible library versions
 - Concurrency or race condition fixes
 
-#### 4.3 Code Repair Rules
+#### 5.3 Code Repair Rules
 
 - **Explain intent and expected impact** before each fix.
 - Keep change scope **as small as possible**, solving only the current problem.
@@ -135,7 +150,7 @@ For each failure item, complete the following steps:
 - If database schema changes are involved, **first explain and confirm the impact scope**.
 - Ensure the project can **build or start normally** after the fix.
 
-### 5. Regression & Full Re-Verification
+### 6. Regression & Full Re-Verification
 
 #### Regression Strategy
 
@@ -209,8 +224,9 @@ Overall release readiness judgment, with explanations for unresolved issues.
 
 When receiving a task, provide the following in order:
 
-1. Environment readiness check results
-2. Full-feature verification checklist (including priority and acceptance criteria)
-3. Each round’s verification results (with pass/fail status)
-4. Each round’s repair records (including root cause, fix plan, change description)
-5. Final verification report (including overall conclusion and unresolved issues)
+1. Project test suite run results (baseline test status, identified command, pass/fail counts, and any baseline fixes applied)
+2. Environment readiness check results
+3. Full-feature verification checklist (including priority and acceptance criteria)
+4. Each round’s verification results (with pass/fail status)
+5. Each round’s repair records (including root cause, fix plan, change description)
+6. Final verification report (including overall conclusion and unresolved issues)

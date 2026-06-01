@@ -20,3 +20,4 @@ full_coverage.txt
 example/
 docs/
 package-lock.json
+coverage*

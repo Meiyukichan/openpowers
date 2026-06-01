@@ -65,8 +65,16 @@ function createMcpServer(): McpServer {
     version: '1.0.0',
   });
 
-  server.tool('markBeginPropose', 'Marks the beginning of the propose phase', async () => handleMarkBeginPropose());
-  server.tool('markEndPropose', 'Marks the end of the propose phase', async () => handleMarkEndPropose());
+  server.registerTool(
+    'markBeginPropose',
+    { description: 'Marks the beginning of the propose phase' },
+    async () => handleMarkBeginPropose(),
+  );
+  server.registerTool(
+    'markEndPropose',
+    { description: 'Marks the end of the propose phase' },
+    async () => handleMarkEndPropose(),
+  );
 
   return server;
 }

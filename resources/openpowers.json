@@ -29,9 +29,11 @@
         "context7": true,
         "review": {
             "openpowers": false,
+            "propose": false,
+            "plan": false,
             "specs": false,
             "code": true,
-            "integration": true
+            "acceptance": true
         },
         "prompt": {
             "reviewCode": null
