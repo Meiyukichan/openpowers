@@ -134,7 +134,10 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 #### 2. Phase Execution
 
 1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements. And wait util this skill complete.
-2. When executation of openpowers-brainstorm complete, then **automatically** invoke Skill: openpowers-propose to create a new change proposal.
+2. You MUST use `AskUserQuestion` tool to ask user 'Are there any further details that need clarification?', with following selections:
+  - Continue to create OptixSpec artifacts
+  - Pause for further discussion
+3. When user selects 'continue', then **automatically** invoke Skill: openpowers-propose to create a new change proposal.
 
 #### 3. Post-Execution
 
@@ -150,6 +153,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
    - 1.5 (sum(features) <= 1.5 * ?(count of specs) = ?)
   
   You need to determine a recommended option based on the scale of the demand.
+
 3. You **MSUT** use mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose` to make a ending mark.
 
 ### Output

@@ -31,7 +31,7 @@ The above is a geneal adivice. The final decision bases on the design docs and s
 | API      | `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-plan/references/template-api.md`            | Swagger 2.0 YAML specification    |
 | Database | `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-plan/references/template-database.md`       | Schema, relationships, migrations |
 
-## First Principle
+## RED LAW
 
 - do NOT force generation. Comprehensively consider whether these schemas are needed for this change
 - do NOT read the template of the schema that will not be generated. Only allow reading the template document when you are about to create that schema.
@@ -40,7 +40,3 @@ The above is a geneal adivice. The final decision bases on the design docs and s
 
 - `openpowers/changes/<name>/api.yaml`
 - `openpowers/changes/<name>/database.md`
-
-## Completion
-
-After documents are generated, prompt the user: "You can run skill `openpowers-plan` to generate the implementation plan."

@@ -53,6 +53,7 @@ If you have questions about:
 - Approach or implementation strategy
 - Dependencies or assumptions
 - Anything unclear in the feature description
+- If `{cwd}/.gitignore` not exists, you MUST add it. If exists, you SHOULD add the necessary content (like: .claude/.opencode/.vscode...).
 
 **Ask now.** Raise any concerns before starting work.
 
@@ -149,7 +150,8 @@ Review your work with fresh eyes. Ask yourself:
 If you find issues during self-review, fix them before reporting.
 
 ## REA LAW
-
+ 
+- If `{cwd}/.gitignore` not exists, you MUST add it. If exists, you SHOULD add the necessary content (like: .claude/.opencode/.vscode...).
 - Modifying Git command like `git commit/push/merge/rebase/add/checkout` is absolutely FORBIDDEN! You can ONLY use read-only Git command such as 'git diff', 'git status'...
 
 ## Report Format

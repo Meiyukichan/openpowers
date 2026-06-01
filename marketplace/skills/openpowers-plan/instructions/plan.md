@@ -43,7 +43,7 @@ Before writing the plan, you MUST first break down the implementation work into 
 
 ### 3. Generate Plan
 
-As rules of following, template of `JSON Schema` and the law of `First Principle` to generate a `plan.json` for implementation work.
+As rules of following, template of `JSON Schema` and the law of `RED LAW` to generate a `plan.json` for implementation work.
 
 #### Feature Granularity
 
@@ -58,7 +58,7 @@ Each feature must be an independently testable unit of work — completable by a
 - Bad (too large): "Authentication system"
 - Bad (too small): "Add `import jwt` to auth module"
 
-**First principle**:
+**RED LAW**:
 - plan.json MUST NOT contain more than `feature factor` × (number of spec files in `openpowers/changes/<name>/specs/`) features (minimum of features: 1).
 - A single feature is scoped to an `estimated` delta of `30–500` lines of new or modified code (excluding blanks and comments).
 
@@ -138,7 +138,7 @@ This ordering ensures consumers can process features sequentially without re-sor
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a requirement from specs/design with no feature, add the feature.
 
-## First Principle
+## RED LAW
 
 - plan.json MUST NOT contain more than `feature factor` × (number of spec files in `openpowers/changes/<name>/specs/`) features (minimum of features: 1).
 - A single feature is scoped to an `estimated` delta of `30–500` lines of new/modified code (excluding blanks and comments).

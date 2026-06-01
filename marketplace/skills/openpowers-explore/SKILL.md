@@ -35,7 +35,7 @@ openpowers config show language
 
 ## Execute Instruction
 
-You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format:
+You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format (Forbid openpowers-explore to read `Current Instruction Documents` before dispatching the subagent. The subagent will read the template document.):
 
 ```
 Task tool (general-purpose):

@@ -60,7 +60,7 @@ plan.json is a JSON array where each element represents a feature. Field definit
 
 ## Review Checklist
 
-**First principle:** plan.json MUST NOT contain more than `feature factor` × (number of spec files in `openpowers/changes/<name>/specs/`) features (minimum of features: 1).
+**REA LAW:** plan.json MUST NOT contain more than `feature factor` × (number of spec files in `openpowers/changes/<name>/specs/`) features (minimum of features: 1).
 
 **Important: The following checklist items only apply when the change involves the corresponding document or concern.** Upstream reference files (proposal.md, design.md, specs/\*\*/*.md, api.yaml, database.md) may not all exist — only cross-reference files that are actually present. The absence of documents like API definitions or database designs is not itself an issue, unless plan.json references them (e.g., spec_refs or files contain corresponding paths). The core review target is always plan.json itself.
 

@@ -60,7 +60,7 @@ The final checklist must include: **Feature Name**, **Priority**, **Acceptance C
 #### Reference Verification Methods
 
 - **Backend API**: Send requests with `curl` / `httpie`, validate status codes and key response body fields.
-- **Frontend Application**: Use headless browser / Playwright to visit pages, check key element rendering and interaction behavior.
+- **Frontend Application**: Start the frontend application, MUST use mcp **playwright** to visit pages, check key element rendering and interaction behavior; automatically check Network tab for API errors and Console tab for error-level logs via automation scripts; verify click interactions and page navigation work as expected. When using playwright-mcp-server, pay special attention to: (1) after user operations, verify the displayed data changes correctly; (2) for statistics dashboard, check consistency across related metrics and confirm aggregation accuracy; (3) compare UI display with Network API responses to flag inconsistencies.
 - **CLI Tool**: Execute commands directly, check exit code, `stdout`, `stderr`.
 - **WebSocket**: Use `wscat` or scripts to establish connections and verify message sending/receiving.
 - **Scheduled Tasks**: Trigger manually and check side effects (database changes, file generation, etc.).

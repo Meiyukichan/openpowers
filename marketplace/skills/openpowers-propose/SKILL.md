@@ -9,7 +9,7 @@ This skill will create a change with artifacts:
 
 - proposal.md (what & why)
 - design.md (how)
-- specs/\*\*/*.md (requirements specs)
+- specs/\*\*/\*.md (requirements specs)
 
 ---
 
@@ -98,7 +98,7 @@ After completing all artifacts, summarize:
 
 - Change name and location
 - List of artifacts created with brief descriptions
-- What's ready and Remind the user: "All artifacts created! You can run skill `openpowers-schema` to generate schema docs."
+- What's ready and Remind the user: "All artifacts created! You can run skill `openpowers-plan` to generate schema docs and make work plan."
 
 **Artifact Creation Guidelines**
 

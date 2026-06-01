@@ -1,6 +1,6 @@
 # Git-Sync Instruction
 
-Read staged file changes, group changes under the `main source directory` by module and calls `openpowers-codebase` to sync the codebase, then executes `git commit` → `git push` to complete a full code save workflow.
+Read staged file changes, group changes under the `main source directory` by module and calls `openpowers-codebase` to sync the codebase.
 
 ## Instruction Configuration
 
@@ -25,7 +25,7 @@ If there are no changed files (list is empty), output "No changed files detected
 
 ### Stage 2: Path Grouping
 
-if `project.codebases.enable != true`, directly skip to `Stage 4: Git Commit`.
+if `project.codebases.enable != true`, directly end this instruction.
 
 For all files in the change list starting with the `main source directory`, group by the following rules:
 
@@ -79,13 +79,7 @@ Wait for all groups to complete before proceeding to the next stage.
 
 > **Note**: Changed files not under the `main source directory` do not need openpowers-codebase, but must still be included in the subsequent git commit.
 
-### Stage 4: Git Commit
-
-1. Run Bash command: `git commit -m "{commit message}"`
-2. Run Bash command: `git push`
-
 ## Key Rules
 
 1. **Serial invocation**. Each group's openpowers-codebase-sync call must be serial, never parallel.
 2. **Grouping granularity**. Prefer second-level directory grouping; if a group has too few files (≤2) and has a third-level directory, subdivide by third-level directory.
-3. **Complete commit workflow**. Must include commit → push all two steps, no omissions.

@@ -5,8 +5,8 @@ You are reviewing code changes to ensure production readiness.
 2. Compare against {PLAN_OR_REQUIREMENTS}
 3. Strictly follow `User Review Focus Criteria`, `Review Checklist`, and `Key Rules` to check code quality, architecture, and tests
 4. Categorize issues per ## Review Issue Severity Levels
-5. Output review summary per ## Output Format
-6. Make Coverage Verification
+5. Make Coverage Verification
+6. Output review summary per ## Output Format
 
 ## Key Parameters
 

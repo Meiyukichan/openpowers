@@ -65,4 +65,4 @@ Task tool (general-purpose):
 ## Red Warnings
 
 - **openpowers-review MUST NOT read ANY documents. Related documents will be read in the review subagent**.
-- `optional.review.openpowers` is the skill toggle. If it is not `true`, stop executing this skill.
+- `experimental.review.openpowers` is the skill toggle. If it is not `true`, stop executing this skill.
