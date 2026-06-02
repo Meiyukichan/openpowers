@@ -106,6 +106,15 @@ export function buildWorkflowCommand(sessionId) {
 }
 
 /**
+ * Build the before-propose switch command array
+ * @param {string} sessionId - The session ID
+ * @returns {string[]} Command array
+ */
+export function buildBeforeProposeCommand(sessionId) {
+  return ['openpowers', 'agents', 'switch', 'propose', '--session', sessionId];
+}
+
+/**
  * Execute a command via execSync and return the captured result.
  * Mirrors Python's subprocess.run with capture_output=True.
  * @param {string[]} commandArgs - Command arguments array
@@ -230,6 +239,44 @@ export function runAfterAgent(parsed) {
 }
 
 /**
+ * Handle --before-propose mode: validate input, init session, and switch to propose stage.
+ * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ */
+export function runBeforePropose(parsed) {
+  if (!parsed.sessionId) {
+    return;
+  }
+  if (!parsed.cwd) {
+    return;
+  }
+  if (!fs.existsSync(parsed.cwd)) {
+    return;
+  }
+
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: propose`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  // Initialize the agent session first
+  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+  const initCommandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${initCommandStr} (cwd: ${parsed.cwd})`);
+  const initResult = executeCommand(initCommand, parsed.cwd);
+  if (initResult !== null) {
+    writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
+  }
+
+  // Then switch to propose stage
+  const command = buildBeforeProposeCommand(parsed.sessionId);
+  const commandStr = command.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(command, parsed.cwd);
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
  * Handle --init-agent mode: silently init agent session on UserPromptSubmit.
  * Only processes when prompt matches /openpowers:workflow prefix and all
  * required fields (session_id, cwd) are present and cwd path exists.
@@ -274,9 +321,10 @@ export function main() {
   const isBeforeAgent = process.argv.includes('--before-agent');
   const isAfterAgent = process.argv.includes('--after-agent');
   const isInitAgent = process.argv.includes('--init-agent');
+  const isBeforePropose = process.argv.includes('--before-propose');
 
-  if (!isBeforeAgent && !isAfterAgent && !isInitAgent) {
-    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent\n');
+  if (!isBeforeAgent && !isAfterAgent && !isInitAgent && !isBeforePropose) {
+    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose\n');
     process.exitCode = 1;
     return;
   }
@@ -302,6 +350,8 @@ export function main() {
     runAfterAgent(parsed);
   } else if (isInitAgent) {
     runInitAgent(parsed);
+  } else if (isBeforePropose) {
+    runBeforePropose(parsed);
   }
 }
 

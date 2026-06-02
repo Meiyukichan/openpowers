@@ -15,15 +15,16 @@ describe('src/cli/index.ts', () => {
 
   it('should have version set from package.json', async () => {
     const { program } = await import('./index.js');
-    expect(program.version()).toBe('1.0.0');
+    expect(program.version()).toBe('1.0.1');
   });
 
-  it('should register all 9 subcommands (init, ui, remove, recover, change, config, enable, disable, agents)', async () => {
+  it('should register all 10 subcommands (init, ui, active, remove, recover, change, config, enable, disable, agents)', async () => {
     const { program } = await import('./index.js');
     const names = program.commands.map((cmd) => cmd.name());
-    expect(names.length).toBe(9);
+    expect(names.length).toBe(10);
     expect(names).toContain('init');
     expect(names).toContain('ui');
+    expect(names).toContain('active');
     expect(names).toContain('remove');
     expect(names).toContain('recover');
     expect(names).toContain('change');

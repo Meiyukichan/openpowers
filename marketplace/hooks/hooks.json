@@ -9,6 +9,24 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-agent"
           }
         ]
+      },
+      {
+        "matcher": "mcp__plugin_openpowers_openpowers-mcp-server__markBeginPropose",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-propose"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --after-agent"
+          }
+        ]
       }
     ],
     "PostToolUse": [

@@ -61,11 +61,13 @@ const {
   buildBeforeAgentCommand,
   buildInitCommand,
   buildWorkflowCommand,
+  buildBeforeProposeCommand,
   executeCommand,
   writeLog,
   runBeforeAgent,
   runAfterAgent,
   runInitAgent,
+  runBeforePropose,
   main,
 } = hooksModule;
 
@@ -490,6 +492,14 @@ describe('buildWorkflowCommand', () => {
   });
 });
 
+describe('buildBeforeProposeCommand', () => {
+  it('should build correct command for --before-propose mode', () => {
+    const result = buildBeforeProposeCommand('abc-123');
+
+    expect(result).toEqual(['openpowers', 'agents', 'switch', 'propose', '--session', 'abc-123']);
+  });
+});
+
 describe('executeCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -910,6 +920,111 @@ describe('runInitAgent', () => {
   });
 });
 
+describe('runBeforePropose', () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.exitCode = undefined;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    existsSyncMock.mockReturnValue(true);
+    homedirMock.mockReturnValue('/mock/home');
+  });
+
+  afterAll(() => {
+    process.exitCode = undefined;
+  });
+
+  it('should silently return when sessionId is missing, without executing commands or logging', () => {
+    runBeforePropose({
+      sessionId: undefined,
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(appendFileSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when cwd is missing, without executing commands or logging', () => {
+    runBeforePropose({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: undefined,
+      prompt: undefined,
+    });
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(appendFileSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently return when cwd path does not exist on disk, without executing commands or logging', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    runBeforePropose({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/nonexistent/path',
+      prompt: undefined,
+    });
+
+    expect(existsSyncMock).toHaveBeenCalledWith('/nonexistent/path');
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(appendFileSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should write exactly 7 log entries in correct order on happy path', () => {
+    execSyncMock.mockReturnValue('switch successful');
+
+    runBeforePropose({
+      sessionId: 'prop-session',
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    });
+
+    // Exactly 7 log entries via writeLog
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(7);
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+
+    // Entry 1: Accepted hook request --- session-id
+    expect(logLines[0]).toContain('Accepted hook request --- session-id: prop-session');
+
+    // Entry 2: Accepted hook request --- openpowers-purpose: propose (hardcoded)
+    expect(logLines[1]).toContain('Accepted hook request --- openpowers-purpose: propose');
+
+    // Entry 3: Accepted hook request --- cwd
+    expect(logLines[2]).toContain('Accepted hook request --- cwd: /valid/path');
+
+    // Entry 4: Running command for init
+    expect(logLines[3]).toContain('Running command:');
+    expect(logLines[3]).toContain('agents init');
+    expect(logLines[3]).toContain('--session prop-session');
+    expect(logLines[3]).toContain('--cwd /valid/path');
+
+    // Entry 5: Result of init-agent hook
+    expect(logLines[4]).toContain('Result of init-agent hook:');
+    expect(logLines[4]).toContain("stdout='switch successful'");
+
+    // Entry 6: Running command for switch
+    expect(logLines[5]).toContain('Running command:');
+    expect(logLines[5]).toContain('agents switch');
+    expect(logLines[5]).toContain('propose');
+    expect(logLines[5]).toContain('--session prop-session');
+
+    // Entry 7: Result of switch-agent hook
+    expect(logLines[6]).toContain('Result of switch-agent hook:');
+    expect(logLines[6]).toContain("stdout='switch successful'");
+  });
+});
+
 describe('main', () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
@@ -945,7 +1060,7 @@ describe('main', () => {
     main();
 
     expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent'),
+      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose'),
     );
     expect(process.exitCode).toBe(1);
   });
@@ -1179,5 +1294,41 @@ describe('main', () => {
     expect(execSyncMock).not.toHaveBeenCalled();
     expect(stderrSpy).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should handle --before-propose with valid stdin and execute init then switch-propose commands', () => {
+    process.argv = ['node', '/fake/path/script.js', '--before-propose'];
+    const stdinJson = JSON.stringify({
+      session_id: 'prop-routing',
+      cwd: '/home/user/project',
+    });
+    mockStdin(stdinJson);
+    execSyncMock.mockReturnValue('output');
+
+    main();
+
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // First call: init command
+    const initCallArg = execSyncMock.mock.calls[0][0];
+    expect(initCallArg).toContain('openpowers');
+    expect(initCallArg).toContain('agents init');
+    expect(initCallArg).toContain('--session');
+    expect(initCallArg).toContain('prop-routing');
+    expect(initCallArg).toContain('--cwd');
+    expect(initCallArg).toContain('/home/user/project');
+    // Second call: switch to propose
+    const switchCallArg = execSyncMock.mock.calls[1][0];
+    expect(switchCallArg).toContain('openpowers');
+    expect(switchCallArg).toContain('agents switch');
+    expect(switchCallArg).toContain('propose');
+    expect(switchCallArg).toContain('--session');
+    expect(switchCallArg).toContain('prop-routing');
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+
+    // Verify 7 log entries
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(7);
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines[1]).toContain('Accepted hook request --- openpowers-purpose: propose');
   });
 });

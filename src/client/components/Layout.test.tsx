@@ -198,7 +198,7 @@ describe('Layout', () => {
         children: React.createElement('div', null, 'content'),
       }),
     );
-    const toggle = screen.getByRole('switch', { name: /toggle claude desktop local routing/i });
+    const toggle = screen.getByRole('switch', { name: /toggle anthropic api proxy/i });
     await user.click(toggle);
     expect(onToggleProxy).toHaveBeenCalledOnce();
   });
@@ -211,7 +211,7 @@ describe('Layout', () => {
         children: React.createElement('div', null, 'content'),
       }),
     );
-    const toggle = screen.getByRole('switch', { name: /toggle claude desktop local routing/i });
+    const toggle = screen.getByRole('switch', { name: /toggle anthropic api proxy/i });
     expect(toggle.getAttribute('aria-checked')).toBe('true');
 
     rerender(
@@ -232,7 +232,7 @@ describe('Layout', () => {
       }),
     );
     const resetBtn = screen.getByLabelText(/reset providers/i);
-    const toggle = screen.getByRole('switch', { name: /toggle claude desktop local routing/i });
+    const toggle = screen.getByRole('switch', { name: /toggle anthropic api proxy/i });
     // Toggle wrapper should be after reset button in the left group
     expect(resetBtn.nextElementSibling).toBe(toggle.parentElement);
   });
