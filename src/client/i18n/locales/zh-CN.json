@@ -1,8 +1,6 @@
 {
   "app": {
-    "brandName": "OpenPowers",
-    "languageSwitchToChinese": "切换到中文",
-    "languageSwitchToEnglish": "切换到英文"
+    "brandName": "OpenPowers"
   },
   "toast": {
     "providerAdded": "已添加供应商",

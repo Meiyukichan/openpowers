@@ -1,8 +1,6 @@
 {
   "app": {
-    "brandName": "OpenPowers",
-    "languageSwitchToChinese": "Switch to Chinese",
-    "languageSwitchToEnglish": "Switch to English"
+    "brandName": "OpenPowers"
   },
   "toast": {
     "providerAdded": "Provider added",

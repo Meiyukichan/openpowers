@@ -63,6 +63,42 @@ function formatZodError(error: { issues: Array<{ path: readonly (string | number
   };
 }
 
+/**
+ * Checks if an upstream 403 response indicates an authentication error
+ * (bad/expired key) vs a permission error (valid key, no access to model).
+ *
+ * Anthropic-format providers return structured error bodies:
+ *   { type: "error", error: { type: "authentication_error", ... } }
+ *   { type: "error", error: { type: "permission_error", ... } }
+ *
+ * A "permission_error" with a model-access code (e.g. 1220 on Zhipu) means
+ * the key was accepted but the model is not available — key is still valid.
+ */
+function isUpstreamAuthError(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return true; // unknown format → assume auth error
+  const body = data as Record<string, unknown>;
+  // Anthropic error format: { type: "error", error: { type: "..." } }
+  if (body.type === 'error' && body.error && typeof body.error === 'object') {
+    const errObj = body.error as Record<string, unknown>;
+    // "authentication_error" = bad key; anything else (permission_error, etc.) = key accepted
+    return errObj.type === 'authentication_error';
+  }
+  // OpenAI format: { error: { message: "...", type: "invalid_api_key" } }
+  if (body.error && typeof body.error === 'object') {
+    const errObj = body.error as Record<string, unknown>;
+    if (errObj.type === 'invalid_api_key' || errObj.type === 'invalid_request_error') {
+      return true;
+    }
+  }
+  // If string contains common auth-failure keywords
+  if (typeof body.message === 'string') {
+    const msg = body.message.toLowerCase();
+    return msg.includes('invalid') && msg.includes('key');
+  }
+  // Default: assume non-auth error (key accepted)
+  return false;
+}
+
 /** Zod schema for setting the active provider (client input). */
 const SetActiveProviderSchema = z.object({
   providerId: z.string(),
@@ -449,15 +485,44 @@ providersRouter.post('/validate', async (req, res) => {
         valid: true,
         models: finalRes.data.data || [],
       });
-    } else if (finalRes.status === 401 || finalRes.status === 403) {
+    } else if (finalRes.status === 401) {
+      // 401 = always invalid key
+      const upstreamError = typeof finalRes.data === 'object'
+        ? JSON.stringify(finalRes.data)
+        : String(finalRes.data || '');
       res.status(200).json({
         valid: false,
         error: 'Authentication failed: invalid API key',
+        upstreamError: upstreamError || undefined,
       });
+    } else if (finalRes.status === 403) {
+      // 403 can mean either invalid key OR valid key but no access to the requested model.
+      // Check if upstream indicates a non-auth error (e.g. model access permission).
+      const isAuthError = isUpstreamAuthError(finalRes.data);
+      if (isAuthError) {
+        const upstreamError = typeof finalRes.data === 'object'
+          ? JSON.stringify(finalRes.data)
+          : String(finalRes.data || '');
+        res.status(200).json({
+          valid: false,
+          error: 'Authentication failed: invalid API key',
+          upstreamError: upstreamError || undefined,
+        });
+      } else {
+        // Key accepted but model/resource not available — key is valid
+        res.status(200).json({
+          valid: true,
+          models: finalRes.data.data || [],
+        });
+      }
     } else {
+      const upstreamError = typeof finalRes.data === 'object'
+        ? JSON.stringify(finalRes.data)
+        : String(finalRes.data || '');
       res.status(200).json({
         valid: false,
         error: `Validation failed: upstream returned ${finalRes.status}`,
+        upstreamError: upstreamError || undefined,
       });
     }
   } catch (err: unknown) {

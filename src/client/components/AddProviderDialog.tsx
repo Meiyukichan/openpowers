@@ -102,7 +102,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   const [templateSubmitting, setTemplateSubmitting] = useState(false);
   const [usedTemplate, setUsedTemplate] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<{ valid: true; models: string[] } | { valid: false; error: string } | null>(null);
+  const [validationResult, setValidationResult] = useState<{ valid: true; models: string[] } | { valid: false; error: string; upstreamError?: string } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Reset form when dialog opens
@@ -341,7 +341,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
       if (data.valid) {
         setValidationResult({ valid: true, models: data.models || [] });
       } else {
-        setValidationResult({ valid: false, error: data.error || t('common.validate.validateError') });
+        setValidationResult({ valid: false, error: data.error || t('common.validate.validateError'), upstreamError: data.upstreamError });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -575,9 +575,14 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
                 : t('common.validate.validateSuccessNoModels'),
             ),
             validationResult && !validationResult.valid && React.createElement(
-              'span',
+              'div',
               { className: 'text-sm text-red-600' },
-              validationResult.error,
+              React.createElement('span', null, validationResult.error),
+              validationResult.upstreamError && React.createElement(
+                'pre',
+                { className: 'mt-1 text-xs text-red-500 whitespace-pre-wrap break-all max-h-24 overflow-auto' },
+                validationResult.upstreamError,
+              ),
             ),
           ),
           // Base URL field
