@@ -90,6 +90,7 @@
       "validateButton": "Validate API Key",
       "validating": "Validating...",
       "validateSuccess": "Valid — {{count}} models available",
+      "validateSuccessNoModels": "API Key is valid",
       "validateError": "Invalid API Key",
       "validateTimeout": "Validation timeout",
       "validateFailed": "Validation failed"

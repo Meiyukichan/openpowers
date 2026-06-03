@@ -570,7 +570,9 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
             validationResult && validationResult.valid && React.createElement(
               'span',
               { className: 'text-sm text-green-600' },
-              t('common.validate.validateSuccess', { count: validationResult.models.length }),
+              validationResult.models.length > 0
+                ? t('common.validate.validateSuccess', { count: validationResult.models.length })
+                : t('common.validate.validateSuccessNoModels'),
             ),
             validationResult && !validationResult.valid && React.createElement(
               'span',

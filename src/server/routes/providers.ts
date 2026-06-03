@@ -406,31 +406,50 @@ providersRouter.post('/validate', async (req, res) => {
   const { baseUrl, apiKey } = parsed.data;
   const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`;
 
-  try {
-    // Send a minimal request to /v1/messages to validate the API key.
-    // A valid key will return 400 (bad request format) or 200,
-    // while an invalid key will return 401/403.
-    const upstreamRes = await axios({
-      method: 'POST',
-      url,
-      headers: {
-        'x-api-key': apiKey,
-        'authorization': `Bearer ${apiKey}`,
-        'content-type': 'application/json',
-        'anthropic-version': '2023-06-01',
-      },
-      data: { model: 'test', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] },
-      timeout: 5000,
-      validateStatus: () => true,
-    });
+  // Auth header combinations to try in order.
+  // Some providers reject requests when both x-api-key and authorization are present.
+  // Others require one or the other. We try progressively simpler combinations.
+  const authCombinations: Array<Record<string, string>> = [
+    // Anthropic format: x-api-key
+    { 'x-api-key': apiKey },
+    // OpenAI / DeepSeek / Zhipu format: Authorization Bearer
+    { 'authorization': `Bearer ${apiKey}` },
+    // Raw authorization without Bearer prefix (some providers)
+    { 'authorization': apiKey },
+  ];
 
-    if (upstreamRes.status === 200 || upstreamRes.status === 400) {
+  try {
+    let upstreamRes: any;
+    for (const authHeaders of authCombinations) {
+      upstreamRes = await axios({
+        method: 'POST',
+        url,
+        headers: {
+          ...authHeaders,
+          'content-type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        data: { model: 'test', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] },
+        timeout: 5000,
+        validateStatus: () => true,
+      });
+
+      // If not 401/403, stop trying more auth combinations
+      if (upstreamRes.status !== 401 && upstreamRes.status !== 403) {
+        break;
+      }
+    }
+
+    // Guard: upstreamRes is always assigned because authCombinations is non-empty
+    const finalRes = upstreamRes!;
+
+    if (finalRes.status === 200 || finalRes.status === 400) {
       // 200 = valid key with working request; 400 = valid key but bad request format
       res.status(200).json({
         valid: true,
-        models: upstreamRes.data.data || [],
+        models: finalRes.data.data || [],
       });
-    } else if (upstreamRes.status === 401 || upstreamRes.status === 403) {
+    } else if (finalRes.status === 401 || finalRes.status === 403) {
       res.status(200).json({
         valid: false,
         error: 'Authentication failed: invalid API key',
@@ -438,7 +457,7 @@ providersRouter.post('/validate', async (req, res) => {
     } else {
       res.status(200).json({
         valid: false,
-        error: `Validation failed: upstream returned ${upstreamRes.status}`,
+        error: `Validation failed: upstream returned ${finalRes.status}`,
       });
     }
   } catch (err: unknown) {

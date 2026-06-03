@@ -90,6 +90,7 @@
       "validateButton": "验证 API Key",
       "validating": "正在验证...",
       "validateSuccess": "有效 — {{count}} 个模型可用",
+      "validateSuccessNoModels": "API Key 有效",
       "validateError": "API Key 无效",
       "validateTimeout": "验证超时",
       "validateFailed": "验证失败"
