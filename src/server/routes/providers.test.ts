@@ -953,8 +953,27 @@ describe('Provider Routes', () => {
         models: [{ id: 'model-1' }, { id: 'model-2' }],
       });
       expect(axiosMock).toHaveBeenCalledWith(expect.objectContaining({
+        method: 'POST',
         timeout: 5000,
       }));
+    });
+
+    it('should return 200 with valid:true when upstream returns 400 (bad request but valid key)', async () => {
+      axiosMock.mockResolvedValue({
+        status: 400,
+        data: { error: { type: 'invalid_request_error', message: 'missing required field' } },
+        headers: {},
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.deepseek.com/anthropic', apiKey: 'sk-deepseek-valid' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: true,
+        models: [],
+      });
     });
 
     it('should return 200 with valid:false when upstream resolves with 401', async () => {

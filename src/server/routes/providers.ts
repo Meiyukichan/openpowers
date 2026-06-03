@@ -404,24 +404,31 @@ providersRouter.post('/validate', async (req, res) => {
   }
 
   const { baseUrl, apiKey } = parsed.data;
-  const url = `${baseUrl.replace(/\/+$/, '')}/v1/models`;
+  const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`;
 
   try {
+    // Send a minimal request to /v1/messages to validate the API key.
+    // A valid key will return 400 (bad request format) or 200,
+    // while an invalid key will return 401/403.
     const upstreamRes = await axios({
-      method: 'GET',
+      method: 'POST',
       url,
       headers: {
         'x-api-key': apiKey,
         'authorization': `Bearer ${apiKey}`,
+        'content-type': 'application/json',
+        'anthropic-version': '2023-06-01',
       },
+      data: { model: 'test', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] },
       timeout: 5000,
       validateStatus: () => true,
     });
 
-    if (upstreamRes.status === 200) {
+    if (upstreamRes.status === 200 || upstreamRes.status === 400) {
+      // 200 = valid key with working request; 400 = valid key but bad request format
       res.status(200).json({
         valid: true,
-        models: upstreamRes.data.data || upstreamRes.data,
+        models: upstreamRes.data.data || [],
       });
     } else if (upstreamRes.status === 401 || upstreamRes.status === 403) {
       res.status(200).json({
