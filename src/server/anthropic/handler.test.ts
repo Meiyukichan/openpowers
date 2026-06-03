@@ -70,6 +70,9 @@ interface MockResponse extends Partial<Response> {
   headers: Record<string, string>;
   _status: number;
   _headersSent: boolean;
+  _writeData: string[];
+  _flushCalled: boolean;
+  flush?: () => void;
 }
 
 function createMockReq(overrides?: Partial<Request>): Request {
@@ -95,6 +98,8 @@ function createMockRes(): MockResponse {
     headers: {},
     _status: 200,
     _headersSent: false,
+    _writeData: [],
+    _flushCalled: false,
     status(code: number) {
       this._status = code;
       return this as unknown as Response;
@@ -113,9 +118,16 @@ function createMockRes(): MockResponse {
       this._headersSent = true;
       return this as unknown as Response;
     },
+    write(chunk: string) {
+      this._writeData.push(chunk);
+      return true;
+    },
     end() {
       this._headersSent = true;
       return this as unknown as Response;
+    },
+    flush() {
+      this._flushCalled = true;
     },
     pipe: vi.fn(),
     on: vi.fn(),
@@ -683,7 +695,7 @@ describe('proxyRequestHandler', () => {
       expect(res.body).toEqual({ id: 'msg_456' });
     });
 
-    it('logs error and ends response on upstream SSE stream error', async () => {
+    it('writes SSE error event and ends response on upstream SSE stream error when headersSent=true', async () => {
       setupProvider();
       const streamObj = mockAxiosStream(200, { 'content-type': 'text/event-stream' });
 
@@ -698,6 +710,9 @@ describe('proxyRequestHandler', () => {
         body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
       });
       const res = createMockRes();
+      // Simulate headers already sent (SSE streaming in progress)
+      res.headersSent = true;
+      res._headersSent = true;
 
       await proxyRequestHandler(req, res as unknown as Response);
 
@@ -705,7 +720,46 @@ describe('proxyRequestHandler', () => {
       errorCb!(new Error('Stream broken'));
 
       expect(proxyLoggerMock.error).toHaveBeenCalledWith('Upstream stream error: Stream broken');
+      // Should write SSE error event before ending
+      const sseEvent = `data: ${JSON.stringify({ type: 'error', error: { type: 'upstream_error', message: 'Upstream stream interrupted: Stream broken' } })}\n\n`;
+      expect(res._writeData).toContain(sseEvent);
+      expect(res._flushCalled).toBe(true);
       expect(res._headersSent).toBe(true);
+    });
+
+    it('returns 502 with JSON error on upstream SSE stream error when headersSent=false', async () => {
+      setupProvider();
+      const streamObj = mockAxiosStream(200, { 'content-type': 'text/event-stream' });
+
+      let errorCb: ((err: Error) => void) | undefined;
+      streamObj.on.mockImplementation((event: string, cb: unknown) => {
+        if (event === 'error') {
+          errorCb = cb as (err: Error) => void;
+        }
+      });
+
+      const req = createMockReq({
+        body: JSON.stringify({ model: 'claude-sonnet', stream: true, messages: [] }),
+      });
+      const res = createMockRes();
+      // Ensure headers are not sent yet
+      res.headersSent = false;
+      res._headersSent = false;
+
+      await proxyRequestHandler(req, res as unknown as Response);
+
+      expect(errorCb).toBeDefined();
+      errorCb!(new Error('Connection lost'));
+
+      expect(proxyLoggerMock.error).toHaveBeenCalledWith('Upstream stream error: Connection lost');
+      // Should return 502 with JSON error body
+      expect(res._status).toBe(502);
+      expect(res.body).toEqual({
+        error: {
+          type: 'upstream_error',
+          message: 'Upstream stream interrupted: Connection lost',
+        },
+      });
     });
 
     it('destroys upstream stream when client disconnects during SSE streaming', async () => {

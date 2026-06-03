@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Layout } from './components/Layout.js';
 import { ProviderList } from './components/ProviderList.js';
@@ -15,6 +16,7 @@ import { EditProviderDialog } from './components/EditProviderDialog.js';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog.js';
 import type { Provider } from '../server/providers-store.js';
 import { logger } from './utils/logger.js';
+import { localeToHtmlLang } from './i18n/index.js';
 
 type ToastType = 'success' | 'error';
 
@@ -35,12 +37,22 @@ export function App(): React.ReactElement {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
+  const { i18n, t } = useTranslation();
+
   const showToast = useCallback((text: string, type: ToastType = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => {
       setToastMessage(null);
     }, 2500);
   }, []);
+
+  /**
+   * Sync the <html lang> attribute with the current i18n locale.
+   * Updates document.documentElement.lang whenever the language changes.
+   */
+  useEffect(() => {
+    document.documentElement.lang = localeToHtmlLang(i18n.language);
+  }, [i18n.language]);
 
   /**
    * Fetches the active provider ID from the server on mount and whenever
@@ -89,7 +101,7 @@ export function App(): React.ReactElement {
 
   const handleAddSuccess = () => {
     triggerRefresh();
-    showToast('已添加供应商');
+    showToast(t('toast.providerAdded'));
   };
 
   // --- Edit dialog handlers ---
@@ -104,7 +116,7 @@ export function App(): React.ReactElement {
 
   const handleEditSuccess = () => {
     triggerRefresh();
-    showToast('已保存供应商');
+    showToast(t('toast.providerSaved'));
   };
 
   // --- Delete dialog handlers ---
@@ -119,7 +131,7 @@ export function App(): React.ReactElement {
 
   const handleDeleteSuccess = () => {
     triggerRefresh();
-    showToast('已删除供应商');
+    showToast(t('toast.providerDeleted'));
   };
 
   // --- Reset handler ---
@@ -131,11 +143,11 @@ export function App(): React.ReactElement {
         throw new Error(`HTTP ${response.status}`);
       }
       triggerRefresh();
-      showToast('已还原Claude配置');
+      showToast(t('toast.configRestored'));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`Failed to reset providers: ${message}`);
-      showToast(`还原配置失败: ${message}`, 'error');
+      showToast(t('toast.restoreFailed', { message }), 'error');
     }
   };
 
@@ -156,11 +168,11 @@ export function App(): React.ReactElement {
         throw new Error(`HTTP ${response.status}`);
       }
       triggerRefresh();
-      showToast(`已切换至 ${provider.name}`);
+      showToast(t('toast.switchedTo', { name: provider.name }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`Failed to set active provider: ${message}`);
-      showToast(`切换供应商失败: ${message}`, 'error');
+      showToast(t('toast.switchFailed', { message }), 'error');
     }
   };
 
@@ -174,11 +186,11 @@ export function App(): React.ReactElement {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       setEnableOpenpowersProxy(nextState);
-      showToast(nextState ? '已开启本地代理路由' : '已关闭本地代理路由');
+      showToast(nextState ? t('toast.proxyEnabled') : t('toast.proxyDisabled'));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`Failed to toggle proxy: ${message}`);
-      showToast(`操作失败: ${message}`, 'error');
+      showToast(t('toast.operationFailed', { message }), 'error');
     }
   };
 

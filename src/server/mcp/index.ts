@@ -87,6 +87,20 @@ function createMcpServer(): McpServer {
 export const mcpRouter: express.Router = express.default.Router();
 
 /**
+ * Method guard: reject any non-POST method with 405 Method Not Allowed.
+ * Must be registered before the POST handler.
+ */
+mcpRouter.all('/', (req, res, next) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({
+      error: `Method ${req.method} not allowed on /openpowers/mcp. Use POST.`,
+    });
+    return;
+  }
+  next();
+});
+
+/**
  * POST /
  * Handles MCP JSON-RPC requests. Creates a new server and transport per
  * request (stateless mode). The transport automatically processes the

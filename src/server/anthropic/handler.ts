@@ -318,8 +318,19 @@ export async function proxyRequestHandler(
         // Handle upstream stream errors
         upstreamStream.on('error', (err: Error) => {
           activeLogger.error(`Upstream stream error: ${err.message}`);
-          if (!res.headersSent) {
+          const errorMessage = `Upstream stream interrupted: ${err.message}`;
+          if (res.headersSent) {
+            // Headers already sent: write SSE-formatted error event before ending
+            const sseEvent = `data: ${JSON.stringify({ type: 'error', error: { type: 'upstream_error', message: errorMessage } })}\n\n`;
+            res.write(sseEvent);
+            // Ensure SSE error event is immediately pushed to the client
+            // flush() is provided by the compression middleware; safe optional call
+            const flushable = res as unknown as { flush?: () => void };
+            flushable.flush?.();
             res.end();
+          } else {
+            // Headers not yet sent: return HTTP 502 with JSON error body
+            res.status(502).json({ error: { type: 'upstream_error', message: errorMessage } });
           }
         });
 

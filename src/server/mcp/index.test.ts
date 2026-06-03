@@ -157,6 +157,36 @@ describe('mcpRouter', () => {
     // Status should be set by transport (default 200 for no-op mock)
     expect(res.status).toBe(200);
   });
+
+  it('should return 405 for GET /', async () => {
+    const app = express.default();
+    app.use(mcpRouter);
+
+    const res = await request(app).get('/');
+
+    expect(res.status).toBe(405);
+    expect(res.body).toEqual({ error: 'Method GET not allowed on /openpowers/mcp. Use POST.' });
+  });
+
+  it('should return 405 for DELETE /', async () => {
+    const app = express.default();
+    app.use(mcpRouter);
+
+    const res = await request(app).delete('/');
+
+    expect(res.status).toBe(405);
+    expect(res.body).toEqual({ error: 'Method DELETE not allowed on /openpowers/mcp. Use POST.' });
+  });
+
+  it('should return 405 for PUT /', async () => {
+    const app = express.default();
+    app.use(mcpRouter);
+
+    const res = await request(app).put('/');
+
+    expect(res.status).toBe(405);
+    expect(res.body).toEqual({ error: 'Method PUT not allowed on /openpowers/mcp. Use POST.' });
+  });
 });
 
 // ---------------------------------------------------------------------------

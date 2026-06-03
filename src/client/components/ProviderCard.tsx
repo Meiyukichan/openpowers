@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Provider } from '../../server/providers-store.js';
 import { Play, Check, Pencil, Trash2 } from 'lucide-react';
 import AnthropicSvg from '../icons/anthropic.svg?url';
@@ -47,11 +48,12 @@ const ICON_MAP: Record<string, string> = {
  * Returns null (no icon) when icon is empty or unrecognized.
  */
 function ProviderIcon({ icon }: { icon?: string }): React.ReactElement | null {
+  const { t } = useTranslation();
   const svgUrl = icon ? ICON_MAP[icon] : undefined;
   if (svgUrl) {
     return React.createElement('img', {
       src: svgUrl,
-      alt: 'Provider icon',
+      alt: t('providerCard.providerIcon'),
       width: 20,
       height: 20,
       loading: 'lazy',
@@ -62,10 +64,13 @@ function ProviderIcon({ icon }: { icon?: string }): React.ReactElement | null {
 
 /**
  * Returns the button state configuration based on whether the provider is active.
- * Active provider: grey disabled button with Check icon and "已在用" text.
- * Inactive provider: blue button with Play icon and "启用" text.
+ * Active provider: grey disabled button with Check icon and active text.
+ * Inactive provider: blue button with Play icon and enable text.
  */
-function getEnableButtonState(isActive: boolean): {
+function getEnableButtonState(
+  isActive: boolean,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): {
   disabled: boolean;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   text: string;
@@ -74,13 +79,13 @@ function getEnableButtonState(isActive: boolean): {
     return {
       disabled: true,
       icon: Check,
-      text: '使用中',
+      text: t('providerCard.active'),
     };
   }
   return {
     disabled: false,
     icon: Play,
-    text: '启用',
+    text: t('providerCard.enable'),
   };
 }
 
@@ -89,8 +94,9 @@ function getEnableButtonState(isActive: boolean): {
  * Shows provider details and reveals action buttons on hover via group opacity transition.
  */
 export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive }: ProviderCardProps): React.ReactElement {
+  const { t } = useTranslation();
   const [enablePending, setEnablePending] = useState(false);
-  const buttonState = getEnableButtonState(isActive);
+  const buttonState = getEnableButtonState(isActive, t);
 
   const handleEnable = async () => {
     if (isActive) return;
@@ -177,7 +183,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
             type: 'button',
             onClick: handleEnable,
             disabled: buttonState.disabled || enablePending,
-            'aria-label': isActive ? `${provider.name} is active` : `Enable ${provider.name}`,
+            'aria-label': isActive ? t('providerCard.isActive', { name: provider.name }) : t('providerCard.enableProvider', { name: provider.name }),
             className: `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               buttonState.disabled
                 ? 'bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700'
@@ -193,8 +199,8 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           {
             type: 'button',
             onClick: () => onEdit(provider),
-            'aria-label': `Edit ${provider.name}`,
-            title: '编辑',
+            'aria-label': t('providerCard.editProvider', { name: provider.name }),
+            title: t('providerCard.edit'),
             className:
               'p-2 rounded-lg text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/40 transition-colors',
           },
@@ -206,8 +212,8 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           {
             type: 'button',
             onClick: () => onDelete(provider),
-            'aria-label': `Delete ${provider.name}`,
-            title: '删除',
+            'aria-label': t('providerCard.deleteProvider', { name: provider.name }),
+            title: t('providerCard.delete'),
             className:
               'p-2 rounded-lg text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/40 transition-colors',
           },

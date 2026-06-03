@@ -147,12 +147,22 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
    - Max      (Full mode,     Code exploration ✅ | Propose & Plan ✅ | Artifacts review ✅ | Reference exploration ✅ | Feature Implement ✅ | Spec review ✅ | Code review ✅ | Final Integration ✅)
 
   You need to determine a recommended option based on the scale of the demand (lite < 300, 300 < standard < 1000, max > 1000).
+
+  Then you **MUST** use following script to write OpenPowers config:
+  ```
+  openpowers config mode <lite/standard/max>
+  ```
 2. Limit feature count, you **MUST** use the AskUserQuestion tool to ask the user to limit the maximum number of plan features, with the following options:
    - 0.5 (default, sum(features) <= 0.5 * ?(count of specs) = ?)
    - 1   (sum(features) <= 1 * ?(count of specs) = ?)
    - 1.5 (sum(features) <= 1.5 * ?(count of specs) = ?)
   
   You need to determine a recommended option based on the scale of the demand.
+
+  Then you **MUST** use following script to write OpenPowers config:
+  ```
+  openpowers config set experimental.factor <factor: 0.5/...>
+  ```
 
 3. You **MSUT** use mcp tool: `mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose` to make a ending mark.
 

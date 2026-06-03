@@ -6,6 +6,7 @@
 
 import * as express from 'express';
 import { z } from 'zod';
+import axios from 'axios';
 import {
   loadProviders,
   createProvider,
@@ -370,6 +371,83 @@ providersRouter.post('/templates', (req, res) => {
       res.status(409).json({ error: message });
     } else {
       res.status(500).json({ error: message });
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Validate endpoint
+// ---------------------------------------------------------------------------
+
+/** Zod schema for validating provider API key. */
+const ProviderValidateSchema = z.object({
+  baseUrl: z.string().min(1),
+  apiKey: z.string().min(1),
+});
+
+/**
+ * POST /openpowers/api/providers/validate
+ * Validates an API key by calling the upstream /v1/models endpoint
+ * with a 5 second timeout. Does not store the key.
+ */
+providersRouter.post('/validate', async (req, res) => {
+  // Guard: reject oversized request bodies (> 1kb)
+  if (JSON.stringify(req.body).length > 1024) {
+    res.status(413).json({ error: 'Request body too large' });
+    return;
+  }
+
+  const parsed = ProviderValidateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Missing required fields: baseUrl, apiKey' });
+    return;
+  }
+
+  const { baseUrl, apiKey } = parsed.data;
+  const url = `${baseUrl.replace(/\/+$/, '')}/v1/models`;
+
+  try {
+    const upstreamRes = await axios({
+      method: 'GET',
+      url,
+      headers: {
+        'x-api-key': apiKey,
+        'authorization': `Bearer ${apiKey}`,
+      },
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+
+    if (upstreamRes.status === 200) {
+      res.status(200).json({
+        valid: true,
+        models: upstreamRes.data.data || upstreamRes.data,
+      });
+    } else if (upstreamRes.status === 401 || upstreamRes.status === 403) {
+      res.status(200).json({
+        valid: false,
+        error: 'Authentication failed: invalid API key',
+      });
+    } else {
+      res.status(200).json({
+        valid: false,
+        error: `Validation failed: upstream returned ${upstreamRes.status}`,
+      });
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as NodeJS.ErrnoException).code;
+
+    if (code === 'ETIMEDOUT' || code === 'ECONNABORTED') {
+      res.status(200).json({
+        valid: false,
+        error: 'Validation timeout: upstream did not respond within 5s',
+      });
+    } else {
+      res.status(200).json({
+        valid: false,
+        error: `Validation failed: ${message}`,
+      });
     }
   }
 });

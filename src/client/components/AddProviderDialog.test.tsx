@@ -5,11 +5,29 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import i18next from 'i18next';
+import { initReactI18next, I18nextProvider } from 'react-i18next';
 import { AddProviderDialog } from './AddProviderDialog.js';
+import zhCN from '../i18n/locales/zh-CN.json';
+import enUS from '../i18n/locales/en-US.json';
+
+/** Dedicated i18next instance for test isolation */
+let i18nInstance: i18next.i18n;
+
+/** Helper to render AddProviderDialog wrapped in I18nextProvider */
+function renderDialog(props: Record<string, unknown>) {
+  return render(
+    React.createElement(
+      I18nextProvider,
+      { i18n: i18nInstance },
+      React.createElement(AddProviderDialog, props),
+    ),
+  );
+}
 
 // Template data returned by the API for all tests
 const mockTemplates = [
@@ -18,6 +36,19 @@ const mockTemplates = [
 ];
 
 describe('AddProviderDialog', () => {
+  beforeAll(async () => {
+    i18nInstance = i18next.createInstance();
+    await i18nInstance.use(initReactI18next).init({
+      lng: 'zh-CN',
+      fallbackLng: 'zh-CN',
+      resources: {
+        'zh-CN': { translation: zhCN },
+        'en-US': { translation: enUS },
+      },
+      interpolation: { escapeValue: false },
+    });
+  });
+
   beforeEach(() => {
     // Default mock: return templates for GET /templates, success for everything else
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -37,14 +68,12 @@ describe('AddProviderDialog', () => {
   });
 
   it('renders dialog with correct title', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     // Wait for templates to load
     await waitFor(() => {
       expect(screen.getByText('添加供应商')).toBeInTheDocument();
@@ -52,76 +81,66 @@ describe('AddProviderDialog', () => {
   });
 
   it('does not render when isOpen is false', () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: false,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     expect(screen.queryByText('添加供应商')).not.toBeInTheDocument();
   });
 
   it('shows form fields: name, notes, websiteUrl, apiKey, baseUrl, and model fields', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/provider name/i)).toBeInTheDocument();
     });
-    expect(screen.getByPlaceholderText(/notes/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/website url/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/api key/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/base url/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/default model/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/sonnet model/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/opus model/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/haiku model/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('供应商名称')).toBeInTheDocument();
+    });
+    expect(screen.getByPlaceholderText('备注（可选）')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('官网链接（可选）')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('API Key')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('请求地址（可选）')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('默认模型')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Sonnet 模型')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Opus 模型')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Haiku 模型')).toBeInTheDocument();
   });
 
   it('fetches template list from GET /openpowers/api/providers/templates on mount', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith('/openpowers/api/providers/templates');
     });
   });
 
   it('shows preset selector section with label "供应商模板"', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('供应商模板')).toBeInTheDocument();
     });
   });
 
   it('shows preset selector grid with provider names from API', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
@@ -130,26 +149,24 @@ describe('AddProviderDialog', () => {
 
   it('pre-fills name, baseUrl, and model fields when a preset is selected', async () => {
     const user = userEvent.setup();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
     const presetButton = screen.getByText('TestProvider1');
     await user.click(presetButton);
 
-    const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;
-    const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
-    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
-    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
-    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
-    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
+    const nameInput = screen.getByPlaceholderText('供应商名称') as HTMLInputElement;
+    const baseUrlInput = screen.getByPlaceholderText('请求地址（可选）') as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText('默认模型') as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText('Sonnet 模型') as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText('Opus 模型') as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText('Haiku 模型') as HTMLInputElement;
     expect(nameInput.value).toBe('TestProvider1');
     expect(baseUrlInput.value).toBe('https://api.test1.com');
     expect(defaultModelInput.value).toBe('model1');
@@ -161,14 +178,12 @@ describe('AddProviderDialog', () => {
   it('shows validation errors when submitting with empty required fields', async () => {
     const user = userEvent.setup();
     const onSuccess = vi.fn();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess,
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('添加')).toBeInTheDocument();
     });
@@ -176,27 +191,25 @@ describe('AddProviderDialog', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+      expect(screen.getByText('请输入供应商名称')).toBeInTheDocument();
     });
-    expect(screen.getByText(/api key is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/default model is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/sonnet model is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/opus model is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/haiku model is required/i)).toBeInTheDocument();
+    expect(screen.getByText('请输入 API Key')).toBeInTheDocument();
+    expect(screen.getByText('请输入默认模型')).toBeInTheDocument();
+    expect(screen.getByText('请输入 Sonnet 模型')).toBeInTheDocument();
+    expect(screen.getByText('请输入 Opus 模型')).toBeInTheDocument();
+    expect(screen.getByText('请输入 Haiku 模型')).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('calls onClose when cancel button is clicked', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose,
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('取消')).toBeInTheDocument();
     });
@@ -218,26 +231,24 @@ describe('AddProviderDialog', () => {
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
     }) as typeof fetch);
 
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose,
         onSuccess,
         showToast: vi.fn(),
-      }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/provider name/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText(/provider name/i), 'My Provider');
-    await user.type(screen.getByPlaceholderText(/api key/i), 'test-key-123');
-    await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.example.com');
-    await user.type(screen.getByPlaceholderText(/default model/i), 'claude-sonnet-4.6');
-    await user.type(screen.getByPlaceholderText(/sonnet model/i), 'claude-sonnet-4.6');
-    await user.type(screen.getByPlaceholderText(/opus model/i), 'claude-opus-4.7');
-    await user.type(screen.getByPlaceholderText(/haiku model/i), 'claude-haiku-4.5');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('供应商名称')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByPlaceholderText('供应商名称'), 'My Provider');
+    await user.type(screen.getByPlaceholderText('API Key'), 'test-key-123');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.example.com');
+    await user.type(screen.getByPlaceholderText('默认模型'), 'claude-sonnet-4.6');
+    await user.type(screen.getByPlaceholderText('Sonnet 模型'), 'claude-sonnet-4.6');
+    await user.type(screen.getByPlaceholderText('Opus 模型'), 'claude-opus-4.7');
+    await user.type(screen.getByPlaceholderText('Haiku 模型'), 'claude-haiku-4.5');
 
     const submitButton = screen.getByText('添加');
     await user.click(submitButton);
@@ -259,21 +270,18 @@ describe('AddProviderDialog', () => {
           haikuModel: 'claude-haiku-4.5',
           baseUrl: 'https://api.example.com',
         }),
-      }),
-    );
+      }));
   });
 
   it('closes dialog on backdrop click', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose,
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('添加供应商')).toBeInTheDocument();
     });
@@ -284,14 +292,12 @@ describe('AddProviderDialog', () => {
   });
 
   it('does not show advanced fields like model selector, speed test, or common config', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('添加供应商')).toBeInTheDocument();
     });
@@ -301,14 +307,12 @@ describe('AddProviderDialog', () => {
   });
 
   it('only shows templates from the API response', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
@@ -319,31 +323,27 @@ describe('AddProviderDialog', () => {
 
   // bi-001: Brand SVG icons in preset selector
   it('preset buttons with valid iconSvg render brand SVG img tag', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
     // Each preset button with an iconSvg should contain an img tag
-    const presetImgs = document.querySelectorAll('button img[alt="Provider icon"]');
+    const presetImgs = document.querySelectorAll('button img[alt="供应商图标"]');
     expect(presetImgs.length).toBeGreaterThan(0);
   });
 
   it('custom preset "自定义配置" with empty iconSvg shows no icon img', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('自定义配置')).toBeInTheDocument();
     });
@@ -354,26 +354,24 @@ describe('AddProviderDialog', () => {
   });
 
   it('form fields start empty when no preset is selected', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     await waitFor(() => {
       expect(screen.getByText('自定义配置')).toBeInTheDocument();
     });
-    const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;
-    const notesInput = screen.getByPlaceholderText(/notes/i) as HTMLInputElement;
-    const websiteUrlInput = screen.getByPlaceholderText(/website url/i) as HTMLInputElement;
-    const apiKeyInput = screen.getByPlaceholderText(/api key/i) as HTMLInputElement;
-    const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
-    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
-    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
-    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
-    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
+    const nameInput = screen.getByPlaceholderText('供应商名称') as HTMLInputElement;
+    const notesInput = screen.getByPlaceholderText('备注（可选）') as HTMLInputElement;
+    const websiteUrlInput = screen.getByPlaceholderText('官网链接（可选）') as HTMLInputElement;
+    const apiKeyInput = screen.getByPlaceholderText('API Key') as HTMLInputElement;
+    const baseUrlInput = screen.getByPlaceholderText('请求地址（可选）') as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText('默认模型') as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText('Sonnet 模型') as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText('Opus 模型') as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText('Haiku 模型') as HTMLInputElement;
     expect(nameInput.value).toBe('');
     expect(notesInput.value).toBe('');
     expect(websiteUrlInput.value).toBe('');
@@ -389,28 +387,26 @@ describe('AddProviderDialog', () => {
   it('sends POST to /openpowers/api/providers/templates with form data excluding apiKey', async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast,
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText(/provider name/i), 'My Template');
-    await user.type(screen.getByPlaceholderText(/api key/i), 'secret-key');
-    await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.example.com');
-    await user.type(screen.getByPlaceholderText(/default model/i), 'model-x');
-    await user.type(screen.getByPlaceholderText(/sonnet model/i), 'model-s');
-    await user.type(screen.getByPlaceholderText(/opus model/i), 'model-o');
-    await user.type(screen.getByPlaceholderText(/haiku model/i), 'model-h');
-    await user.type(screen.getByPlaceholderText(/website url/i), 'https://example.com');
-    await user.type(screen.getByPlaceholderText(/notes/i), 'some notes');
+    await user.type(screen.getByPlaceholderText('供应商名称'), 'My Template');
+    await user.type(screen.getByPlaceholderText('API Key'), 'secret-key');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.example.com');
+    await user.type(screen.getByPlaceholderText('默认模型'), 'model-x');
+    await user.type(screen.getByPlaceholderText('Sonnet 模型'), 'model-s');
+    await user.type(screen.getByPlaceholderText('Opus 模型'), 'model-o');
+    await user.type(screen.getByPlaceholderText('Haiku 模型'), 'model-h');
+    await user.type(screen.getByPlaceholderText('官网链接（可选）'), 'https://example.com');
+    await user.type(screen.getByPlaceholderText('备注（可选）'), 'some notes');
 
     const addAsTemplateBtn = screen.getByText('添加为模板');
     await user.click(addAsTemplateBtn);
@@ -449,21 +445,19 @@ describe('AddProviderDialog', () => {
   it('shows success toast when template is added successfully', async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast,
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText(/provider name/i), 'New Template');
-    await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.new.com');
+    await user.type(screen.getByPlaceholderText('供应商名称'), 'New Template');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.new.com');
 
     const addAsTemplateBtn = screen.getByText('添加为模板');
     await user.click(addAsTemplateBtn);
@@ -495,21 +489,19 @@ describe('AddProviderDialog', () => {
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
     }) as typeof fetch);
 
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast,
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText(/provider name/i), 'TestProvider1');
-    await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.test.com');
+    await user.type(screen.getByPlaceholderText('供应商名称'), 'TestProvider1');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.test.com');
 
     const addAsTemplateBtn = screen.getByText('添加为模板');
     await user.click(addAsTemplateBtn);
@@ -541,21 +533,19 @@ describe('AddProviderDialog', () => {
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
     }) as typeof fetch);
 
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast,
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('TestProvider1')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText(/provider name/i), 'Broken Template');
-    await user.type(screen.getByPlaceholderText(/base url/i), 'https://api.broken.com');
+    await user.type(screen.getByPlaceholderText('供应商名称'), 'Broken Template');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.broken.com');
 
     const addAsTemplateBtn = screen.getByText('添加为模板');
     await user.click(addAsTemplateBtn);
@@ -583,14 +573,12 @@ describe('AddProviderDialog', () => {
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
     }) as typeof fetch);
 
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('CustomTemplate')).toBeInTheDocument();
@@ -600,25 +588,23 @@ describe('AddProviderDialog', () => {
     // Custom template card should have a delete button
     const customCard = screen.getByText('CustomTemplate').closest('div');
     expect(customCard).toBeInTheDocument();
-    const deleteButtons = customCard!.querySelectorAll('button[title="Delete template"]');
+    const deleteButtons = customCard!.querySelectorAll('button[title="删除模板"]');
     expect(deleteButtons.length).toBe(1);
 
     // Builtin template card should NOT have a delete button
     const builtinCard = screen.getByText('BuiltinTemplate').closest('div');
     expect(builtinCard).toBeInTheDocument();
-    const builtinDeleteBtns = builtinCard!.querySelectorAll('button[title="Delete template"]');
+    const builtinDeleteBtns = builtinCard!.querySelectorAll('button[title="删除模板"]');
     expect(builtinDeleteBtns.length).toBe(0);
   });
 
   it('hardcoded custom config preset does not show delete button', async () => {
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('自定义配置')).toBeInTheDocument();
@@ -626,8 +612,194 @@ describe('AddProviderDialog', () => {
 
     const customConfigCard = screen.getByText('自定义配置').closest('div');
     expect(customConfigCard).toBeInTheDocument();
-    const deleteButtons = customConfigCard!.querySelectorAll('button[title="Delete template"]');
+    const deleteButtons = customConfigCard!.querySelectorAll('button[title="删除模板"]');
     expect(deleteButtons.length).toBe(0);
+  });
+
+  // f-01: API Key validation button tests
+
+  it('shows validate API Key button below the API key input field', async () => {
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    const validateBtn = screen.getByText('验证 API Key');
+    expect(validateBtn).toBeInTheDocument();
+    expect(validateBtn.tagName).toBe('BUTTON');
+  });
+
+  it('validate button is disabled when baseUrl or apiKey is empty', async () => {
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    const validateBtn = screen.getByText('验证 API Key') as HTMLButtonElement;
+    // Both empty — disabled
+    expect(validateBtn.disabled).toBe(true);
+  });
+
+  it('validate button is enabled when both baseUrl and apiKey have values', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    await user.type(screen.getByPlaceholderText('API Key'), 'test-key');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.test.com');
+    const validateBtn = screen.getByText('验证 API Key') as HTMLButtonElement;
+    expect(validateBtn.disabled).toBe(false);
+  });
+
+  it('shows green success text with model count when API key is valid', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates') {
+        return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
+      }
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-a', 'model-b', 'model-c'] }) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    await user.type(screen.getByPlaceholderText('API Key'), 'sk-valid-key');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.test.com');
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/有效.*3.*个模型可用/)).toBeInTheDocument();
+    });
+    const successEl = screen.getByText(/有效.*3.*个模型可用/);
+    expect(successEl.className).toContain('green');
+  });
+
+  it('shows red error text when API key is invalid', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates') {
+        return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
+      }
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Authentication failed: invalid API key' }) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    await user.type(screen.getByPlaceholderText('API Key'), 'sk-bad-key');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.test.com');
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Authentication failed: invalid API key')).toBeInTheDocument();
+    });
+    const errorEl = screen.getByText('Authentication failed: invalid API key');
+    expect(errorEl.className).toContain('red');
+  });
+
+  it('shows red timeout error text when validation times out', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates') {
+        return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
+      }
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Validation timeout: upstream did not respond within 5s' }) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    await user.type(screen.getByPlaceholderText('API Key'), 'sk-test-key');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.slow.com');
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Validation timeout: upstream did not respond within 5s')).toBeInTheDocument();
+    });
+    const timeoutEl = screen.getByText('Validation timeout: upstream did not respond within 5s');
+    expect(timeoutEl.className).toContain('red');
+  });
+
+  it('resets validation result when user modifies baseUrl or apiKey', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/templates') {
+        return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
+      }
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-x'] }) };
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) };
+    }) as typeof fetch);
+
+    renderDialog({
+        isOpen: true,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    await waitFor(() => {
+      expect(screen.getByText('添加供应商')).toBeInTheDocument();
+    });
+    await user.type(screen.getByPlaceholderText('API Key'), 'sk-valid');
+    await user.type(screen.getByPlaceholderText('请求地址（可选）'), 'https://api.test.com');
+    // Click validate — should show success
+    await user.click(screen.getByText('验证 API Key'));
+    await waitFor(() => {
+      expect(screen.getByText(/有效.*1.*个模型可用/)).toBeInTheDocument();
+    });
+    // Now modify the apiKey field
+    await user.type(screen.getByPlaceholderText('API Key'), 'extra');
+    // Validation result should be cleared
+    expect(screen.queryByText(/有效.*1.*个模型可用/)).not.toBeInTheDocument();
   });
 
   it('clicking delete button on custom template sends DELETE API call and removes template from list', async () => {
@@ -647,14 +819,12 @@ describe('AddProviderDialog', () => {
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
     }) as typeof fetch);
 
-    render(
-      React.createElement(AddProviderDialog, {
+    renderDialog({
         isOpen: true,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Deletable')).toBeInTheDocument();
@@ -663,7 +833,7 @@ describe('AddProviderDialog', () => {
 
     // Find and click the delete button on the custom template card
     const deletableCard = screen.getByText('Deletable').closest('div');
-    const deleteBtn = deletableCard!.querySelector('button[title="Delete template"]') as HTMLButtonElement;
+    const deleteBtn = deletableCard!.querySelector('button[title="删除模板"]') as HTMLButtonElement;
     expect(deleteBtn).toBeInTheDocument();
     await user.click(deleteBtn);
 

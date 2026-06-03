@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 import type { Provider } from '../../server/providers-store.js';
 import { logger } from '../utils/logger.js';
@@ -27,6 +28,7 @@ interface DeleteConfirmDialogProps {
  * Includes the provider name in the warning message and confirm/cancel buttons.
  */
 export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, showToast }: DeleteConfirmDialogProps): React.ReactElement | null {
+  const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
 
   // ESC key closes the dialog
@@ -67,7 +69,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`Failed to delete provider: ${message}`);
-      showToast(`删除供应商失败: ${message}`, 'error');
+      showToast(t('toast.deleteFailed', { message }), 'error');
     } finally {
       setDeleting(false);
     }
@@ -83,7 +85,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
       React.createElement('div', {
         className: 'absolute inset-0 bg-black/50 transition-opacity duration-200',
         onClick: onClose,
-        'aria-label': 'Close dialog',
+        'aria-label': t('deleteConfirm.closeAriaLabel'),
       }),
       // Dialog panel
       React.createElement(
@@ -91,7 +93,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
         {
           role: 'dialog',
           'aria-modal': true,
-          'aria-label': 'Delete confirmation dialog',
+          'aria-label': t('deleteConfirm.dialogAriaLabel'),
           onClick: (e: React.MouseEvent) => e.stopPropagation(),
           className:
             'relative z-10 bg-card border rounded-xl shadow-2xl w-full max-w-sm mx-4 transition-all duration-200',
@@ -110,13 +112,13 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
           React.createElement(
             'h3',
             { className: 'text-lg font-semibold mb-2' },
-            '确定要删除该供应商吗？',
+            t('deleteConfirm.confirmTitle'),
           ),
           // Provider name
           React.createElement(
             'p',
             { className: 'text-sm text-muted-foreground mb-6' },
-            `"${provider.name}" will be permanently removed. This action cannot be undone.`,
+            t('deleteConfirm.confirmMessage', { name: provider.name }),
           ),
           // Action buttons
           React.createElement(
@@ -131,7 +133,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
                 className:
                   'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted',
               },
-              '取消',
+              t('deleteConfirm.cancel'),
             ),
             React.createElement(
               'button',
@@ -142,7 +144,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
                 className:
                   'inline-flex items-center justify-center rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50',
               },
-              deleting ? 'Deleting...' : '确认删除',
+              deleting ? t('deleteConfirm.deleting') : t('deleteConfirm.confirmDelete'),
             ),
           ),
         ),

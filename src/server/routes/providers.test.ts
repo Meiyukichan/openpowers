@@ -65,8 +65,21 @@ const {
   restoreClaudeSettingsMock: vi.fn(),
 }));
 
+const { axiosMock, isAxiosErrorMock } = vi.hoisted(() => ({
+  axiosMock: vi.fn(),
+  isAxiosErrorMock: vi.fn(
+    (payload: unknown): boolean =>
+      typeof payload === 'object' && payload !== null && (payload as Record<string, unknown>).isAxiosError === true,
+  ),
+}));
+
 vi.mock('../../utils/logger.js', () => ({
   logger: loggerMock,
+}));
+
+vi.mock('axios', () => ({
+  default: Object.assign(axiosMock, { isAxiosError: isAxiosErrorMock }),
+  isAxiosError: isAxiosErrorMock,
 }));
 
 vi.mock('../claude-settings.js', () => ({
@@ -917,6 +930,182 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
       expect(res.body.error).toMatch(/not found/i);
+    });
+  });
+
+  // ---- POST /openpowers/api/providers/validate ----
+
+  describe('POST /openpowers/api/providers/validate', () => {
+    it('should return 200 with valid:true and models when upstream returns 200', async () => {
+      axiosMock.mockResolvedValue({
+        status: 200,
+        data: { data: [{ id: 'model-1' }, { id: 'model-2' }] },
+        headers: { 'content-type': 'application/json' },
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-valid' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: true,
+        models: [{ id: 'model-1' }, { id: 'model-2' }],
+      });
+      expect(axiosMock).toHaveBeenCalledWith(expect.objectContaining({
+        timeout: 5000,
+      }));
+    });
+
+    it('should return 200 with valid:false when upstream resolves with 401', async () => {
+      axiosMock.mockResolvedValue({
+        status: 401,
+        data: { error: 'Invalid API key' },
+        headers: {},
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-invalid' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Authentication failed: invalid API key',
+      });
+    });
+
+    it('should return 200 with valid:false when upstream resolves with 403', async () => {
+      axiosMock.mockResolvedValue({
+        status: 403,
+        data: { error: 'Forbidden' },
+        headers: {},
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-forbidden' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Authentication failed: invalid API key',
+      });
+    });
+
+    it('should return 200 with valid:false when upstream resolves with 500', async () => {
+      axiosMock.mockResolvedValue({
+        status: 500,
+        data: { error: 'Internal server error' },
+        headers: {},
+      });
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Validation failed: upstream returned 500',
+      });
+    });
+
+    it('should return 200 with valid:false on connection error', async () => {
+      const error = new Error('Connection refused');
+      (error as NodeJS.ErrnoException).code = 'ECONNREFUSED';
+      axiosMock.mockRejectedValue(error);
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Validation failed: Connection refused',
+      });
+    });
+
+    it('should return 200 with valid:false on timeout', async () => {
+      const error = new Error('timeout of 5000ms exceeded');
+      (error as NodeJS.ErrnoException).code = 'ETIMEDOUT';
+      axiosMock.mockRejectedValue(error);
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Validation timeout: upstream did not respond within 5s',
+      });
+    });
+
+    it('should return 200 with valid:false on timeout with ECONNABORTED code', async () => {
+      const error = new Error('timeout of 5000ms exceeded');
+      (error as NodeJS.ErrnoException).code = 'ECONNABORTED';
+      axiosMock.mockRejectedValue(error);
+
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        valid: false,
+        error: 'Validation timeout: upstream did not respond within 5s',
+      });
+    });
+
+    it('should return 400 when baseUrl is missing', async () => {
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ apiKey: 'sk-ant-test' });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: 'Missing required fields: baseUrl, apiKey',
+      });
+      expect(axiosMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when apiKey is missing', async () => {
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.anthropic.com' });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: 'Missing required fields: baseUrl, apiKey',
+      });
+      expect(axiosMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 413 when request body exceeds 1kb', async () => {
+      const largeString = 'x'.repeat(1024);
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({ baseUrl: 'https://api.example.com', apiKey: largeString });
+
+      expect(res.status).toBe(413);
+      expect(res.body).toEqual({
+        error: 'Request body too large',
+      });
+      expect(axiosMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when body is empty', async () => {
+      const res = await request(app)
+        .post('/openpowers/api/providers/validate')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: 'Missing required fields: baseUrl, apiKey',
+      });
+      expect(axiosMock).not.toHaveBeenCalled();
     });
   });
 });

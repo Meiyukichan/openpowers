@@ -8,6 +8,7 @@
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 /** Props for the ConfirmResetDialog component. */
 interface ConfirmResetDialogProps {
@@ -28,11 +29,15 @@ export function ConfirmResetDialog({
   isOpen,
   title,
   message,
-  confirmLabel = '确定',
-  cancelLabel = '取消',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
 }: ConfirmResetDialogProps): React.ReactElement | null {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t('confirmDialog.confirm');
+  const resolvedCancelLabel = cancelLabel ?? t('confirmDialog.cancel');
+
   // ESC key cancels
   useEffect(() => {
     if (!isOpen) return;
@@ -106,7 +111,7 @@ export function ConfirmResetDialog({
                 className:
                   'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted',
               },
-              cancelLabel,
+              resolvedCancelLabel,
             ),
             React.createElement(
               'button',
@@ -116,7 +121,7 @@ export function ConfirmResetDialog({
                 className:
                   'inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors',
               },
-              confirmLabel,
+              resolvedConfirmLabel,
             ),
           ),
         ),

@@ -8,7 +8,9 @@
 
 import React, { useState } from 'react';
 import { Plus, Settings, RotateCcw, Radio } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmResetDialog } from './ConfirmResetDialog.js';
+import { LanguageSwitcher } from './LanguageSwitcher.js';
 import ClaudeSvg from '../icons/claude.svg?url';
 
 /** Props for the Layout component. */
@@ -26,6 +28,7 @@ interface LayoutProps {
  * The header contains branding, a placeholder session management button, and an add provider button.
  */
 export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProxy, onToggleProxy, children }: LayoutProps): React.ReactElement {
+  const { t } = useTranslation();
   const [showConfirmReset, setShowConfirmReset] = useState(false);
 
   const handleSessionClick = () => {
@@ -79,14 +82,14 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
           React.createElement(
             'h1',
             { className: 'text-xl font-semibold text-blue-500 dark:text-blue-400' },
-            'OpenPowers',
+            t('app.brandName'),
           ),
           React.createElement(
             'button',
             {
               type: 'button',
-              'aria-label': 'Settings',
-              title: '设置',
+              'aria-label': t('layout.settingsAriaLabel'),
+              title: t('layout.settings'),
               className: 'p-1 rounded-md text-muted-foreground hover:text-muted-foreground transition-colors',
             },
             React.createElement(Settings, {
@@ -99,8 +102,8 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
             {
               type: 'button',
               onClick: handleResetClick,
-              'aria-label': 'Reset providers',
-              title: '还原Claude配置',
+              'aria-label': t('layout.resetProvidersAriaLabel'),
+              title: t('layout.resetProviders'),
               className:
                 'p-1 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors',
             },
@@ -110,8 +113,8 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
             'div',
             {
               title: enableOpenpowersProxy
-                ? 'Anthropic API proxy is running - localhost:3939'
-                : 'Turn on Anthropic API proxy for providers that need model mapping or format conversion. Configured address: localhost:3939',
+                ? t('layout.proxyRunning')
+                : t('layout.proxyOff'),
               className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
             },
             React.createElement(Radio, {
@@ -124,7 +127,7 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
                 type: 'button',
                 role: 'switch',
                 'aria-checked': enableOpenpowersProxy,
-                'aria-label': 'Toggle Anthropic API proxy',
+                'aria-label': t('layout.toggleProxyAriaLabel'),
                 onClick: onToggleProxy,
                 className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'
@@ -166,15 +169,16 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
               React.createElement('circle', { cx: '12', cy: '12', r: '10' }),
               React.createElement('polyline', { points: '12 6 12 12 16 14' }),
             ),
-            '会话管理',
+            t('layout.sessionManagement'),
           ),
+          React.createElement(LanguageSwitcher),
           React.createElement(
             'button',
             {
               type: 'button',
               onClick: onAddProvider,
               onKeyDown: handleKeyDown,
-              'aria-label': 'Add provider',
+              'aria-label': t('layout.addProviderAriaLabel'),
               className:
                 'inline-flex items-center justify-center rounded-full bg-orange-500 text-white w-8 h-8 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30',
             },
@@ -191,8 +195,8 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
     ),
     React.createElement(ConfirmResetDialog, {
       isOpen: showConfirmReset,
-      title: '确认还原',
-      message: '是否还原Claude配置？',
+      title: t('layout.confirmResetTitle'),
+      message: t('layout.confirmResetMessage'),
       onConfirm: handleResetConfirm,
       onCancel: handleResetCancel,
     }),

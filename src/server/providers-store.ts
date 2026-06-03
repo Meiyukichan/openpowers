@@ -52,6 +52,7 @@ const StoreDataSchema = z.object({
   activeProviderId: z.string().nullable(),
   enableOpenpowersProxy: z.boolean().nullable().default(false),
   neverClaudeSettings: z.boolean().nullable().default(true),
+  language: z.enum(['chinese', 'english']).nullable().default('chinese'),
   providers: z.array(ProviderSchema),
 });
 
@@ -104,6 +105,7 @@ const DEFAULT_STORE_DATA: StoreData = {
   activeProviderId: null,
   enableOpenpowersProxy: false,
   neverClaudeSettings: true,
+  language: 'chinese',
   providers: [],
 };
 
@@ -373,6 +375,29 @@ export function setNeverClaudeSettings(value: boolean): void {
   data.neverClaudeSettings = value;
   writeStoreData(data);
   logger.info(`ClaudeSettings backup guard set to ${value}`);
+}
+
+// ---------------------------------------------------------------------------
+// Language operations
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads the language setting from the store.
+ * @returns The current language, or 'chinese' if not set
+ */
+export function getLanguage(): 'chinese' | 'english' {
+  return readStoreData().language ?? 'chinese';
+}
+
+/**
+ * Sets the language setting.
+ * @param value - The new language value ('chinese' or 'english')
+ */
+export function setLanguage(value: 'chinese' | 'english'): void {
+  const data = readStoreData();
+  data.language = value;
+  writeStoreData(data);
+  logger.info(`Language set to ${value}`);
 }
 
 // ---------------------------------------------------------------------------

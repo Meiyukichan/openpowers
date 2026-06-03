@@ -5,10 +5,34 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import i18next from 'i18next';
+import { initReactI18next, I18nextProvider } from 'react-i18next';
 import { ProviderList } from './ProviderList.js';
+import zhCN from '../i18n/locales/zh-CN.json';
+import enUS from '../i18n/locales/en-US.json';
+
+/** Dedicated i18next instance for test isolation */
+let i18nInstance: i18next.i18n;
+
+/** Helper to render ProviderList wrapped in I18nextProvider */
+function renderProviderList(props: Record<string, unknown> = {}) {
+  return render(
+    React.createElement(
+      I18nextProvider,
+      { i18n: i18nInstance },
+      React.createElement(ProviderList, {
+        onSetActive: vi.fn(),
+        onEdit: vi.fn(),
+        onDelete: vi.fn(),
+        onAddProvider: vi.fn(),
+        ...props,
+      }),
+    ),
+  );
+}
 
 const mockProviders = [
   {
@@ -36,6 +60,19 @@ const mockProviders = [
 ];
 
 describe('ProviderList', () => {
+  beforeAll(async () => {
+    i18nInstance = i18next.createInstance();
+    await i18nInstance.use(initReactI18next).init({
+      lng: 'zh-CN',
+      fallbackLng: 'zh-CN',
+      resources: {
+        'zh-CN': { translation: zhCN },
+        'en-US': { translation: enUS },
+      },
+      interpolation: { escapeValue: false },
+    });
+  });
+
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -51,14 +88,7 @@ describe('ProviderList', () => {
       }) as Promise<Response>,
     );
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-      }),
-    );
+    renderProviderList();
 
     // Loading skeleton should have placeholder divs
     const skeletonCards = document.querySelectorAll('.animate-pulse');
@@ -71,14 +101,7 @@ describe('ProviderList', () => {
       json: () => Promise.resolve(mockProviders),
     } as Response);
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-      }),
-    );
+    renderProviderList();
 
     await waitFor(() => {
       expect(screen.getByText('Provider One')).toBeInTheDocument();
@@ -93,17 +116,10 @@ describe('ProviderList', () => {
       json: () => Promise.resolve([]),
     } as Response);
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-      }),
-    );
+    renderProviderList();
 
     await waitFor(() => {
-      expect(screen.getByText(/No providers configured/i)).toBeInTheDocument();
+      expect(screen.getByText('暂无供应商配置')).toBeInTheDocument();
     });
   });
 
@@ -113,34 +129,20 @@ describe('ProviderList', () => {
       json: () => Promise.resolve([]),
     } as Response);
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-      }),
-    );
+    renderProviderList();
 
     await waitFor(() => {
-      expect(screen.getByText(/Add your first provider/i)).toBeInTheDocument();
+      expect(screen.getByText('添加第一个供应商')).toBeInTheDocument();
     });
   });
 
   it('shows error message when fetch fails', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-      }),
-    );
+    renderProviderList();
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load providers/i)).toBeInTheDocument();
+      expect(screen.getByText('加载供应商失败')).toBeInTheDocument();
     });
   });
 
@@ -150,15 +152,7 @@ describe('ProviderList', () => {
       json: () => Promise.resolve(mockProviders),
     } as Response);
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-        activeProviderId: 'id-1',
-      }),
-    );
+    renderProviderList({ activeProviderId: 'id-1' });
 
     await waitFor(() => {
       expect(screen.getByText('Provider One')).toBeInTheDocument();
@@ -177,15 +171,7 @@ describe('ProviderList', () => {
       json: () => Promise.resolve(mockProviders),
     } as Response);
 
-    render(
-      React.createElement(ProviderList, {
-        onSetActive: vi.fn(),
-        onEdit: vi.fn(),
-        onDelete: vi.fn(),
-        onAddProvider: vi.fn(),
-        activeProviderId: null,
-      }),
-    );
+    renderProviderList({ activeProviderId: null });
 
     await waitFor(() => {
       expect(screen.getByText('Provider One')).toBeInTheDocument();

@@ -938,3 +938,99 @@ describe('setNeverClaudeSettings', () => {
     expect(parsed.providers).toEqual(sampleProviderList);
   });
 });
+
+// ---- Language Tests ----
+
+describe('getLanguage', () => {
+  it('should return "chinese" when providers.json does not exist', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const result = mod.getLanguage();
+
+    expect(result).toBe('chinese');
+  });
+
+  it('should return "chinese" when combined store has language: "chinese"', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      JSON.stringify({ activeProviderId: null, providers: [], language: 'chinese' }),
+    );
+
+    const result = mod.getLanguage();
+
+    expect(result).toBe('chinese');
+  });
+
+  it('should return "english" when combined store has language: "english"', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      JSON.stringify({ activeProviderId: null, providers: [], language: 'english' }),
+    );
+
+    const result = mod.getLanguage();
+
+    expect(result).toBe('english');
+  });
+
+  it('should return "chinese" when providers.json does not contain the field (backward compatibility)', () => {
+    existsSyncMock.mockReturnValue(true);
+    const jsonWithoutField = JSON.stringify({ activeProviderId: null, providers: sampleProviderList });
+    readFileSyncMock.mockReturnValue(jsonWithoutField);
+
+    const result = mod.getLanguage();
+
+    expect(result).toBe('chinese');
+  });
+
+  it('should return "chinese" when combined store has invalid JSON', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue('invalid-json');
+
+    const result = mod.getLanguage();
+
+    expect(result).toBe('chinese');
+  });
+});
+
+describe('setLanguage', () => {
+  it('should write language: "english" to the combined store file', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList, null));
+
+    mod.setLanguage('english');
+
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [filePath, content] = writeFileSyncMock.mock.calls[0];
+    expect(filePath).toBe(PROVIDERS_FILE);
+    const parsed = JSON.parse(content);
+    expect(parsed.language).toBe('english');
+  });
+
+  it('should write language: "chinese" to the combined store file', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      JSON.stringify({ activeProviderId: null, providers: [], language: 'english' }),
+    );
+
+    mod.setLanguage('chinese');
+
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.language).toBe('chinese');
+  });
+
+  it('should preserve other fields when writing language', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000'),
+    );
+
+    mod.setLanguage('english');
+
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.language).toBe('english');
+    expect(parsed.activeProviderId).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(parsed.providers).toEqual(sampleProviderList);
+  });
+});

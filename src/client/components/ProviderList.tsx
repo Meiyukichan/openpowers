@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Provider } from '../../server/providers-store.js';
 import { ProviderCard } from './ProviderCard.js';
 
@@ -51,6 +52,7 @@ function LoadingSkeleton(): React.ReactElement {
  * Renders the empty state with an option to add the first provider.
  */
 function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
+  const { t } = useTranslation();
   return React.createElement(
     'div',
     { className: 'flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-10 text-center' },
@@ -80,12 +82,12 @@ function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
     React.createElement(
       'h3',
       { className: 'text-lg font-semibold' },
-      'No providers configured',
+      t('providerList.noProviders'),
     ),
     React.createElement(
       'p',
       { className: 'mt-2 max-w-lg text-sm text-muted-foreground' },
-      'Get started by adding your first AI provider.',
+      t('providerList.getStarted'),
     ),
     React.createElement(
       'div',
@@ -115,7 +117,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
           React.createElement('line', { x1: '12', y1: '5', x2: '12', y2: '19' }),
           React.createElement('line', { x1: '5', y1: '12', x2: '19', y2: '12' }),
         ),
-        'Add your first provider',
+        t('providerList.addFirstProvider'),
       ),
     ),
   );
@@ -126,13 +128,14 @@ function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
  * Handles loading, empty, and error states.
  */
 export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, activeProviderId, refreshTrigger }: ProviderListProps): React.ReactElement {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
 
   const fetchProviders = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setErrorKey(null);
     try {
       const response = await fetch(getApiUrl());
       if (!response.ok) {
@@ -141,7 +144,7 @@ export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, act
       const data: Provider[] = await response.json();
       setProviders(data);
     } catch (err) {
-      setError('Failed to load providers');
+      setErrorKey('providerList.failedToLoad');
     } finally {
       setLoading(false);
     }
@@ -155,14 +158,14 @@ export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, act
     return React.createElement(LoadingSkeleton);
   }
 
-  if (error) {
+  if (errorKey) {
     return React.createElement(
       'div',
       { className: 'flex flex-col items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-10 text-center' },
       React.createElement(
         'p',
         { className: 'text-destructive font-medium' },
-        'Failed to load providers',
+        t(errorKey),
       ),
       React.createElement(
         'button',
@@ -172,7 +175,7 @@ export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, act
           className:
             'mt-4 inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted',
         },
-        'Retry',
+        t('providerList.retry'),
       ),
     );
   }

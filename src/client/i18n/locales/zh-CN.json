@@ -1,0 +1,139 @@
+{
+  "app": {
+    "brandName": "OpenPowers",
+    "languageSwitchToChinese": "切换到中文",
+    "languageSwitchToEnglish": "切换到英文"
+  },
+  "toast": {
+    "providerAdded": "已添加供应商",
+    "providerSaved": "已保存供应商",
+    "providerDeleted": "已删除供应商",
+    "configRestored": "已还原Claude配置",
+    "restoreFailed": "还原配置失败: {{message}}",
+    "switchedTo": "已切换至 {{name}}",
+    "switchFailed": "切换供应商失败: {{message}}",
+    "proxyEnabled": "已开启本地代理路由",
+    "proxyDisabled": "已关闭本地代理路由",
+    "operationFailed": "操作失败: {{message}}",
+    "templateAdded": "模板已添加",
+    "addTemplateFailed": "添加模板失败: {{message}}",
+    "saveFailed": "保存供应商失败: {{message}}",
+    "deleteFailed": "删除供应商失败: {{message}}",
+    "nameRequiredForTemplate": "请输入模板名称"
+  },
+  "layout": {
+    "settings": "设置",
+    "settingsAriaLabel": "设置",
+    "resetProviders": "还原Claude配置",
+    "resetProvidersAriaLabel": "还原供应商",
+    "proxyRunning": "Anthropic API 代理正在运行 - localhost:3939",
+    "proxyOff": "为需要模型映射或格式转换的供应商开启 Anthropic API 代理。配置地址：localhost:3939",
+    "toggleProxyAriaLabel": "切换 Anthropic API 代理",
+    "sessionManagement": "会话管理",
+    "addProviderAriaLabel": "添加供应商",
+    "confirmResetTitle": "确认还原",
+    "confirmResetMessage": "是否还原Claude配置？",
+    "confirm": "确定",
+    "cancel": "取消"
+  },
+  "providerList": {
+    "noProviders": "暂无供应商配置",
+    "getStarted": "添加您的第一个 AI 供应商以开始使用。",
+    "addFirstProvider": "添加第一个供应商",
+    "failedToLoad": "加载供应商失败",
+    "retry": "重试"
+  },
+  "providerCard": {
+    "providerIcon": "供应商图标",
+    "active": "使用中",
+    "enable": "启用",
+    "isActive": "{{name}} 正在使用中",
+    "enableProvider": "启用 {{name}}",
+    "editProvider": "编辑 {{name}}",
+    "edit": "编辑",
+    "deleteProvider": "删除 {{name}}",
+    "delete": "删除"
+  },
+  "common": {
+    "form": {
+      "nameLabel": "供应商名称",
+      "namePlaceholder": "供应商名称",
+      "nameAriaLabel": "供应商名称",
+      "notesLabel": "备注",
+      "notesPlaceholder": "备注（可选）",
+      "notesAriaLabel": "备注",
+      "websiteLabel": "官网链接",
+      "websitePlaceholder": "官网链接（可选）",
+      "websiteAriaLabel": "官网链接",
+      "apiKeyLabel": "API Key",
+      "apiKeyPlaceholder": "API Key",
+      "apiKeyAriaLabel": "API Key",
+      "showApiKey": "显示 API Key",
+      "hideApiKey": "隐藏 API Key",
+      "baseUrlLabel": "请求地址",
+      "baseUrlPlaceholder": "请求地址（可选）",
+      "baseUrlAriaLabel": "请求地址",
+      "defaultModelLabel": "默认模型",
+      "defaultModelPlaceholder": "默认模型",
+      "defaultModelAriaLabel": "默认模型",
+      "sonnetModelLabel": "Sonnet 模型",
+      "sonnetModelPlaceholder": "Sonnet 模型",
+      "sonnetModelAriaLabel": "Sonnet 模型",
+      "opusModelLabel": "Opus 模型",
+      "opusModelPlaceholder": "Opus 模型",
+      "opusModelAriaLabel": "Opus 模型",
+      "haikuModelLabel": "Haiku 模型",
+      "haikuModelPlaceholder": "Haiku 模型",
+      "haikuModelAriaLabel": "Haiku 模型"
+    },
+    "validate": {
+      "validateButton": "验证 API Key",
+      "validating": "正在验证...",
+      "validateSuccess": "有效 — {{count}} 个模型可用",
+      "validateError": "API Key 无效",
+      "validateTimeout": "验证超时",
+      "validateFailed": "验证失败"
+    }
+  },
+  "addProvider": {
+    "dialogAriaLabel": "添加供应商对话框",
+    "dialogTitle": "添加供应商",
+    "presetLabel": "供应商模板",
+    "customPresetName": "自定义配置",
+    "cancel": "取消",
+    "addAsTemplate": "添加为模板",
+    "addingTemplate": "正在添加模板...",
+    "submitAdd": "添加",
+    "adding": "正在添加...",
+    "deleteTemplateTitle": "删除模板",
+    "validationNameRequired": "请输入供应商名称",
+    "validationApiKeyRequired": "请输入 API Key",
+    "validationDefaultModelRequired": "请输入默认模型",
+    "validationSonnetModelRequired": "请输入 Sonnet 模型",
+    "validationOpusModelRequired": "请输入 Opus 模型",
+    "validationHaikuModelRequired": "请输入 Haiku 模型",
+    "providerIcon": "供应商图标"
+  },
+  "editProvider": {
+    "dialogAriaLabel": "编辑供应商对话框",
+    "dialogTitle": "编辑供应商",
+    "cancel": "取消",
+    "saving": "正在保存...",
+    "submitSave": "保存",
+    "validationNameRequired": "请输入供应商名称",
+    "validationApiKeyRequired": "请输入 API Key"
+  },
+  "deleteConfirm": {
+    "dialogAriaLabel": "删除确认对话框",
+    "closeAriaLabel": "关闭对话框",
+    "confirmTitle": "确定要删除该供应商吗？",
+    "confirmMessage": "\"{{name}}\" 将被永久删除，此操作无法撤销。",
+    "cancel": "取消",
+    "deleting": "正在删除...",
+    "confirmDelete": "确认删除"
+  },
+  "confirmDialog": {
+    "confirm": "确定",
+    "cancel": "取消"
+  }
+}

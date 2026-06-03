@@ -1,0 +1,139 @@
+{
+  "app": {
+    "brandName": "OpenPowers",
+    "languageSwitchToChinese": "Switch to Chinese",
+    "languageSwitchToEnglish": "Switch to English"
+  },
+  "toast": {
+    "providerAdded": "Provider added",
+    "providerSaved": "Provider saved",
+    "providerDeleted": "Provider deleted",
+    "configRestored": "Claude config restored",
+    "restoreFailed": "Failed to restore config: {{message}}",
+    "switchedTo": "Switched to {{name}}",
+    "switchFailed": "Failed to switch provider: {{message}}",
+    "proxyEnabled": "Local proxy routing enabled",
+    "proxyDisabled": "Local proxy routing disabled",
+    "operationFailed": "Operation failed: {{message}}",
+    "templateAdded": "Template added",
+    "addTemplateFailed": "Failed to add template: {{message}}",
+    "saveFailed": "Failed to save provider: {{message}}",
+    "deleteFailed": "Failed to delete provider: {{message}}",
+    "nameRequiredForTemplate": "Name is required to add a template"
+  },
+  "layout": {
+    "settings": "Settings",
+    "settingsAriaLabel": "Settings",
+    "resetProviders": "Reset Claude config",
+    "resetProvidersAriaLabel": "Reset providers",
+    "proxyRunning": "Anthropic API proxy is running - localhost:3939",
+    "proxyOff": "Turn on Anthropic API proxy for providers that need model mapping or format conversion. Configured address: localhost:3939",
+    "toggleProxyAriaLabel": "Toggle Anthropic API proxy",
+    "sessionManagement": "Session Management",
+    "addProviderAriaLabel": "Add provider",
+    "confirmResetTitle": "Confirm Reset",
+    "confirmResetMessage": "Reset to Claude default configuration?",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "providerList": {
+    "noProviders": "No providers configured",
+    "getStarted": "Get started by adding your first AI provider.",
+    "addFirstProvider": "Add your first provider",
+    "failedToLoad": "Failed to load providers",
+    "retry": "Retry"
+  },
+  "providerCard": {
+    "providerIcon": "Provider icon",
+    "active": "In Use",
+    "enable": "Enable",
+    "isActive": "{{name}} is active",
+    "enableProvider": "Enable {{name}}",
+    "editProvider": "Edit {{name}}",
+    "edit": "Edit",
+    "deleteProvider": "Delete {{name}}",
+    "delete": "Delete"
+  },
+  "common": {
+    "form": {
+      "nameLabel": "Provider Name",
+      "namePlaceholder": "Provider name",
+      "nameAriaLabel": "Provider name",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Notes (optional)",
+      "notesAriaLabel": "Notes",
+      "websiteLabel": "Website",
+      "websitePlaceholder": "Website URL (optional)",
+      "websiteAriaLabel": "Website URL",
+      "apiKeyLabel": "API Key",
+      "apiKeyPlaceholder": "API Key",
+      "apiKeyAriaLabel": "API Key",
+      "showApiKey": "Show API key",
+      "hideApiKey": "Hide API key",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "Base URL (optional)",
+      "baseUrlAriaLabel": "Base URL",
+      "defaultModelLabel": "Default Model",
+      "defaultModelPlaceholder": "Default Model",
+      "defaultModelAriaLabel": "Default Model",
+      "sonnetModelLabel": "Sonnet Model",
+      "sonnetModelPlaceholder": "Sonnet Model",
+      "sonnetModelAriaLabel": "Sonnet Model",
+      "opusModelLabel": "Opus Model",
+      "opusModelPlaceholder": "Opus Model",
+      "opusModelAriaLabel": "Opus Model",
+      "haikuModelLabel": "Haiku Model",
+      "haikuModelPlaceholder": "Haiku Model",
+      "haikuModelAriaLabel": "Haiku Model"
+    },
+    "validate": {
+      "validateButton": "Validate API Key",
+      "validating": "Validating...",
+      "validateSuccess": "Valid — {{count}} models available",
+      "validateError": "Invalid API Key",
+      "validateTimeout": "Validation timeout",
+      "validateFailed": "Validation failed"
+    }
+  },
+  "addProvider": {
+    "dialogAriaLabel": "Add provider dialog",
+    "dialogTitle": "Add Provider",
+    "presetLabel": "Provider Templates",
+    "customPresetName": "Custom Config",
+    "cancel": "Cancel",
+    "addAsTemplate": "Add as Template",
+    "addingTemplate": "Adding template...",
+    "submitAdd": "Add",
+    "adding": "Adding...",
+    "deleteTemplateTitle": "Delete template",
+    "validationNameRequired": "Name is required",
+    "validationApiKeyRequired": "API Key is required",
+    "validationDefaultModelRequired": "Default model is required",
+    "validationSonnetModelRequired": "Sonnet model is required",
+    "validationOpusModelRequired": "Opus model is required",
+    "validationHaikuModelRequired": "Haiku model is required",
+    "providerIcon": "Provider icon"
+  },
+  "editProvider": {
+    "dialogAriaLabel": "Edit provider dialog",
+    "dialogTitle": "Edit Provider",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "submitSave": "Save",
+    "validationNameRequired": "Name is required",
+    "validationApiKeyRequired": "API Key is required"
+  },
+  "deleteConfirm": {
+    "dialogAriaLabel": "Delete confirmation dialog",
+    "closeAriaLabel": "Close dialog",
+    "confirmTitle": "Delete this provider?",
+    "confirmMessage": "\"{{name}}\" will be permanently removed. This action cannot be undone.",
+    "cancel": "Cancel",
+    "deleting": "Deleting...",
+    "confirmDelete": "Confirm Delete"
+  },
+  "confirmDialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  }
+}

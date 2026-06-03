@@ -5,12 +5,30 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import i18next from 'i18next';
+import { initReactI18next, I18nextProvider } from 'react-i18next';
 import type { Provider } from '../../server/providers-store.js';
 import { EditProviderDialog } from './EditProviderDialog.js';
+import zhCN from '../i18n/locales/zh-CN.json';
+import enUS from '../i18n/locales/en-US.json';
+
+/** Dedicated i18next instance for test isolation */
+let i18nInstance: i18next.i18n;
+
+/** Helper to render EditProviderDialog wrapped in I18nextProvider */
+function renderDialog(props: Record<string, unknown>) {
+  return render(
+    React.createElement(
+      I18nextProvider,
+      { i18n: i18nInstance },
+      React.createElement(EditProviderDialog, props),
+    ),
+  );
+}
 
 const baseProvider: Provider = {
   id: 'test-id-1',
@@ -30,6 +48,19 @@ const baseProvider: Provider = {
 };
 
 describe('EditProviderDialog', () => {
+  beforeAll(async () => {
+    i18nInstance = i18next.createInstance();
+    await i18nInstance.use(initReactI18next).init({
+      lng: 'zh-CN',
+      fallbackLng: 'zh-CN',
+      resources: {
+        'zh-CN': { translation: zhCN },
+        'en-US': { translation: enUS },
+      },
+      interpolation: { escapeValue: false },
+    });
+  });
+
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -39,50 +70,44 @@ describe('EditProviderDialog', () => {
   });
 
   it('renders dialog with correct title', () => {
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     expect(screen.getByText('编辑供应商')).toBeInTheDocument();
   });
 
   it('does not render when isOpen is false', () => {
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: false,
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     expect(screen.queryByText('编辑供应商')).not.toBeInTheDocument();
   });
 
   it('pre-fills form fields including model fields with current provider data', () => {
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
-    const nameInput = screen.getByPlaceholderText(/provider name/i) as HTMLInputElement;
-    const notesInput = screen.getByPlaceholderText(/notes/i) as HTMLInputElement;
-    const websiteUrlInput = screen.getByPlaceholderText(/website url/i) as HTMLInputElement;
-    const apiKeyInput = screen.getByPlaceholderText(/api key/i) as HTMLInputElement;
-    const baseUrlInput = screen.getByPlaceholderText(/base url/i) as HTMLInputElement;
-    const defaultModelInput = screen.getByPlaceholderText(/default model/i) as HTMLInputElement;
-    const sonnetModelInput = screen.getByPlaceholderText(/sonnet model/i) as HTMLInputElement;
-    const opusModelInput = screen.getByPlaceholderText(/opus model/i) as HTMLInputElement;
-    const haikuModelInput = screen.getByPlaceholderText(/haiku model/i) as HTMLInputElement;
+    });
+    const nameInput = screen.getByPlaceholderText('供应商名称') as HTMLInputElement;
+    const notesInput = screen.getByPlaceholderText('备注（可选）') as HTMLInputElement;
+    const websiteUrlInput = screen.getByPlaceholderText('官网链接（可选）') as HTMLInputElement;
+    const apiKeyInput = screen.getByPlaceholderText('API Key') as HTMLInputElement;
+    const baseUrlInput = screen.getByPlaceholderText('请求地址（可选）') as HTMLInputElement;
+    const defaultModelInput = screen.getByPlaceholderText('默认模型') as HTMLInputElement;
+    const sonnetModelInput = screen.getByPlaceholderText('Sonnet 模型') as HTMLInputElement;
+    const opusModelInput = screen.getByPlaceholderText('Opus 模型') as HTMLInputElement;
+    const haikuModelInput = screen.getByPlaceholderText('Haiku 模型') as HTMLInputElement;
 
     expect(nameInput.value).toBe('Test Provider');
     expect(notesInput.value).toBe('A test note');
@@ -96,29 +121,25 @@ describe('EditProviderDialog', () => {
   });
 
   it('does not show preset selector', () => {
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     expect(screen.queryByText('供应商模板')).not.toBeInTheDocument();
     expect(screen.queryByText('Claude Official')).not.toBeInTheDocument();
   });
 
   it('shows footer with cancel and save buttons', () => {
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose: vi.fn(),
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     expect(screen.getByText('取消')).toBeInTheDocument();
     expect(screen.getByText('保存')).toBeInTheDocument();
   });
@@ -126,15 +147,13 @@ describe('EditProviderDialog', () => {
   it('calls onClose when cancel button is clicked', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     const cancelButton = screen.getByText('取消');
     await user.click(cancelButton);
     expect(onClose).toHaveBeenCalledOnce();
@@ -149,17 +168,15 @@ describe('EditProviderDialog', () => {
       json: () => Promise.resolve({}),
     } as Response);
 
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose,
         onSuccess,
         showToast: vi.fn(),
-      }),
-    );
+    });
 
-    const nameInput = screen.getByPlaceholderText(/provider name/i);
+    const nameInput = screen.getByPlaceholderText('供应商名称');
     await user.clear(nameInput);
     await user.type(nameInput, 'Updated Provider');
 
@@ -185,8 +202,7 @@ describe('EditProviderDialog', () => {
           websiteUrl: 'https://example.com',
           baseUrl: 'https://api.example.com',
         }),
-      }),
-    );
+      }));
   });
 
   it('validates required fields before submit', async () => {
@@ -194,37 +210,185 @@ describe('EditProviderDialog', () => {
     const providerWithEmptyName = { ...baseProvider, name: '', apiKey: '' };
     const onSuccess = vi.fn();
 
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: providerWithEmptyName,
         onClose: vi.fn(),
         onSuccess,
         showToast: vi.fn(),
-      }),
-    );
+    });
 
     const saveButton = screen.getByText('保存');
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+      expect(screen.getByText('请输入供应商名称')).toBeInTheDocument();
     });
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  // f-01: API Key validation button tests
+
+  it('shows validate API Key button below the API key input field', () => {
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key');
+    expect(validateBtn).toBeInTheDocument();
+    expect(validateBtn.tagName).toBe('BUTTON');
+  });
+
+  it('validate button is enabled when both baseUrl and apiKey have values', () => {
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key') as HTMLButtonElement;
+    // baseProvider has both baseUrl and apiKey — button should be enabled
+    expect(validateBtn.disabled).toBe(false);
+  });
+
+  it('validate button is disabled when baseUrl or apiKey is empty', async () => {
+    // Provider with empty apiKey and baseUrl
+    const emptyProvider = { ...baseProvider, apiKey: '', baseUrl: '' };
+    renderDialog({
+        isOpen: true,
+        provider: emptyProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key') as HTMLButtonElement;
+    // Both empty — disabled
+    expect(validateBtn.disabled).toBe(true);
+  });
+
+  it('shows green success text with model count when API key is valid', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-a', 'model-b', 'model-c'] }) } as Response;
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
+    });
+
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/有效.*3.*个模型可用/)).toBeInTheDocument();
+    });
+    const successEl = screen.getByText(/有效.*3.*个模型可用/);
+    expect(successEl.className).toContain('green');
+  });
+
+  it('shows red error text when API key is invalid', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Authentication failed: invalid API key' }) } as Response;
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
+    });
+
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Authentication failed: invalid API key')).toBeInTheDocument();
+    });
+    const errorEl = screen.getByText('Authentication failed: invalid API key');
+    expect(errorEl.className).toContain('red');
+  });
+
+  it('resets validation result when user modifies baseUrl or apiKey', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-x'] }) } as Response;
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
+    });
+
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    // Click validate — should show success
+    await user.click(screen.getByText('验证 API Key'));
+    await waitFor(() => {
+      expect(screen.getByText(/有效.*1.*个模型可用/)).toBeInTheDocument();
+    });
+    // Modify the apiKey field
+    await user.type(screen.getByPlaceholderText('API Key'), 'extra');
+    // Validation result should be cleared
+    expect(screen.queryByText(/有效.*1.*个模型可用/)).not.toBeInTheDocument();
+  });
+
+  it('shows timeout error text when validation encounters network error', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+        throw new Error('Network error');
+      }
+      return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
+    });
+
+    renderDialog({
+        isOpen: true,
+        provider: baseProvider,
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+        showToast: vi.fn(),
+    });
+    const validateBtn = screen.getByText('验证 API Key');
+    await user.click(validateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('验证超时')).toBeInTheDocument();
+    });
+    const timeoutEl = screen.getByText('验证超时');
+    expect(timeoutEl.className).toContain('red');
   });
 
   it('closes dialog on backdrop click', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      React.createElement(EditProviderDialog, {
+    renderDialog({
         isOpen: true,
         provider: baseProvider,
         onClose,
         onSuccess: vi.fn(),
         showToast: vi.fn(),
-      }),
-    );
+    });
     const backdrop = document.querySelector('.fixed.inset-0')?.firstChild as HTMLElement;
     expect(backdrop).toBeInTheDocument();
     await user.click(backdrop);
