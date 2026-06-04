@@ -94,7 +94,7 @@ describe('flattenCwdPath', () => {
 
   it('should flatten Windows path (\\\\ → /, then : and / → _)', () => {
     const result = flattenCwdPath('D:\\projects-code\\optix\\plugins\\aioptix-vscode-mcp');
-    expect(result).toBe('D_projects-code_optix_plugins_aioptix-vscode-mcp');
+    expect(result).toBe('D__projects-code_optix_plugins_aioptix-vscode-mcp');
   });
 
   it('should flatten Unix path (/ → _)', () => {
@@ -104,7 +104,7 @@ describe('flattenCwdPath', () => {
 
   it('should handle mixed separators', () => {
     const result = flattenCwdPath('C:/Users/test/project');
-    expect(result).toBe('C_Users_test_project');
+    expect(result).toBe('C__Users_test_project');
   });
 
   it('should handle path with no special characters', () => {
@@ -117,7 +117,7 @@ describe('flattenCwdPath', () => {
 // Tests for readDreamworkConfig
 // =========================================================
 describe('readDreamworkConfig', () => {
-  let readDreamworkConfig: () => { status: string; workAt: string; projects: Array<{ path: string; status: string }> };
+  let readDreamworkConfig: () => { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> };
   let formatToday: () => string;
   let formatYesterday: () => string;
 
@@ -156,7 +156,7 @@ describe('readDreamworkConfig', () => {
     mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
       status: 'in_progress',
       workAt: today,
-      projects: [{ path: '/some/project', status: 'ready' }],
+      projects: [{ project: '/some/project', changes: [] }],
     }));
 
     const config = readDreamworkConfig();
@@ -164,7 +164,8 @@ describe('readDreamworkConfig', () => {
     expect(config.status).toBe('in_progress');
     expect(config.workAt).toBe(today);
     expect(config.projects).toHaveLength(1);
-    expect(config.projects[0].path).toBe('/some/project');
+    expect(config.projects[0].project).toBe('/some/project');
+    expect(config.projects[0].changes).toEqual([]);
   });
 
   it('should return existing config when workAt is yesterday (AC-2)', () => {
@@ -173,7 +174,7 @@ describe('readDreamworkConfig', () => {
     mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
       status: 'done',
       workAt: yesterday,
-      projects: [{ path: '/some/project', status: 'done' }],
+      projects: [{ project: '/some/project', changes: [] }],
     }));
 
     const config = readDreamworkConfig();
@@ -181,6 +182,7 @@ describe('readDreamworkConfig', () => {
     expect(config.status).toBe('done');
     expect(config.workAt).toBe(yesterday);
     expect(config.projects).toHaveLength(1);
+    expect(config.projects[0].project).toBe('/some/project');
   });
 
   it('should reset config when workAt is neither today nor yesterday (AC-2)', () => {
@@ -189,7 +191,7 @@ describe('readDreamworkConfig', () => {
     mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
       status: 'done',
       workAt: '2020-01-15',
-      projects: [{ path: '/old/project', status: 'done' }],
+      projects: [{ project: '/old/project', changes: [{ path: '/old/project/design_test.md', status: 'done' }] }],
     }));
 
     const config = readDreamworkConfig();
@@ -211,7 +213,7 @@ describe('readDreamworkConfig', () => {
     mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
       status: 'done',
       workAt: today,
-      projects: [{ path: '/some/project', status: 'ready' }],
+      projects: [{ project: '/some/project', changes: [{ path: '/some/project/design_test.md', status: 'ready' }] }],
     }));
 
     const config = readDreamworkConfig();
@@ -219,6 +221,45 @@ describe('readDreamworkConfig', () => {
     expect(config.status).toBe('ready');
     expect(config.workAt).toBe(today);
     expect(config.projects).toHaveLength(1);
+  });
+
+  it('should reset config when old format detected (projects element has path instead of project field)', () => {
+    const today = formatToday();
+    mockFs.setDir(MEMORY_DIR);
+    mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
+      status: 'ready',
+      workAt: today,
+      projects: [{ path: '/old/project', status: 'ready' }],
+    }));
+
+    const config = readDreamworkConfig();
+
+    expect(config.status).toBe('ready');
+    expect(config.workAt).toBe(today);
+    expect(config.projects).toEqual([]);
+
+    // Verify file was overwritten with default config
+    const content = mockFs.getFile(DREAMWORK_PATH);
+    const parsed = JSON.parse(content!);
+    expect(parsed.projects).toEqual([]);
+    expect(parsed.workAt).toBe(today);
+  });
+
+  it('should handle config without projects field', () => {
+    const today = formatToday();
+    mockFs.setDir(MEMORY_DIR);
+    mockFs.setFile(DREAMWORK_PATH, JSON.stringify({
+      status: 'ready',
+      workAt: today,
+      // no projects field — covers the falsy branch at dreamwork.ts:131
+    }));
+
+    const config = readDreamworkConfig();
+
+    expect(config.status).toBe('ready');
+    expect(config.workAt).toBe(today);
+    // projects field should be undefined (as stored in the file)
+    expect(config.projects).toBeUndefined();
   });
 
   it('should handle invalid JSON in dreamwork.json by recreating default', () => {
@@ -237,7 +278,7 @@ describe('readDreamworkConfig', () => {
 // Tests for writeDreamworkConfig
 // =========================================================
 describe('writeDreamworkConfig', () => {
-  let writeDreamworkConfig: (config: { status: string; workAt: string; projects: Array<{ path: string; status: string }> }) => void;
+  let writeDreamworkConfig: (config: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }) => void;
 
   beforeEach(async () => {
     vi.resetAllMocks();
@@ -254,7 +295,7 @@ describe('writeDreamworkConfig', () => {
     const config = {
       status: 'ready',
       workAt: '2026-06-04',
-      projects: [{ path: '/test/path', status: 'ready' }],
+      projects: [{ project: '/test/path', changes: [{ path: '/test/path/design_test.md', status: 'ready' }] }],
     };
 
     writeDreamworkConfig(config);
@@ -286,7 +327,7 @@ describe('writeDreamworkConfig', () => {
 // Tests for importDreamworkConfig (main entry for feature.ts)
 // =========================================================
 describe('importDreamworkConfig', () => {
-  let importDreamworkConfig: () => { readDreamworkConfig: () => { status: string; workAt: string; projects: Array<{ path: string; status: string }> }; writeDreamworkConfig: (config: { status: string; workAt: string; projects: Array<{ path: string; status: string }> }) => void; flattenCwdPath: (cwd: string) => string };
+  let importDreamworkConfig: () => { readDreamworkConfig: () => { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }; writeDreamworkConfig: (config: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }) => void; flattenCwdPath: (cwd: string) => string };
 
   beforeEach(async () => {
     vi.resetAllMocks();
@@ -319,7 +360,7 @@ describe('importDreamworkConfig', () => {
     instance.writeDreamworkConfig({
       status: 'in_progress',
       workAt: todayStr,
-      projects: [{ path: '/my/project', status: 'ready' }],
+      projects: [{ project: '/my/project', changes: [{ path: '/my/project/design_test.md', status: 'ready' }] }],
     });
 
     const config = instance.readDreamworkConfig();

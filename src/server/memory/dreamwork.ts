@@ -14,9 +14,14 @@ import path from 'path';
 // Types
 // ---------------------------------------------------------------------------
 
-export interface DreamworkProject {
+export interface DreamworkChange {
   path: string;
   status: string;
+}
+
+export interface DreamworkProject {
+  project: string;
+  changes: DreamworkChange[];
 }
 
 export interface DreamworkConfig {
@@ -62,13 +67,13 @@ export function formatYesterday(): string {
 /**
  * Flattens a cwd path into a safe directory name.
  * Step 1: replace all \\ with /
- * Step 2: remove : (Windows drive letter separator)
+ * Step 2: replace : with _ (Windows drive letter separator)
  * Step 3: replace / with _
  * @param cwd - The current working directory path
  * @returns Flattened path safe for use as a directory name
  */
 export function flattenCwdPath(cwd: string): string {
-  return cwd.replace(/\\/g, '/').replace(/:/g, '').replace(/\//g, '_');
+  return cwd.replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_');
 }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +125,16 @@ export function readDreamworkConfig(): DreamworkConfig {
     const defaultConfig = createDefaultConfig();
     writeDreamworkConfig(defaultConfig);
     return defaultConfig;
+  }
+
+  // Detect old format: projects elements with 'path' field instead of 'project' field
+  if (config.projects && config.projects.length > 0) {
+    const first = config.projects[0] as unknown as Record<string, unknown>;
+    if ('path' in first && !('project' in first)) {
+      const defaultConfig = createDefaultConfig();
+      writeDreamworkConfig(defaultConfig);
+      return defaultConfig;
+    }
   }
 
   // Validate workAt field

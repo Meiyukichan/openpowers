@@ -11,7 +11,7 @@ description: >
 
 Deeply understand existing implementations in the project that are relevant to the user's needs, providing factual basis for subsequent decisions.
 
-**RED LAW**: the openpowers-explore is forbidden from reading the any documents, especially the `Current Instruction Documents`.
+**RED LAW**: the openpowers-explore is forbidden from reading the any documents, especially the `Current Instruction Document`.
 
 ## Input Parameters
 
@@ -35,7 +35,7 @@ openpowers config show language
 
 ## Execute Instruction
 
-You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format (Forbid openpowers-explore to read `Current Instruction Documents` before dispatching the subagent. The subagent will read the template document.):
+You **MUST** dispatch the `codebase explorer subagent` strictly in the following parameter format (Forbid openpowers-explore to read `Current Instruction Document` before dispatching the subagent. The subagent will read the template document.):
 
 ```
 Task tool (general-purpose):
@@ -63,19 +63,19 @@ Task tool (general-purpose):
 
     ## Execution Flow
     Strictly and accurately follow these steps:
-    1. Read the explorer template document: {`Current Instruction Documents`}
+    1. Read the explorer template document: {`Current Instruction Document`}
     2. Strictly follow the template's steps and requirements to execute the exploration task
 ```
 
-### Current Instruction Documents
+### Current Instruction Document
 
 - When `explore_type = project`, current instruction document: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/instructions/project.md`
 - When `explore_type = references`, current instruction document: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-explore/instructions/references.md`
 
 ## RED LAW
 
-- Forbid openpowers-explore to read `Current Instruction Documents` before dispatching the subagent. The subagent will read the template document.
-- The openpowers-explore is forbidden from reading any documents, especially the `Current Instruction Documents`.
+- Forbid openpowers-explore to read `Current Instruction Document` before dispatching the subagent. The subagent will read the template document.
+- The openpowers-explore is forbidden from reading any documents, especially the `Current Instruction Document`.
 - `OpenPowers:explore:Purpose` is the **critical** description marker of `codebase explorer subagent`, do NOT mistake it.
 
 ## Key Rules

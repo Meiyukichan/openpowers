@@ -55,17 +55,13 @@ export function startScheduler(): void {
       return;
     }
 
-    // 2) Serial processing of ready projects
+    // 2) Serial processing of projects
     for (const project of config.projects) {
-      if (project.status !== 'ready') {
-        continue;
-      }
+      appendLog(`Processing project: ${project.project}`);
 
-      appendLog(`Processing project: ${project.path}`);
+      const claudeDir = path.join(project.project, '.claude');
 
-      const claudeDir = path.join(project.path, '.claude');
-
-      // Copy resources/agents to {project.path}/.claude/agents
+      // Copy resources/agents to {project.project}/.claude/agents
       const srcAgents = path.join(resourcesDir, 'agents');
       const destAgents = path.join(claudeDir, 'agents');
       if (!fs.existsSync(claudeDir)) {
@@ -73,22 +69,18 @@ export function startScheduler(): void {
       }
       fs.cpSync(srcAgents, destAgents, { recursive: true });
 
-      // Copy resources/skills to {project.path}/.claude/skills
+      // Copy resources/skills to {project.project}/.claude/skills
       const srcSkills = path.join(resourcesDir, 'skills');
       const destSkills = path.join(claudeDir, 'skills');
       fs.cpSync(srcSkills, destSkills, { recursive: true });
 
-      // Update project status to done
-      project.status = 'done';
-      writeDreamworkConfig(config);
-
       // Delete .opencode directory if exists
-      const opencodeDir = path.join(project.path, '.opencode');
+      const opencodeDir = path.join(project.project, '.opencode');
       if (fs.existsSync(opencodeDir)) {
         fs.rmSync(opencodeDir, { recursive: true, force: true });
       }
 
-      appendLog(`Project done: ${project.path}`);
+      appendLog(`Project done: ${project.project}`);
     }
 
     appendLog('Scheduler task finished');

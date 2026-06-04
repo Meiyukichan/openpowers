@@ -182,7 +182,7 @@ describe('cron callback: workAt validation', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-01', // not yesterday
-      projects: [{ path: '/some/project', status: 'ready' }],
+      projects: [{ project: '/some/project', changes: [{ path: '/some/project/design_test.md', status: 'ready' }] }],
     });
 
     const { startScheduler } = await importFresh();
@@ -193,8 +193,12 @@ describe('cron callback: workAt validation', () => {
     expect(appendLogMock).toHaveBeenCalledWith(
       expect.stringContaining('Scheduler aborted: workAt mismatch'),
     );
-    // Should reset dreamwork config
-    expect(writeDreamworkConfigMock).toHaveBeenCalled();
+    // Should reset dreamwork config with correct structure
+    expect(writeDreamworkConfigMock).toHaveBeenCalledWith({
+      status: 'ready',
+      workAt: '2026-06-03',
+      projects: [],
+    });
     // Should NOT process any projects
     expect(cpSyncMock).not.toHaveBeenCalled();
   });
@@ -204,7 +208,7 @@ describe('cron callback: workAt validation', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03', // equals yesterday
-      projects: [{ path: '/some/project', status: 'ready' }],
+      projects: [{ project: '/some/project', changes: [{ path: '/some/project/design_test.md', status: 'ready' }] }],
     });
 
     const { startScheduler } = await importFresh();
@@ -217,16 +221,16 @@ describe('cron callback: workAt validation', () => {
 });
 
 describe('cron callback: processing projects', () => {
-  it('should process only projects with status=ready', async () => {
+  it('should process all projects regardless of status', async () => {
     formatYesterdayMock.mockReturnValue('2026-06-03');
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
       projects: [
-        { path: '/project/ready1', status: 'ready' },
-        { path: '/project/skip', status: 'pending' },
-        { path: '/project/ready2', status: 'ready' },
-        { path: '/project/done', status: 'done' },
+        { project: '/project/ready1', changes: [{ path: '/project/ready1/design_1.md', status: 'ready' }] },
+        { project: '/project/skip', changes: [{ path: '/project/skip/design.md', status: 'pending' }] },
+        { project: '/project/ready2', changes: [{ path: '/project/ready2/design_1.md', status: 'ready' }] },
+        { project: '/project/done', changes: [{ path: '/project/done/design.md', status: 'done' }] },
       ],
     });
 
@@ -234,8 +238,8 @@ describe('cron callback: processing projects', () => {
     startScheduler();
     capturedCronCallback!();
 
-    // Only 2 ready projects should trigger cpSync (agents + skills = 2 per project)
-    expect(cpSyncMock).toHaveBeenCalledTimes(4); // 2 projects x 2 copies
+    // All 4 projects should trigger cpSync (agents + skills = 2 per project)
+    expect(cpSyncMock).toHaveBeenCalledTimes(8); // 4 projects x 2 copies
   });
 
   it('should copy agents and skills to project .claude directory', async () => {
@@ -243,7 +247,7 @@ describe('cron callback: processing projects', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
-      projects: [{ path: '/project/test', status: 'ready' }],
+      projects: [{ project: '/project/test', changes: [{ path: '/project/test/design_test.md', status: 'ready' }] }],
     });
 
     const { startScheduler } = await importFresh();
@@ -264,9 +268,9 @@ describe('cron callback: processing projects', () => {
     );
   });
 
-  it('should update project status to done after processing', async () => {
+  it('should not write config during normal processing when config is unchanged', async () => {
     formatYesterdayMock.mockReturnValue('2026-06-03');
-    const project = { path: '/project/test', status: 'ready' };
+    const project = { project: '/project/test', changes: [{ path: '/project/test/design_test.md', status: 'ready' }] };
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
@@ -277,10 +281,9 @@ describe('cron callback: processing projects', () => {
     startScheduler();
     capturedCronCallback!();
 
-    // Verify writeDreamworkConfig was called with updated status
-    expect(writeDreamworkConfigMock).toHaveBeenCalled();
-    const lastCall = writeDreamworkConfigMock.mock.calls[writeDreamworkConfigMock.mock.calls.length - 1][0];
-    expect(lastCall.projects[0].status).toBe('done');
+    // Config is unchanged during normal processing, so writeDreamworkConfig should NOT be called
+    // (only called on workAt mismatch to reset config)
+    expect(writeDreamworkConfigMock).not.toHaveBeenCalled();
   });
 
   it('should delete .opencode directory after processing', async () => {
@@ -288,7 +291,7 @@ describe('cron callback: processing projects', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
-      projects: [{ path: '/project/test', status: 'ready' }],
+      projects: [{ project: '/project/test', changes: [{ path: '/project/test/design_test.md', status: 'ready' }] }],
     });
     existsSyncMock.mockReturnValue(true);
 
@@ -309,7 +312,7 @@ describe('cron callback: processing projects', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
-      projects: [{ path: '/project/test', status: 'ready' }],
+      projects: [{ project: '/project/test', changes: [{ path: '/project/test/design_test.md', status: 'ready' }] }],
     });
     // .opencode does not exist
     existsSyncMock.mockReturnValue(false);
@@ -331,7 +334,7 @@ describe('cron callback: processing projects', () => {
     readDreamworkConfigMock.mockReturnValue({
       status: 'ready',
       workAt: '2026-06-03',
-      projects: [{ path: '/project/test', status: 'ready' }],
+      projects: [{ project: '/project/test', changes: [{ path: '/project/test/design_test.md', status: 'ready' }] }],
     });
 
     const { startScheduler } = await importFresh();
