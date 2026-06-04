@@ -92,7 +92,7 @@ describe('Layout', () => {
   it('renders language switcher between session management and add button', () => {
     renderLayout();
     const sessionBtn = screen.getByText('会话管理').closest('button');
-    const languageSwitcher = screen.getByLabelText('切换到英文');
+    const languageSwitcher = screen.getByLabelText('Switch to English');
     const addButton = screen.getByLabelText('添加供应商');
     // All three should be in the same parent container (right-side button group)
     expect(sessionBtn?.parentElement).toBe(languageSwitcher.parentElement);
@@ -208,7 +208,22 @@ describe('Layout', () => {
 
   it('renders language switcher button', () => {
     renderLayout();
-    // When locale is zh-CN, aria-label should be the Chinese translation of "Switch to English"
-    expect(screen.getByLabelText('切换到英文')).toBeInTheDocument();
+    // When locale is zh-CN, aria-label shows the target language (English)
+    expect(screen.getByLabelText('Switch to English')).toBeInTheDocument();
+  });
+
+  it('renders language switcher between session management and add button', () => {
+    renderLayout();
+    const sessionBtn = screen.getByText('会话管理');
+    const addBtn = screen.getByLabelText('添加供应商');
+    // Language switcher button should be rendered between session management and add button
+    const langBtn = screen.getByLabelText('Switch to English');
+    expect(sessionBtn.parentElement).toBe(langBtn.parentElement);
+    // Session management is before language switcher
+    const groupContainer = sessionBtn.parentElement!;
+    const buttons = groupContainer.children;
+    const langIndex = Array.from(buttons).indexOf(langBtn);
+    const addIndex = Array.from(buttons).indexOf(addBtn);
+    expect(langIndex).toBeLessThan(addIndex);
   });
 });

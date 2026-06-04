@@ -5,6 +5,7 @@
  */
 
 import path from 'path';
+import os from 'os';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 type DirEntry = { name: string; isDirectory: () => boolean; isFile: () => boolean };
@@ -64,6 +65,18 @@ const { mockFs } = vi.hoisted(() => {
       readdirSync: vi.fn(() => {
         return [] as DirEntry[];
       }),
+      cpSync: vi.fn((src: string, dest: string) => {
+        const srcNorm = src.replace(/\\/g, '/');
+        const destNorm = dest.replace(/\\/g, '/');
+        if (!(srcNorm in fileSystem)) {
+          throw new Error(`ENOENT: ${src}`);
+        }
+        fileSystem[destNorm] = fileSystem[srcNorm];
+        const parts = destNorm.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          dirSet.add(parts.slice(0, i).join('/'));
+        }
+      }),
     },
   };
 });
@@ -74,6 +87,127 @@ vi.mock('fs', () => ({
 
 vi.mock('../../utils/logger.js', () => ({
   logger: mockLogger,
+}));
+
+// Hoisted mock for dreamwork module
+const { mockDreamwork } = vi.hoisted(() => {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${y}-${m}-${d}`;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yy = yesterday.getFullYear();
+  const ym = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const yd = String(yesterday.getDate()).padStart(2, '0');
+  const yesterdayStr = `${yy}-${ym}-${yd}`;
+
+  let dreamworkState: { status: string; workAt: string; projects: Array<{ path: string; status: string }> } = {
+    status: 'ready',
+    workAt: todayStr,
+    projects: [],
+  };
+
+  const readDreamworkConfig = vi.fn(() => ({ ...dreamworkState, projects: [...dreamworkState.projects] }));
+  const writeDreamworkConfig = vi.fn((config: { status: string; workAt: string; projects: Array<{ path: string; status: string }> }) => {
+    dreamworkState = { ...config, projects: [...config.projects] };
+  });
+  const flattenCwdPath = vi.fn((cwd: string) => cwd.replace(/\\/g, '/').replace(/:/g, '').replace(/\//g, '_'));
+  const formatToday = vi.fn(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const formatYesterday = vi.fn(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+
+  return {
+    mockDreamwork: {
+      readDreamworkConfig,
+      writeDreamworkConfig,
+      flattenCwdPath,
+      formatToday,
+      formatYesterday,
+      _getState: () => dreamworkState,
+      _setState: (s: { status: string; workAt: string; projects: Array<{ path: string; status: string }> }) => { dreamworkState = { ...s, projects: [...s.projects] }; },
+      _reset: () => {
+        dreamworkState = { status: 'ready', workAt: todayStr, projects: [] };
+        readDreamworkConfig.mockReset();
+        writeDreamworkConfig.mockReset();
+        flattenCwdPath.mockReset();
+        formatToday.mockReset();
+        formatYesterday.mockReset();
+        readDreamworkConfig.mockImplementation(() => ({ ...dreamworkState, projects: [...dreamworkState.projects] }));
+        writeDreamworkConfig.mockImplementation((config: { status: string; workAt: string; projects: Array<{ path: string; status: string }> }) => {
+          dreamworkState = { ...config, projects: [...config.projects] };
+        });
+        flattenCwdPath.mockImplementation((cwd: string) => cwd.replace(/\\/g, '/').replace(/:/g, '').replace(/\//g, '_'));
+        formatToday.mockImplementation(() => {
+          const d = new Date();
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        });
+        formatYesterday.mockImplementation(() => {
+          const d = new Date();
+          d.setDate(d.getDate() - 1);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        });
+      },
+    },
+  };
+});
+
+vi.mock('../../server/memory/dreamwork.js', () => ({
+  readDreamworkConfig: mockDreamwork.readDreamworkConfig,
+  writeDreamworkConfig: mockDreamwork.writeDreamworkConfig,
+  flattenCwdPath: mockDreamwork.flattenCwdPath,
+  formatToday: mockDreamwork.formatToday,
+  formatYesterday: mockDreamwork.formatYesterday,
+}));
+
+// Hoisted mock for http module
+const { mockHttp } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
+  let mockResponse: { statusCode: number } = { statusCode: 200 };
+  let shouldThrow = false;
+
+  return {
+    mockHttp: {
+      request: mockRequest,
+      _setResponse: (resp: { statusCode: number }) => { mockResponse = resp; },
+      _setThrow: (should: boolean) => { shouldThrow = should; },
+      _reset: () => {
+        mockRequest.mockReset();
+        mockResponse = { statusCode: 200 };
+        shouldThrow = false;
+      },
+      _getMockRequest: () => mockRequest,
+      _getMockResponse: () => mockResponse,
+      _getShouldThrow: () => shouldThrow,
+    },
+  };
+});
+
+vi.mock('http', () => ({
+  default: {
+    request: mockHttp._getMockRequest(),
+  },
+  request: mockHttp._getMockRequest(),
 }));
 
 // =========================================================
@@ -824,5 +958,237 @@ describe('Internal helpers', () => {
       const next = getNextFeature(features);
       expect(next).toBeUndefined();
     });
+  });
+});
+
+// =========================================================
+// Sync design to memory tests (mem-01)
+// =========================================================
+describe('syncDesignToMemory', () => {
+  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+
+  let syncDesignToMemory: (changeName: string) => void;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockFs.reset();
+    mockDreamwork._reset();
+    mockHttp._reset();
+
+    // Set default http mock: successful response
+    mockHttp._setResponse({ statusCode: 200 });
+    mockHttp._setThrow(false);
+    mockHttp._getMockRequest().mockImplementation((_url: string | URL, _callback?: (res: { statusCode: number }) => void) => {
+      if (_callback) {
+        _callback(mockHttp._getMockResponse() as unknown as { statusCode: number });
+      }
+      const mockReq = {
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
+      };
+      return mockReq;
+    });
+
+    const mod = await import('./feature.js');
+    syncDesignToMemory = mod.syncDesignToMemory;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should copy design.md to memory path when it exists (AC-6)', () => {
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    const designContent = '# My Design\n\nSome content';
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, designContent);
+
+    syncDesignToMemory('my-change');
+
+    // Verify cpSync was called with correct paths
+    const cpCalls = mockFs.cpSync.mock.calls;
+    const designCopyCall = cpCalls.find((c: unknown[]) => String(c[0]).includes('design.md'));
+    expect(designCopyCall).toBeDefined();
+
+    const destPath = String(designCopyCall![1]);
+    expect(destPath).toContain('design_my-change.md');
+    expect(destPath).toContain('memory');
+  });
+
+  it('should silently skip when design.md does not exist (AC-6)', () => {
+    // No design.md set up
+
+    expect(() => syncDesignToMemory('my-change')).not.toThrow();
+
+    // cpSync should not have been called for design.md
+    const cpCalls = mockFs.cpSync.mock.calls;
+    const designCopyCall = cpCalls.find((c: unknown[]) => String(c[0]).includes('design.md'));
+    expect(designCopyCall).toBeUndefined();
+  });
+
+  it('should add project to dreamwork.json when workAt is today and path not in projects (AC-7)', () => {
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, 'content');
+
+    syncDesignToMemory('my-change');
+
+    // Verify writeDreamworkConfig was called
+    expect(mockDreamwork.writeDreamworkConfig).toHaveBeenCalled();
+
+    const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
+    const lastCall = writeCalls[writeCalls.length - 1];
+    const config = lastCall[0];
+    expect(config.projects).toBeDefined();
+    expect(config.projects.length).toBeGreaterThanOrEqual(1);
+    // Check the project has the expected fields
+    const project = config.projects[config.projects.length - 1];
+    expect(project.status).toBe('ready');
+    expect(typeof project.path).toBe('string');
+  });
+
+  it('should not duplicate project when path already exists in projects (AC-7)', () => {
+    const flatCwd = process.cwd().replace(/\\/g, '/').replace(/:/g, '').replace(/\//g, '_');
+
+    // Pre-seed dreamwork with the current project
+    mockDreamwork._setState({
+      status: 'ready',
+      workAt: new Date().toISOString().slice(0, 10),
+      projects: [{ path: flatCwd, status: 'ready' }],
+    });
+
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, 'content');
+
+    syncDesignToMemory('my-change');
+
+    // readDreamworkConfig should have been called for validation
+    expect(mockDreamwork.readDreamworkConfig).toHaveBeenCalled();
+
+    // When project already exists (dedup), writeDreamworkConfig should NOT be
+    // called with a project addition — the existing entry is preserved as-is
+    const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
+    const hasDuplicateAdd = writeCalls.some((c: unknown[]) => {
+      const cfg = c[0] as { projects: Array<{ path: string }> };
+      const matching = cfg.projects?.filter((p: { path: string }) => p.path === flatCwd) ?? [];
+      return matching.length > 1;
+    });
+    expect(hasDuplicateAdd).toBe(false);
+  });
+
+  it('should reset dreamwork.json and add project when workAt is yesterday (AC-7)', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yy = yesterday.getFullYear();
+    const ym = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const yd = String(yesterday.getDate()).padStart(2, '0');
+    const yesterdayStr = `${yy}-${ym}-${yd}`;
+
+    // Pre-seed dreamwork with workAt=yesterday
+    mockDreamwork._setState({
+      status: 'done',
+      workAt: yesterdayStr,
+      projects: [{ path: '/old/project', status: 'done' }],
+    });
+
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, 'content');
+
+    syncDesignToMemory('my-change');
+
+    // Should reset to fresh config with just the new project
+    const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
+    expect(writeCalls.length).toBeGreaterThanOrEqual(1);
+
+    const lastCall = writeCalls[writeCalls.length - 1];
+    const config = lastCall[0] as { status: string; workAt: string; projects: Array<{ path: string; status: string }> };
+    // After reset, only the new project should be present
+    expect(config.status).toBe('ready');
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    expect(config.workAt).toBe(todayStr);
+    expect(config.projects).toHaveLength(1);
+    expect(config.projects[0].status).toBe('ready');
+  });
+
+  it('should send HTTP PUT to schedule API after updating dreamwork (AC-8)', () => {
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, 'content');
+
+    syncDesignToMemory('my-change');
+
+    // Verify http.request was called
+    expect(mockHttp._getMockRequest()).toHaveBeenCalled();
+
+    const requestCalls = mockHttp._getMockRequest().mock.calls;
+    // Should be called with URL containing schedule
+    const urlCall = requestCalls.find((c: unknown[]) => {
+      const arg = String(c[0]);
+      return arg.includes('schedule');
+    });
+    expect(urlCall).toBeDefined();
+  });
+
+  it('should silently skip HTTP call when connection fails (AC-8)', () => {
+    // Set up http to throw
+    mockHttp._setThrow(true);
+    mockHttp._getMockRequest().mockImplementation(() => {
+      throw new Error('ECONNREFUSED');
+    });
+
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, 'content');
+
+    // Should not throw - connection failure is silently skipped
+    expect(() => syncDesignToMemory('my-change')).not.toThrow();
+
+    // But dreamwork should still be updated
+    expect(mockDreamwork.writeDreamworkConfig).toHaveBeenCalled();
+  });
+
+  it('should write correct dreamwork.json via real dreamwork module logic (e2e)', async () => {
+    // Use real dreamwork logic — only fs and http are mocked
+    const realDreamwork = await vi.importActual<typeof import('../../server/memory/dreamwork.js')>('../../server/memory/dreamwork.js');
+
+    // Override mock implementations to delegate to real functions
+    mockDreamwork.readDreamworkConfig.mockImplementation(() =>
+      (realDreamwork as typeof import('../../server/memory/dreamwork.js')).readDreamworkConfig()
+    );
+    mockDreamwork.writeDreamworkConfig.mockImplementation((config) =>
+      (realDreamwork as typeof import('../../server/memory/dreamwork.js')).writeDreamworkConfig(config)
+    );
+    mockDreamwork.formatToday.mockImplementation(() =>
+      (realDreamwork as typeof import('../../server/memory/dreamwork.js')).formatToday()
+    );
+    mockDreamwork.formatYesterday.mockImplementation(() =>
+      (realDreamwork as typeof import('../../server/memory/dreamwork.js')).formatYesterday()
+    );
+
+    // Set up: design.md exists for my-change
+    const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
+    mockFs.setFile(designPath, '# Design content');
+
+    syncDesignToMemory('my-change');
+
+    // Verify dreamwork.json was written with correct project data
+    const dreamworkPath = path.join(os.homedir(), '.openpowers', 'memory', 'dreamwork.json');
+    const content = mockFs.fileSystem[dreamworkPath.replace(/\\/g, '/')];
+    expect(content).toBeDefined();
+
+    const parsed = JSON.parse(content!);
+    expect(parsed.status).toBe('ready');
+    expect(parsed.projects.length).toBeGreaterThanOrEqual(1);
+
+    // Verify the new project entry exists with correct fields
+    const flatCwd = process.cwd().replace(/\\/g, '/').replace(/:/g, '').replace(/\//g, '_');
+    const project = parsed.projects.find((p: { path: string }) => p.path === flatCwd);
+    expect(project).toBeDefined();
+    expect(project.status).toBe('ready');
   });
 });

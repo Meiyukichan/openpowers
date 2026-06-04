@@ -147,7 +147,7 @@ describe('LanguageSwitcher', () => {
     });
 
     // Language should still change despite PUT failure
-    expect(button.getAttribute('aria-label')).toBe('Switch to Chinese');
+    expect(button.getAttribute('aria-label')).toBe('切换到中文');
   });
 
   it('logs error when PUT request returns non-ok response', async () => {
@@ -205,7 +205,7 @@ describe('LanguageSwitcher', () => {
     });
 
     // Language should still change despite network failure
-    expect(button.getAttribute('aria-label')).toBe('Switch to Chinese');
+    expect(button.getAttribute('aria-label')).toBe('切换到中文');
   });
 
   it('switches from Chinese to English on click', async () => {
@@ -214,13 +214,13 @@ describe('LanguageSwitcher', () => {
     renderWithProvider();
     const button = screen.getByRole('button');
 
-    // Initially zh-CN, label is in current language (Chinese)
-    expect(button.getAttribute('aria-label')).toBe('切换到英文');
+    // Initially zh-CN, label shows target language (English)
+    expect(button.getAttribute('aria-label')).toBe('Switch to English');
 
     await user.click(button);
 
-    // After click, en-US, label is in current language (English)
-    expect(button.getAttribute('aria-label')).toBe('Switch to Chinese');
+    // After click, en-US, label shows target language (Chinese)
+    expect(button.getAttribute('aria-label')).toBe('切换到中文');
   });
 
   it('toggles back to Chinese on second click', async () => {
@@ -229,12 +229,12 @@ describe('LanguageSwitcher', () => {
     renderWithProvider();
     const button = screen.getByRole('button');
 
-    // First click: zh-CN -> en-US, label is in English now
+    // First click: zh-CN -> en-US, label shows target language
     await user.click(button);
-    expect(button.getAttribute('aria-label')).toBe('Switch to Chinese');
+    expect(button.getAttribute('aria-label')).toBe('切换到中文');
 
-    // Second click: en-US -> zh-CN, label is in Chinese now
+    // Second click: en-US -> zh-CN, label shows target language
     await user.click(button);
-    expect(button.getAttribute('aria-label')).toBe('切换到英文');
+    expect(button.getAttribute('aria-label')).toBe('Switch to English');
   });
 });

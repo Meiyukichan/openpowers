@@ -28,6 +28,16 @@ vi.mock('./anthropic/logger.js', () => ({
   proxyLogger: proxyLoggerMock,
 }));
 
+const { startSchedulerMock, stopSchedulerMock } = vi.hoisted(() => ({
+  startSchedulerMock: vi.fn(),
+  stopSchedulerMock: vi.fn(),
+}));
+
+vi.mock('./memory/scheduler.js', () => ({
+  startScheduler: startSchedulerMock,
+  stopScheduler: stopSchedulerMock,
+}));
+
 const { existsSyncMock, mkdirSyncMock, appendFileSyncMock } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
   mkdirSyncMock: vi.fn(),
@@ -132,6 +142,15 @@ describe('server entry', () => {
     errorHandler(new Error('test'));
     expect(mkdirSyncMock).toHaveBeenCalled();
   });
+
+  it('should call startScheduler in the listen callback', async () => {
+    await import('./entry.js');
+    const listenCallback = mockListenFn.mock.calls[0][1] as () => void;
+    expect(listenCallback).toBeDefined();
+    // Simulate the listen callback being called after server starts
+    listenCallback();
+    expect(startSchedulerMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('POST /openpowers/api/shutdown', () => {
@@ -184,5 +203,31 @@ describe('POST /openpowers/api/shutdown', () => {
       closeCallback(new Error('close error'));
       expect(exitSpy).toHaveBeenCalledWith(1);
     }
+  });
+
+  it('should call stopScheduler before server.close on shutdown', async () => {
+    await import('./entry.js');
+
+    const handlerCall = appPostMock.mock.calls.find(
+      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
+    );
+    const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
+    const resJson = vi.fn();
+    const mockRes = { json: resJson };
+
+    // Track call order
+    const order: string[] = [];
+    stopSchedulerMock.mockImplementation(() => { order.push('stopScheduler'); });
+    mockServerClose.mockImplementation((cb?: (err?: Error) => void) => {
+      order.push('serverClose');
+      if (cb) cb();
+      return mockServerReturn;
+    });
+
+    shutdownHandler({}, mockRes);
+
+    // stopScheduler must be called before server.close
+    expect(order.indexOf('stopScheduler')).toBeLessThan(order.indexOf('serverClose'));
+    expect(stopSchedulerMock).toHaveBeenCalledTimes(1);
   });
 });

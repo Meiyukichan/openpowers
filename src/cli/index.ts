@@ -9,6 +9,7 @@ import module from 'module';
 import { registerInitCommand } from '../commands/init.js';
 import { registerUiCommand } from '../commands/ui.js';
 import { registerActiveCommand } from '../commands/active.js';
+import { registerLaunchCommand } from '../commands/launch.js';
 import { registerRemoveCommand } from '../commands/remove.js';
 import { registerRecoverCommand } from '../commands/recover.js';
 import { registerChangeCommand } from '../commands/change/index.js';
@@ -30,6 +31,7 @@ program
 registerInitCommand(program);
 registerUiCommand(program);
 registerActiveCommand(program);
+registerLaunchCommand(program);
 registerRemoveCommand(program);
 registerRecoverCommand(program);
 registerChangeCommand(program);

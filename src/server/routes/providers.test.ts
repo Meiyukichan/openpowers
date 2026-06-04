@@ -991,13 +991,15 @@ describe('Provider Routes', () => {
       expect(res.body).toEqual({
         valid: false,
         error: 'Authentication failed: invalid API key',
+        upstreamError: JSON.stringify({ error: 'Invalid API key' }),
       });
     });
 
     it('should return 200 with valid:false when upstream resolves with 403', async () => {
+      // 403 with Anthropic auth error format → valid:false
       axiosMock.mockResolvedValue({
         status: 403,
-        data: { error: 'Forbidden' },
+        data: { type: 'error', error: { type: 'authentication_error' } },
         headers: {},
       });
 
@@ -1009,6 +1011,7 @@ describe('Provider Routes', () => {
       expect(res.body).toEqual({
         valid: false,
         error: 'Authentication failed: invalid API key',
+        upstreamError: JSON.stringify({ type: 'error', error: { type: 'authentication_error' } }),
       });
     });
 
@@ -1027,6 +1030,7 @@ describe('Provider Routes', () => {
       expect(res.body).toEqual({
         valid: false,
         error: 'Validation failed: upstream returned 500',
+        upstreamError: JSON.stringify({ error: 'Internal server error' }),
       });
     });
 

@@ -730,7 +730,7 @@ describe('AddProviderDialog', () => {
       expect(screen.getByText('Authentication failed: invalid API key')).toBeInTheDocument();
     });
     const errorEl = screen.getByText('Authentication failed: invalid API key');
-    expect(errorEl.className).toContain('red');
+    expect(errorEl.parentElement!.className).toContain('red');
   });
 
   it('shows red timeout error text when validation times out', async () => {
@@ -764,7 +764,7 @@ describe('AddProviderDialog', () => {
       expect(screen.getByText('Validation timeout: upstream did not respond within 5s')).toBeInTheDocument();
     });
     const timeoutEl = screen.getByText('Validation timeout: upstream did not respond within 5s');
-    expect(timeoutEl.className).toContain('red');
+    expect(timeoutEl.parentElement!.className).toContain('red');
   });
 
   it('resets validation result when user modifies baseUrl or apiKey', async () => {

@@ -397,7 +397,7 @@ describe('src/commands/change/shared.ts', () => {
       const data = loadOrCreateChangesJson();
       expect(data).toEqual({
         framework: '@meiyukichan/openpowers',
-        version: '1.0.1',
+        version: '1.0.2',
         changes: [],
         archive: [],
       });
@@ -415,7 +415,7 @@ describe('src/commands/change/shared.ts', () => {
       const { loadOrCreateChangesJson } = mod;
       const data = loadOrCreateChangesJson();
       expect(data.framework).toBe('@meiyukichan/openpowers');
-      expect(data.version).toBe('1.0.1');
+      expect(data.version).toBe('1.0.2');
       expect(data.changes.length).toBe(1);
       expect(data.archive).toEqual([]);
     });

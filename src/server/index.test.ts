@@ -23,6 +23,13 @@ vi.mock('./providers-store.js', async () => {
   };
 });
 
+// Mock scheduler to avoid node-cron import in tests
+vi.mock('./memory/scheduler.js', () => ({
+  startScheduler: vi.fn(),
+  stopScheduler: vi.fn(),
+  isSchedulerRunning: vi.fn(() => false),
+}));
+
 // ---- helpers ----
 
 let createApp: (options?: { clientDir?: string }) => import('express').Application;
@@ -69,6 +76,16 @@ describe('src/server/index.ts', () => {
       const app = createApp({ clientDir: '/non/existent/path' });
       const res = await request(app).get('/openpowers/api/providers');
       expect(res.status).not.toBe(404);
+    });
+
+    it('should have /openpowers/api/schedule endpoint accessible', async () => {
+      const app = createApp({ clientDir: '/non/existent/path' });
+      const res = await request(app)
+        .put('/openpowers/api/schedule')
+        .send({});
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('ok');
+      expect(res.body).toHaveProperty('started');
     });
 
     it('should have /openpowers/mcp endpoint accessible (not caught by proxy)', async () => {

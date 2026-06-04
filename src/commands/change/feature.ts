@@ -6,9 +6,12 @@
  */
 
 import fs from 'fs';
+import http from 'http';
+import os from 'os';
 import path from 'path';
 import { logger } from '../../utils/logger.js';
 import { CHANGES_DIR, validateChangeName } from './shared.js';
+import { flattenCwdPath, formatToday, formatYesterday, readDreamworkConfig, writeDreamworkConfig } from '../../server/memory/dreamwork.js';
 
 // Feature data interface
 interface Feature {
@@ -217,6 +220,9 @@ function printFeatureDetails(feature: Feature): void {
 export function runFeatureStatus(changeName: string): void {
   requireValidChangeName(changeName);
 
+  // Sync design.md to global memory (mem-01)
+  syncDesignToMemory(changeName);
+
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   const features = loadPlan(planPath);
 
@@ -398,6 +404,78 @@ export function runFeatureComplete(changeName: string, featureId: string): void 
   savePlan(planPath, features);
   process.stdout.write(`Completed feature: ${featureId}\n`);
   logger.info(`Feature '${featureId}' completed in change '${changeName}'`);
+}
+
+/**
+ * Syncs design.md to global memory and updates dreamwork.json projects.
+ * Called from runFeatureStatus after validating the change name.
+ *
+ * Steps:
+ * 1. Flatten cwd path
+ * 2. Copy design.md to ~/.openpowers/memory/{flatCwd}/design_{changeName}.md
+ * 3. Update dreamwork.json projects array (dedup, handle workAt=yesterday)
+ * 4. HTTP PUT to schedule API (silently skip on failure)
+ *
+ * @param changeName - The kebab-case change name
+ */
+export function syncDesignToMemory(changeName: string): void {
+  const cwd = process.cwd();
+  const flatCwd = flattenCwdPath(cwd);
+
+  // Step 1: Copy design.md if it exists
+  const designPath = path.join(CHANGES_DIR, changeName, 'design.md');
+  if (fs.existsSync(designPath)) {
+    const memoryDesignDir = path.join(os.homedir(), '.openpowers', 'memory', flatCwd);
+    try {
+      if (!fs.existsSync(memoryDesignDir)) {
+        fs.mkdirSync(memoryDesignDir, { recursive: true });
+      }
+      const destPath = path.join(memoryDesignDir, `design_${changeName}.md`);
+      fs.cpSync(designPath, destPath);
+    } catch {
+      // Silently skip if copy fails
+    }
+  }
+
+  // Step 2: Update dreamwork.json projects array
+  const config = readDreamworkConfig();
+
+  const yesterday = formatYesterday();
+
+  if (config.workAt === yesterday) {
+    // workAt is yesterday: reset to fresh config, then add project
+    const todayStr = formatToday();
+    writeDreamworkConfig({
+      status: 'ready',
+      workAt: todayStr,
+      projects: [{ path: flatCwd, status: 'ready' }],
+    });
+  } else {
+    // workAt is today: add project with dedup
+    const projectExists = config.projects.some((p) => p.path === flatCwd);
+    if (!projectExists) {
+      config.projects.push({ path: flatCwd, status: 'ready' });
+      writeDreamworkConfig(config);
+    }
+  }
+
+  // Step 3: Call schedule API to ensure scheduler is running
+  const port = process.env.OPENPOWERS_UI_PORT ?? 3939;
+  const scheduleUrl = `http://localhost:${port}/openpowers/api/schedule`;
+
+  try {
+    const req = http.request(scheduleUrl, { method: 'PUT' }, (res) => {
+      // Consume response to free memory
+      res.resume();
+      logger.info(`Schedule API called: ${res.statusCode}`);
+    });
+    req.on('error', () => {
+      // Silently skip on connection failure — backend may not be running
+    });
+    req.end();
+  } catch {
+    // Silently skip if request creation fails
+  }
 }
 
 // Export internal helpers for testing

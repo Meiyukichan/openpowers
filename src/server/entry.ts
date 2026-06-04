@@ -10,6 +10,7 @@ import os from 'os';
 import path from 'path';
 import { createApp } from './index.js';
 import { proxyLogger } from './anthropic/logger.js';
+import { startScheduler, stopScheduler } from './memory/scheduler.js';
 
 const ERROR_LOG_DIR = path.join(os.homedir(), '.openpowers', 'logs');
 const ERROR_LOG_FILE = path.join(ERROR_LOG_DIR, 'error.log');
@@ -37,6 +38,7 @@ const app = createApp({
     app.post('/openpowers/api/shutdown', (_req, res) => {
       proxyLogger.info('Server shutdown requested, closing connections...');
       res.json({ ok: true });
+      stopScheduler();
       server.close((err?: Error) => {
         if (err) {
           writeErrorLog(`Server close error: ${err.message}`);
@@ -52,7 +54,7 @@ const app = createApp({
 });
 
 server = app.listen(port, () => {
-  // Server started
+  startScheduler();
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {

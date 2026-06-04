@@ -321,7 +321,7 @@ describe('EditProviderDialog', () => {
       expect(screen.getByText('Authentication failed: invalid API key')).toBeInTheDocument();
     });
     const errorEl = screen.getByText('Authentication failed: invalid API key');
-    expect(errorEl.className).toContain('red');
+    expect(errorEl.parentElement!.className).toContain('red');
   });
 
   it('resets validation result when user modifies baseUrl or apiKey', async () => {
@@ -376,7 +376,7 @@ describe('EditProviderDialog', () => {
       expect(screen.getByText('验证超时')).toBeInTheDocument();
     });
     const timeoutEl = screen.getByText('验证超时');
-    expect(timeoutEl.className).toContain('red');
+    expect(timeoutEl.parentElement!.className).toContain('red');
   });
 
   it('closes dialog on backdrop click', async () => {
