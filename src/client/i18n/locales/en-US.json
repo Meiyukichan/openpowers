@@ -41,8 +41,10 @@
     }
   },
   "projectSidebar": {
-    "title": "OpenPowers Changes",
-    "searchPlaceholder": "Search..."
+    "title": "Changes",
+    "searchPlaceholder": "Search...",
+    "projectView": "Projects",
+    "recentView": "Recent"
   },
   "providerList": {
     "noProviders": "No providers configured",

@@ -18,8 +18,8 @@ If required parameters are missing, you MUST use the `AskUserQuestion` tool to a
 You **MUST** strictly and accurately execute the following instruction document step by step:
 
 1. execute `Integration Testing Instruction`, and wait util this instruction executes completely.
-2. execute bash command to archive OpenPowers change: `openpowers change archive <change-name>`.
-3. execute `Codebase Sync Instruction` after the `archive` command.
+2. execute `Codebase Sync Instruction` after the `Integration Testing Instruction`.
+3. execute bash command to archive OpenPowers change: `openpowers change archive <change-name>`.
 4. call skill: openpowers-commit to commit changes to remote branch.
 
 ### Instruction Documents

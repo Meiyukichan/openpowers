@@ -6,7 +6,7 @@
  */
 
 import * as express from 'express';
-import { startScheduler, isSchedulerRunning } from '../memory/scheduler.js';
+import { startScheduler, stopScheduler, isSchedulerRunning } from '../memory/scheduler.js';
 import { appendLog } from '../memory/schedule-logger.js';
 
 // ---------------------------------------------------------------------------
@@ -36,4 +36,38 @@ scheduleRouter.put('/', (_req, res) => {
   appendLog('PUT /schedule: starting scheduler');
   startScheduler();
   res.status(200).json({ ok: true, started: true });
+});
+
+/**
+ * DELETE /openpowers/api/schedule
+ * Stops the scheduler if it is running.
+ * Returns { ok: true, stopped: true } if scheduler was stopped by this request,
+ * or { ok: true, stopped: false } if it was not running.
+ */
+scheduleRouter.delete('/', (_req, res) => {
+  if (isSchedulerRunning()) {
+    appendLog('DELETE /schedule: stopping scheduler');
+    stopScheduler();
+    res.status(200).json({ ok: true, stopped: true });
+    return;
+  }
+
+  appendLog('DELETE /schedule: scheduler not running');
+  res.status(200).json({ ok: true, stopped: false });
+});
+
+/**
+ * POST /openpowers/api/schedule/restart
+ * Stops the scheduler first, then starts it again.
+ * Returns { ok: true, restarted: true }.
+ */
+scheduleRouter.post('/restart', (_req, res) => {
+  try {
+    appendLog('POST /schedule/restart: restarting scheduler');
+    stopScheduler();
+    startScheduler();
+    res.status(200).json({ ok: true, restarted: true });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });

@@ -288,9 +288,9 @@ describe('Layout', () => {
 
   // --- Layout structure tests ---
 
-  it('renders root layout with flex-row horizontal structure', () => {
+  it('renders root layout with flex-col vertical structure', () => {
     renderLayout();
-    const rootDiv = document.querySelector('.flex-row.h-screen');
+    const rootDiv = document.querySelector('.flex-col.h-screen');
     expect(rootDiv).toBeInTheDocument();
   });
 });

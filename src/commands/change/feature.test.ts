@@ -150,6 +150,14 @@ const { mockDreamwork } = vi.hoisted(() => {
       formatYesterday,
       _getState: () => dreamworkState,
       _setState: (s: { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> }) => { dreamworkState = { ...s, projects: [...s.projects.map(p => ({ ...p, changes: [...p.changes] }))] }; },
+      // Helper: local-timezone YYYY-MM-DD (same as formatToday output)
+      _localToday: () => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      },
       _reset: () => {
         dreamworkState = { workAt: todayStr, projects: [] };
         readDreamworkConfig.mockReset();
@@ -1067,7 +1075,7 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with the current project (nested structure)
     mockDreamwork._setState({
-      workAt: new Date().toISOString().slice(0, 10),
+      workAt: mockDreamwork._localToday(),
       projects: [{
         project: memoryDir,
         changes: [changePath],
@@ -1176,7 +1184,7 @@ describe('syncDesignToMemory', () => {
   it('should NOT update dreamwork.json or call schedule API when design.md does not exist (D4)', () => {
     // No design.md set up
     mockDreamwork._setState({
-      workAt: new Date().toISOString().slice(0, 10),
+      workAt: mockDreamwork._localToday(),
       projects: [],
     });
 
@@ -1212,7 +1220,7 @@ describe('syncDesignToMemory', () => {
     // We override its implementation to simulate reset behavior
     mockDreamwork.readDreamworkConfig.mockImplementation(() => ({
       status: 'ready',
-      workAt: new Date().toISOString().slice(0, 10),
+      workAt: mockDreamwork._localToday(),
       projects: [],
     }));
 
@@ -1239,7 +1247,7 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with existing project that has a different change
     mockDreamwork._setState({
-      workAt: new Date().toISOString().slice(0, 10),
+      workAt: mockDreamwork._localToday(),
       projects: [{
         project: memoryDir,
         changes: [existingChangePath],
@@ -1274,7 +1282,7 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with a different project
     mockDreamwork._setState({
-      workAt: new Date().toISOString().slice(0, 10),
+      workAt: mockDreamwork._localToday(),
       projects: [{
         project: '/some/other/project',
         changes: ['/some/other/change.md'],

@@ -104,4 +104,87 @@ describe('scheduleRouter', () => {
       expect(startSchedulerMock).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('DELETE / (mounted at /openpowers/api/schedule)', () => {
+    async function createTestApp() {
+      const mod = await importFresh();
+      const app = express.default();
+      app.use(express.default.json());
+      app.use('/openpowers/api/schedule', mod.scheduleRouter);
+      return app;
+    }
+
+    it('should stop scheduler and return { ok: true, stopped: true } when running', async () => {
+      isSchedulerRunningMock.mockReturnValue(true);
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .delete('/openpowers/api/schedule')
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, stopped: true });
+      expect(stopSchedulerMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return { ok: true, stopped: false } when scheduler not running', async () => {
+      isSchedulerRunningMock.mockReturnValue(false);
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .delete('/openpowers/api/schedule')
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, stopped: false });
+    });
+
+    it('should not call stopScheduler when not running', async () => {
+      isSchedulerRunningMock.mockReturnValue(false);
+      const app = await createTestApp();
+
+      await request(app)
+        .delete('/openpowers/api/schedule')
+        .send({});
+
+      expect(stopSchedulerMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /restart (mounted at /openpowers/api/schedule/restart)', () => {
+    async function createTestApp() {
+      const mod = await importFresh();
+      const app = express.default();
+      app.use(express.default.json());
+      app.use('/openpowers/api/schedule', mod.scheduleRouter);
+      return app;
+    }
+
+    it('should stop then start scheduler and return { ok: true, restarted: true }', async () => {
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .post('/openpowers/api/schedule/restart')
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, restarted: true });
+      expect(stopSchedulerMock).toHaveBeenCalledTimes(1);
+      expect(startSchedulerMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return 500 with error message when restart throws', async () => {
+      stopSchedulerMock.mockImplementation(() => {
+        throw new Error('Mock restart failure');
+      });
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .post('/openpowers/api/schedule/restart')
+        .send({});
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ ok: false, error: 'Mock restart failure' });
+    });
+  });
 });

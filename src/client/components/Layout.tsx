@@ -63,17 +63,9 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
 
   return React.createElement(
     'div',
-    { className: 'flex flex-row h-screen bg-background text-foreground overflow-hidden' },
-    // ActivityBar (48px leftmost)
-    React.createElement(ActivityBar, { activeView, onViewChange }),
-    // Sidebar area (conditional)
-    sidebar,
-    // Main content column
+    { className: 'flex flex-col h-screen bg-background text-foreground overflow-hidden' },
+    // Header (full width, top)
     React.createElement(
-      'div',
-      { className: 'flex flex-col flex-1 min-w-0' },
-      // Header
-      React.createElement(
         'header',
         {
           className:
@@ -203,19 +195,27 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
           ),
         ),
       ),
+    // Content area (ActivityBar + sidebar + main)
+    React.createElement(
+      'div',
+      { className: 'flex flex-row flex-1 min-h-0' },
+      // ActivityBar (below header, left)
+      React.createElement(ActivityBar, { activeView, onViewChange }),
+      // Sidebar area (conditional)
+      sidebar,
       // Main content
       React.createElement(
         'main',
-        { className: 'flex-1 px-6 py-8 mx-auto w-full max-w-5xl' },
+        { className: 'flex-1 px-6 py-8 mx-auto w-full max-w-5xl overflow-y-auto' },
         children,
       ),
-      React.createElement(ConfirmResetDialog, {
-        isOpen: showConfirmReset,
-        title: t('layout.confirmResetTitle'),
-        message: t('layout.confirmResetMessage'),
-        onConfirm: handleResetConfirm,
-        onCancel: handleResetCancel,
-      }),
     ),
+    React.createElement(ConfirmResetDialog, {
+      isOpen: showConfirmReset,
+      title: t('layout.confirmResetTitle'),
+      message: t('layout.confirmResetMessage'),
+      onConfirm: handleResetConfirm,
+      onCancel: handleResetCancel,
+    }),
   );
 }

@@ -41,8 +41,10 @@
     }
   },
   "projectSidebar": {
-    "title": "OpenPowers Changes",
-    "searchPlaceholder": "搜索..."
+    "title": "Changes",
+    "searchPlaceholder": "搜索...",
+    "projectView": "项目",
+    "recentView": "最近"
   },
   "providerList": {
     "noProviders": "暂无供应商配置",

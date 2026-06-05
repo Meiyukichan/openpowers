@@ -21,11 +21,17 @@ interface ActivityBarProps {
 export function ActivityBar({ activeView, onViewChange }: ActivityBarProps): React.ReactElement {
   const { t } = useTranslation();
 
+  /** Shared icon button styles */
+  const iconBtnBase = 'relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200';
+  const iconBtnActive = 'bg-blue-500/10 text-blue-500 shadow-md shadow-blue-500/20';
+  const iconBtnInactive = 'text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:shadow-sm hover:scale-105';
+
   return React.createElement(
     'div',
     {
       className:
-        'flex flex-col items-center w-12 h-full border-r bg-muted/30 pt-3 gap-1',
+        'flex flex-col items-center w-12 h-full border-r pt-3 gap-1.5',
+      style: { background: 'linear-gradient(180deg, hsl(var(--muted)/0.5) 0%, hsl(var(--muted)/0.2) 100%)' },
     },
     // Server (providers) icon button
     React.createElement(
@@ -35,17 +41,14 @@ export function ActivityBar({ activeView, onViewChange }: ActivityBarProps): Rea
         onClick: () => onViewChange('providers'),
         'aria-label': t('layout.activityBar.providersAriaLabel'),
         title: t('layout.activityBar.providers'),
-        className: `relative flex items-center justify-center w-10 h-10 rounded-md transition-colors ${
-          activeView === 'providers'
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-        }`,
+        className: `${iconBtnBase} ${activeView === 'providers' ? iconBtnActive : iconBtnInactive}`,
       },
       activeView === 'providers' &&
         React.createElement('div', {
-          className: 'absolute left-0 top-1/2 -translate-y-1/2 h-6 w-0.5 bg-blue-500 rounded-r-full',
+          className:
+            'absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] bg-blue-500 rounded-r-full shadow-md shadow-blue-500/50',
         }),
-      React.createElement(Server, { size: 22 }),
+      React.createElement(Server, { size: 20 }),
     ),
     // FolderKanban (projects) icon button
     React.createElement(
@@ -55,17 +58,14 @@ export function ActivityBar({ activeView, onViewChange }: ActivityBarProps): Rea
         onClick: () => onViewChange('projects'),
         'aria-label': t('layout.activityBar.projectsAriaLabel'),
         title: t('layout.activityBar.projects'),
-        className: `relative flex items-center justify-center w-10 h-10 rounded-md transition-colors ${
-          activeView === 'projects'
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-        }`,
+        className: `${iconBtnBase} ${activeView === 'projects' ? iconBtnActive : iconBtnInactive}`,
       },
       activeView === 'projects' &&
         React.createElement('div', {
-          className: 'absolute left-0 top-1/2 -translate-y-1/2 h-6 w-0.5 bg-blue-500 rounded-r-full',
+          className:
+            'absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] bg-blue-500 rounded-r-full shadow-md shadow-blue-500/50',
         }),
-      React.createElement(FolderKanban, { size: 22 }),
+      React.createElement(FolderKanban, { size: 20 }),
     ),
   );
 }

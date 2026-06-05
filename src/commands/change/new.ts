@@ -52,7 +52,7 @@ export function runChangeNew(name: string, options: { desc: string }): void {
   const newEntry = {
     name,
     path: toRelativePath(changeDir),
-    description: options.desc,
+    description: options.desc ?? name,
     createdAt: new Date().toISOString(),
     features: 0,
     todo: 0,

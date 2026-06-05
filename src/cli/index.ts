@@ -17,6 +17,7 @@ import { registerConfigCommand } from '../commands/config.js';
 import { registerEnableCommand } from '../commands/enable.js';
 import { registerDisableCommand } from '../commands/disable.js';
 import { registerAgentsCommand } from '../commands/agents.js';
+import { registerScheduleCommand } from '../commands/schedule/index.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
@@ -39,5 +40,6 @@ registerConfigCommand(program);
 registerEnableCommand(program);
 registerDisableCommand(program);
 registerAgentsCommand(program);
+registerScheduleCommand(program);
 
 export { program };
