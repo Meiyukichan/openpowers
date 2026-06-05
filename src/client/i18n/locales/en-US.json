@@ -32,7 +32,17 @@
     "confirmResetTitle": "Confirm Reset",
     "confirmResetMessage": "Reset to Claude default configuration?",
     "confirm": "Confirm",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "activityBar": {
+      "providers": "Providers",
+      "projects": "Projects",
+      "providersAriaLabel": "Providers",
+      "projectsAriaLabel": "Projects"
+    }
+  },
+  "projectSidebar": {
+    "title": "OpenPowers Changes",
+    "searchPlaceholder": "Search..."
   },
   "providerList": {
     "noProviders": "No providers configured",

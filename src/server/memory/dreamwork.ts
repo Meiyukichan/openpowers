@@ -9,23 +9,19 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { appendLog } from './schedule-logger.js';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export interface DreamworkChange {
-  path: string;
-  status: string;
-}
-
 export interface DreamworkProject {
   project: string;
-  changes: DreamworkChange[];
+  changes: string[];
+  status?: 'done';
 }
 
 export interface DreamworkConfig {
-  status: string;
   workAt: string;
   projects: DreamworkProject[];
 }
@@ -85,7 +81,6 @@ export function flattenCwdPath(cwd: string): string {
  */
 function createDefaultConfig(): DreamworkConfig {
   return {
-    status: 'ready',
     workAt: formatToday(),
     projects: [],
   };
@@ -95,11 +90,10 @@ function createDefaultConfig(): DreamworkConfig {
  * Reads dreamwork.json, creating it if needed, and validates the workAt field.
  *
  * Rules:
- * - File missing → create default { status: 'ready', workAt: '<today>', projects: [] }
+ * - File missing → create default { workAt: '<today>', projects: [] }
  * - workAt is today → keep existing config
  * - workAt is yesterday → keep existing config
  * - workAt is other date → reset to default
- * - workAt is today AND status is 'done' → reset status to 'ready'
  * - JSON parse error → reset to default
  *
  * @returns The validated DreamworkConfig object
@@ -110,6 +104,7 @@ export function readDreamworkConfig(): DreamworkConfig {
 
   // Create default if file doesn't exist
   if (!fs.existsSync(DREAMWORK_PATH)) {
+    appendLog('dreamwork.json not found, creating default config');
     const config = createDefaultConfig();
     writeDreamworkConfig(config);
     return config;
@@ -122,6 +117,7 @@ export function readDreamworkConfig(): DreamworkConfig {
     config = JSON.parse(raw) as DreamworkConfig;
   } catch {
     // Invalid JSON, recreate default
+    appendLog('dreamwork.json parse error, resetting to default config');
     const defaultConfig = createDefaultConfig();
     writeDreamworkConfig(defaultConfig);
     return defaultConfig;
@@ -131,6 +127,7 @@ export function readDreamworkConfig(): DreamworkConfig {
   if (config.projects && config.projects.length > 0) {
     const first = config.projects[0] as unknown as Record<string, unknown>;
     if ('path' in first && !('project' in first)) {
+      appendLog('dreamwork.json old format detected, resetting to default config');
       const defaultConfig = createDefaultConfig();
       writeDreamworkConfig(defaultConfig);
       return defaultConfig;
@@ -140,15 +137,10 @@ export function readDreamworkConfig(): DreamworkConfig {
   // Validate workAt field
   if (config.workAt !== today && config.workAt !== yesterday) {
     // workAt is neither today nor yesterday, reset to default
+    appendLog(`dreamwork.json workAt mismatch (${config.workAt}), resetting to default config`);
     const defaultConfig = createDefaultConfig();
     writeDreamworkConfig(defaultConfig);
     return defaultConfig;
-  }
-
-  // If workAt is today and status is done, reset to ready
-  if (config.workAt === today && config.status === 'done') {
-    config.status = 'ready';
-    writeDreamworkConfig(config);
   }
 
   return config;
@@ -171,6 +163,7 @@ export function writeDreamworkConfig(config: DreamworkConfig): void {
   }
   const body = `${JSON.stringify(config, null, 2)}\n`;
   fs.writeFileSync(DREAMWORK_PATH, body, 'utf-8');
+  appendLog(`dreamwork.json written: workAt=${config.workAt}, projects=${config.projects.length}`);
 }
 
 // ---------------------------------------------------------------------------

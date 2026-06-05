@@ -32,7 +32,17 @@
     "confirmResetTitle": "确认还原",
     "confirmResetMessage": "是否还原Claude配置？",
     "confirm": "确定",
-    "cancel": "取消"
+    "cancel": "取消",
+    "activityBar": {
+      "providers": "供应商管理",
+      "projects": "项目管理",
+      "providersAriaLabel": "供应商管理",
+      "projectsAriaLabel": "项目管理"
+    }
+  },
+  "projectSidebar": {
+    "title": "OpenPowers Changes",
+    "searchPlaceholder": "搜索..."
   },
   "providerList": {
     "noProviders": "暂无供应商配置",

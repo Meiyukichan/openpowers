@@ -578,3 +578,70 @@ describe('setUserConfigValue', () => {
     expect(encoding).toBe('utf-8');
   });
 });
+
+describe('setDefaultConfigValue', () => {
+  let setDefaultConfigValue: (keyPath: string, value: unknown) => unknown;
+
+  beforeAll(async () => {
+    const mod = await import('./config.js');
+    setDefaultConfigValue = (mod as unknown as { setDefaultConfigValue: (keyPath: string, value: unknown) => unknown }).setDefaultConfigValue;
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should write to the default config path (resources/openpowers.json)', () => {
+    const existing = { language: 'chinese', enhancement: { memory: { schedule: '0 2 * * *' } } };
+    readFileSyncMock.mockReturnValue(JSON.stringify(existing));
+
+    const result = setDefaultConfigValue('enhancement.memory.schedule', '0 3 * * *');
+
+    expect(result).toBe('0 3 * * *');
+    // Verify write path: should be resources/openpowers.json (not .claude/)
+    const actualPath = writeFileSyncMock.mock.calls[0][0] as string;
+    expect(actualPath.replace(/\\/g, '/')).toContain('resources/openpowers.json');
+    expect(actualPath).not.toContain('.claude');
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed.enhancement.memory.schedule).toBe('0 3 * * *');
+    // Unrelated keys preserved
+    expect(parsed.language).toBe('chinese');
+  });
+
+  it('should create intermediate objects when they do not exist', () => {
+    const existing = { language: 'chinese' };
+    readFileSyncMock.mockReturnValue(JSON.stringify(existing));
+
+    setDefaultConfigValue('enhancement.memory.schedule', '0 4 * * *');
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed.enhancement.memory.schedule).toBe('0 4 * * *');
+    expect(parsed.language).toBe('chinese');
+  });
+
+  it('should serialize JSON with 2-space indentation and trailing newline', () => {
+    readFileSyncMock.mockReturnValue(JSON.stringify({}));
+
+    setDefaultConfigValue('experimental.explore', true);
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    expect(body.startsWith('{\n  "experimental"')).toBe(true);
+    expect(body.endsWith('}\n')).toBe(true);
+    expect(body.endsWith('}\n\n')).toBe(false);
+  });
+
+  it('should overwrite an existing leaf value', () => {
+    const existing = { experimental: { explore: true, websearch: false } };
+    readFileSyncMock.mockReturnValue(JSON.stringify(existing));
+
+    setDefaultConfigValue('experimental.explore', false);
+
+    const body = writeFileSyncMock.mock.calls[0][1] as string;
+    const parsed = JSON.parse(body);
+    expect(parsed.experimental.explore).toBe(false);
+    expect(parsed.experimental.websearch).toBe(false);
+  });
+});

@@ -11,9 +11,11 @@ import { useTranslation } from 'react-i18next';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Layout } from './components/Layout.js';
 import { ProviderList } from './components/ProviderList.js';
+import { ProjectSidebar } from './components/ProjectSidebar.js';
 import { AddProviderDialog } from './components/AddProviderDialog.js';
 import { EditProviderDialog } from './components/EditProviderDialog.js';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog.js';
+import type { ActivityBarView } from './components/ActivityBar.js';
 import type { Provider } from '../server/providers-store.js';
 import { logger } from './utils/logger.js';
 import { localeToHtmlLang } from './i18n/index.js';
@@ -32,6 +34,7 @@ export function App(): React.ReactElement {
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
   const [enableOpenpowersProxy, setEnableOpenpowersProxy] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: ToastType } | null>(null);
+  const [activeView, setActiveView] = useState<ActivityBarView>('providers');
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -207,15 +210,23 @@ export function App(): React.ReactElement {
         showToast,
         enableOpenpowersProxy,
         onToggleProxy: handleToggleProxy,
+        activeView,
+        onViewChange: setActiveView,
+        sidebar:
+          activeView === 'projects'
+            ? React.createElement(ProjectSidebar)
+            : null,
       },
-      React.createElement(ProviderList, {
-        onEdit: handleOpenEditDialog,
-        onDelete: handleOpenDeleteDialog,
-        onAddProvider: handleOpenAddDialog,
-        onSetActive: handleSetActive,
-        activeProviderId,
-        refreshTrigger,
-      }),
+      activeView === 'providers'
+        ? React.createElement(ProviderList, {
+            onEdit: handleOpenEditDialog,
+            onDelete: handleOpenDeleteDialog,
+            onAddProvider: handleOpenAddDialog,
+            onSetActive: handleSetActive,
+            activeProviderId,
+            refreshTrigger,
+          })
+        : null,
     ),
     // Add provider dialog
     React.createElement(AddProviderDialog, {

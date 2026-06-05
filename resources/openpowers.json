@@ -48,6 +48,9 @@
             "design": [],
             "specs": [],
             "implement": []
+        },
+        "memory": {
+            "schedule": "0 2 * * *"
         }
     }
 }

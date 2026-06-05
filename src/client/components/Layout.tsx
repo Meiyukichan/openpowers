@@ -1,7 +1,8 @@
 /**
  * Layout component provides the main application shell.
- * Header with 'OpenPowers' branding on the left,
- * and session management + circular orange '+' buttons on the right for adding providers.
+ * VSCode-style layout with ActivityBar on the far left,
+ * optional sidebar area, and main content with header.
+ * Header with 'OpenPowers' branding, proxy toggle, session management + add button.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -11,6 +12,8 @@ import { Plus, Settings, RotateCcw, Radio } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmResetDialog } from './ConfirmResetDialog.js';
 import { LanguageSwitcher } from './LanguageSwitcher.js';
+import { ActivityBar } from './ActivityBar.js';
+import type { ActivityBarView } from './ActivityBar.js';
 import ClaudeSvg from '../icons/claude.svg?url';
 
 /** Props for the Layout component. */
@@ -21,13 +24,16 @@ interface LayoutProps {
   enableOpenpowersProxy: boolean;
   onToggleProxy: () => void;
   children: React.ReactNode;
+  activeView: ActivityBarView;
+  onViewChange: (view: ActivityBarView) => void;
+  sidebar: React.ReactNode;
 }
 
 /**
- * Layout renders the application shell with a fixed header and scrollable main content area.
+ * Layout renders the application shell with ActivityBar, optional sidebar, and main content.
  * The header contains branding, a placeholder session management button, and an add provider button.
  */
-export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProxy, onToggleProxy, children }: LayoutProps): React.ReactElement {
+export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProxy, onToggleProxy, children, activeView, onViewChange, sidebar }: LayoutProps): React.ReactElement {
   const { t } = useTranslation();
   const [showConfirmReset, setShowConfirmReset] = useState(false);
 
@@ -57,148 +63,159 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
 
   return React.createElement(
     'div',
-    { className: 'flex flex-col min-h-screen bg-background text-foreground' },
-    // Header
+    { className: 'flex flex-row h-screen bg-background text-foreground overflow-hidden' },
+    // ActivityBar (48px leftmost)
+    React.createElement(ActivityBar, { activeView, onViewChange }),
+    // Sidebar area (conditional)
+    sidebar,
+    // Main content column
     React.createElement(
-      'header',
-      {
-        className:
-          'sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md',
-      },
+      'div',
+      { className: 'flex flex-col flex-1 min-w-0' },
+      // Header
       React.createElement(
-        'div',
-        { className: 'flex items-center justify-between h-16 px-6 mx-auto max-w-5xl' },
-        // Left: brand
+        'header',
+        {
+          className:
+            'sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md',
+        },
         React.createElement(
           'div',
-          { className: 'flex items-center gap-2' },
-          React.createElement('img', {
-            src: ClaudeSvg,
-            alt: 'Claude',
-            width: 24,
-            height: 24,
-            loading: 'lazy',
-          }),
-          React.createElement(
-            'h1',
-            { className: 'text-xl font-semibold text-blue-500 dark:text-blue-400' },
-            t('app.brandName'),
-          ),
-          React.createElement(
-            'button',
-            {
-              type: 'button',
-              'aria-label': t('layout.settingsAriaLabel'),
-              title: t('layout.settings'),
-              className: 'p-1 rounded-md text-muted-foreground hover:text-muted-foreground transition-colors',
-            },
-            React.createElement(Settings, {
-              size: 18,
-              className: 'text-muted-foreground',
-            }),
-          ),
-          React.createElement(
-            'button',
-            {
-              type: 'button',
-              onClick: handleResetClick,
-              'aria-label': t('layout.resetProvidersAriaLabel'),
-              title: t('layout.resetProviders'),
-              className:
-                'p-1 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors',
-            },
-            React.createElement(RotateCcw, { size: 16 }),
-          ),
+          { className: 'flex items-center justify-between h-16 px-6 mx-auto max-w-5xl' },
+          // Left: brand
           React.createElement(
             'div',
-            {
-              title: enableOpenpowersProxy
-                ? t('layout.proxyRunning')
-                : t('layout.proxyOff'),
-              className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
-            },
-            React.createElement(Radio, {
-              size: 14,
-              className: enableOpenpowersProxy ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground',
+            { className: 'flex items-center gap-2' },
+            React.createElement('img', {
+              src: ClaudeSvg,
+              alt: 'Claude',
+              width: 24,
+              height: 24,
+              loading: 'lazy',
             }),
+            React.createElement(
+              'h1',
+              { className: 'text-xl font-semibold text-blue-500 dark:text-blue-400' },
+              t('app.brandName'),
+            ),
             React.createElement(
               'button',
               {
                 type: 'button',
-                role: 'switch',
-                'aria-checked': enableOpenpowersProxy,
-                'aria-label': t('layout.toggleProxyAriaLabel'),
-                onClick: onToggleProxy,
-                className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'
-                }`,
+                'aria-label': t('layout.settingsAriaLabel'),
+                title: t('layout.settings'),
+                className: 'p-1 rounded-md text-muted-foreground hover:text-muted-foreground transition-colors',
               },
-              React.createElement('span', {
-                className: `inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                  enableOpenpowersProxy ? 'translate-x-5' : 'translate-x-0.5'
-                }`,
+              React.createElement(Settings, {
+                size: 18,
+                className: 'text-muted-foreground',
               }),
             ),
-          ),
-        ),
-        // Right: session management + add button
-        React.createElement(
-          'div',
-          { className: 'flex items-center gap-1.5' },
-          React.createElement(
-            'button',
-            {
-              type: 'button',
-              onClick: handleSessionClick,
-              className:
-                'inline-flex items-center gap-1.5 rounded-lg border bg-muted px-3 py-1.5 text-sm text-muted-foreground',
-            },
             React.createElement(
-              'svg',
+              'button',
               {
-                xmlns: 'http://www.w3.org/2000/svg',
-                width: '14',
-                height: '14',
-                viewBox: '0 0 24 24',
-                fill: 'none',
-                stroke: 'currentColor',
-                strokeWidth: '2',
-                strokeLinecap: 'round' as const,
-                strokeLinejoin: 'round' as const,
+                type: 'button',
+                onClick: handleResetClick,
+                'aria-label': t('layout.resetProvidersAriaLabel'),
+                title: t('layout.resetProviders'),
+                className:
+                  'p-1 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors',
               },
-              React.createElement('circle', { cx: '12', cy: '12', r: '10' }),
-              React.createElement('polyline', { points: '12 6 12 12 16 14' }),
+              React.createElement(RotateCcw, { size: 16 }),
             ),
-            t('layout.sessionManagement'),
+            React.createElement(
+              'div',
+              {
+                title: enableOpenpowersProxy
+                  ? t('layout.proxyRunning')
+                  : t('layout.proxyOff'),
+                className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
+              },
+              React.createElement(Radio, {
+                size: 14,
+                className: enableOpenpowersProxy ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground',
+              }),
+              React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  role: 'switch',
+                  'aria-checked': enableOpenpowersProxy,
+                  'aria-label': t('layout.toggleProxyAriaLabel'),
+                  onClick: onToggleProxy,
+                  className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'
+                  }`,
+                },
+                React.createElement('span', {
+                  className: `inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    enableOpenpowersProxy ? 'translate-x-5' : 'translate-x-0.5'
+                  }`,
+                }),
+              ),
+            ),
           ),
-          React.createElement(LanguageSwitcher),
+          // Right: session management + language switcher + add button
           React.createElement(
-            'button',
-            {
-              type: 'button',
-              onClick: onAddProvider,
-              onKeyDown: handleKeyDown,
-              'aria-label': t('layout.addProviderAriaLabel'),
-              className:
-                'inline-flex items-center justify-center rounded-full bg-orange-500 text-white w-8 h-8 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30',
-            },
-            React.createElement(Plus, { size: 20 }),
+            'div',
+            { className: 'flex items-center gap-1.5' },
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                onClick: handleSessionClick,
+                'aria-label': t('layout.sessionManagement'),
+                title: t('layout.sessionManagement'),
+                className:
+                  'inline-flex items-center justify-center rounded-lg border bg-muted w-9 h-8 text-muted-foreground',
+              },
+              React.createElement(
+                'svg',
+                {
+                  xmlns: 'http://www.w3.org/2000/svg',
+                  width: '14',
+                  height: '14',
+                  viewBox: '0 0 24 24',
+                  fill: 'none',
+                  stroke: 'currentColor',
+                  strokeWidth: '2',
+                  strokeLinecap: 'round' as const,
+                  strokeLinejoin: 'round' as const,
+                },
+                React.createElement('circle', { cx: '12', cy: '12', r: '10' }),
+                React.createElement('polyline', { points: '12 6 12 12 16 14' }),
+              ),
+            ),
+            React.createElement(LanguageSwitcher),
+            activeView === 'providers' &&
+              React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  onClick: onAddProvider,
+                  onKeyDown: handleKeyDown,
+                  'aria-label': t('layout.addProviderAriaLabel'),
+                  className:
+                    'inline-flex items-center justify-center rounded-full bg-orange-500 text-white w-8 h-8 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30',
+                },
+                React.createElement(Plus, { size: 20 }),
+              ),
           ),
         ),
       ),
+      // Main content
+      React.createElement(
+        'main',
+        { className: 'flex-1 px-6 py-8 mx-auto w-full max-w-5xl' },
+        children,
+      ),
+      React.createElement(ConfirmResetDialog, {
+        isOpen: showConfirmReset,
+        title: t('layout.confirmResetTitle'),
+        message: t('layout.confirmResetMessage'),
+        onConfirm: handleResetConfirm,
+        onCancel: handleResetCancel,
+      }),
     ),
-    // Main content
-    React.createElement(
-      'main',
-      { className: 'flex-1 px-6 py-8 mx-auto w-full max-w-5xl' },
-      children,
-    ),
-    React.createElement(ConfirmResetDialog, {
-      isOpen: showConfirmReset,
-      title: t('layout.confirmResetTitle'),
-      message: t('layout.confirmResetMessage'),
-      onConfirm: handleResetConfirm,
-      onCancel: handleResetCancel,
-    }),
   );
 }

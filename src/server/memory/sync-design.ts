@@ -17,6 +17,7 @@ import {
   readDreamworkConfig,
   writeDreamworkConfig,
 } from './dreamwork.js';
+import { appendLog } from './schedule-logger.js';
 
 /**
  * Syncs design.md to global memory and updates dreamwork.json projects.
@@ -46,6 +47,7 @@ export function syncDesignToMemory(changeName: string): void {
 
   // D4: If design.md does not exist, skip Step 2 and Step 3 entirely
   if (!fs.existsSync(designPath)) {
+    appendLog(`syncDesignToMemory: design.md not found for change "${changeName}", skipping`);
     return;
   }
 
@@ -57,8 +59,9 @@ export function syncDesignToMemory(changeName: string): void {
     }
     const destPath = path.join(memoryDesignDir, `design_${changeName}.md`);
     fs.cpSync(designPath, destPath);
+    appendLog(`syncDesignToMemory: copied design.md to ${destPath}`);
   } catch {
-    // Silently skip if copy fails
+    appendLog(`syncDesignToMemory: failed to copy design.md to ${memoryDesignDir}`);
   }
 
   // Step 2: Update dreamwork.json with nested project + changes structure
@@ -71,18 +74,19 @@ export function syncDesignToMemory(changeName: string): void {
 
   if (config.workAt === yesterday) {
     // workAt is yesterday: reset to fresh config, then add new project + change
+    appendLog(`syncDesignToMemory: workAt is yesterday, resetting dreamwork.json and adding project ${projectPath}`);
     writeDreamworkConfig({
-      status: 'ready',
       workAt: today,
       projects: [
         {
           project: projectPath,
-          changes: [{ path: changePath, status: 'ready' }],
+          changes: [changePath],
         },
       ],
     });
   } else if (config.workAt === today) {
     // D5: workAt is today: nested dedup (project-level + change-level)
+    appendLog(`syncDesignToMemory: workAt is today, updating project ${projectPath} with change ${changePath}`);
 
     // Project-level dedup: find existing project by project field
     let project = config.projects.find((p) => p.project === projectPath);
@@ -92,9 +96,9 @@ export function syncDesignToMemory(changeName: string): void {
     }
 
     // Change-level dedup: avoid adding duplicate change paths
-    const changeExists = project.changes.some((c) => c.path === changePath);
+    const changeExists = project.changes.some((c) => c === changePath);
     if (!changeExists) {
-      project.changes.push({ path: changePath, status: 'ready' });
+      project.changes.push(changePath);
     }
 
     writeDreamworkConfig(config);
@@ -110,13 +114,14 @@ export function syncDesignToMemory(changeName: string): void {
     const req = http.request(scheduleUrl, { method: 'PUT' }, (res) => {
       // Consume response to free memory
       res.resume();
+      appendLog(`syncDesignToMemory: schedule API responded ${res.statusCode}`);
       logger.info(`Schedule API called: ${res.statusCode}`);
     });
     req.on('error', () => {
-      // Silently skip on connection failure — backend may not be running
+      appendLog('syncDesignToMemory: schedule API call failed (backend may not be running)');
     });
     req.end();
   } catch {
-    // Silently skip if request creation fails
+    appendLog('syncDesignToMemory: schedule API request creation failed');
   }
 }

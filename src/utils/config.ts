@@ -320,3 +320,35 @@ export function setUserConfigValue(cwd: string, keyPath: string, value: unknown)
   writeUserConfig(cwd, data);
   return value;
 }
+
+/**
+ * Sets a nested value in the global default config file
+ * (resources/openpowers.json). Reads the current file, mutates the
+ * in-memory tree, and writes back with 2-space indentation + trailing
+ * newline. Creates intermediate plain objects as needed. Unrelated
+ * keys are preserved. Returns the final value written at the key path.
+ *
+ * @param keyPath - Dot-separated key path (e.g. 'enhancement.memory.schedule')
+ * @param value - The value to write at the key path
+ * @returns The value written at the leaf
+ */
+export function setDefaultConfigValue(keyPath: string, value: unknown): unknown {
+  const moduleDirname = path.dirname(url.fileURLToPath(import.meta.url));
+  const configPath = path.join(moduleDirname, '..', '..', 'resources', 'openpowers.json');
+  const raw = fs.readFileSync(configPath, 'utf-8');
+  const data = JSON.parse(raw) as Record<string, unknown>;
+  const parts = keyPath.split('.');
+  let node: Record<string, unknown> = data;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = parts[i];
+    const next = node[key];
+    if (!isPlainObject(next)) {
+      node[key] = {};
+    }
+    node = node[key] as Record<string, unknown>;
+  }
+  node[parts[parts.length - 1]] = value;
+  const body = `${JSON.stringify(data, null, 2)}\n`;
+  fs.writeFileSync(configPath, body, 'utf-8');
+  return value;
+}

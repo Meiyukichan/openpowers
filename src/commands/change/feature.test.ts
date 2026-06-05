@@ -77,6 +77,17 @@ const { mockFs } = vi.hoisted(() => {
           dirSet.add(parts.slice(0, i).join('/'));
         }
       }),
+      appendFileSync: vi.fn((p: string, content: string) => {
+        const normalized = p.replace(/\\/g, '/');
+        if (!(normalized in fileSystem)) {
+          fileSystem[normalized] = '';
+        }
+        fileSystem[normalized] += content;
+        const parts = normalized.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          dirSet.add(parts.slice(0, i).join('/'));
+        }
+      }),
     },
   };
 });
@@ -104,14 +115,13 @@ const { mockDreamwork } = vi.hoisted(() => {
   const yd = String(yesterday.getDate()).padStart(2, '0');
   const yesterdayStr = `${yy}-${ym}-${yd}`;
 
-  let dreamworkState: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> } = {
-    status: 'ready',
+  let dreamworkState: { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> } = {
     workAt: todayStr,
     projects: [],
   };
 
   const readDreamworkConfig = vi.fn(() => ({ ...dreamworkState, projects: [...dreamworkState.projects.map(p => ({ ...p, changes: [...p.changes] }))] }));
-  const writeDreamworkConfig = vi.fn((config: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }) => {
+  const writeDreamworkConfig = vi.fn((config: { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> }) => {
     dreamworkState = { ...config, projects: [...config.projects.map(p => ({ ...p, changes: [...p.changes] }))] };
   });
   const flattenCwdPath = vi.fn((cwd: string) => cwd.replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_'));
@@ -139,16 +149,16 @@ const { mockDreamwork } = vi.hoisted(() => {
       formatToday,
       formatYesterday,
       _getState: () => dreamworkState,
-      _setState: (s: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }) => { dreamworkState = { ...s, projects: [...s.projects.map(p => ({ ...p, changes: [...p.changes] }))] }; },
+      _setState: (s: { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> }) => { dreamworkState = { ...s, projects: [...s.projects.map(p => ({ ...p, changes: [...p.changes] }))] }; },
       _reset: () => {
-        dreamworkState = { status: 'ready', workAt: todayStr, projects: [] };
+        dreamworkState = { workAt: todayStr, projects: [] };
         readDreamworkConfig.mockReset();
         writeDreamworkConfig.mockReset();
         flattenCwdPath.mockReset();
         formatToday.mockReset();
         formatYesterday.mockReset();
         readDreamworkConfig.mockImplementation(() => ({ ...dreamworkState, projects: [...dreamworkState.projects.map(p => ({ ...p, changes: [...p.changes] }))] }));
-        writeDreamworkConfig.mockImplementation((config: { status: string; workAt: string; projects: Array<{ project: string; changes: Array<{ path: string; status: string }> }> }) => {
+        writeDreamworkConfig.mockImplementation((config: { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> }) => {
           dreamworkState = { ...config, projects: [...config.projects.map(p => ({ ...p, changes: [...p.changes] }))] };
         });
         flattenCwdPath.mockImplementation((cwd: string) => cwd.replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_'));
@@ -1047,8 +1057,7 @@ describe('syncDesignToMemory', () => {
     expect(typeof project.project).toBe('string');
     expect(Array.isArray(project.changes)).toBe(true);
     expect(project.changes.length).toBeGreaterThanOrEqual(1);
-    expect(project.changes[0].status).toBe('ready');
-    expect(typeof project.changes[0].path).toBe('string');
+    expect(typeof project.changes[0]).toBe('string');
   });
 
   it('should not duplicate project when project already exists and change path is already present (AC-7)', () => {
@@ -1058,11 +1067,10 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with the current project (nested structure)
     mockDreamwork._setState({
-      status: 'ready',
       workAt: new Date().toISOString().slice(0, 10),
       projects: [{
         project: memoryDir,
-        changes: [{ path: changePath, status: 'ready' }],
+        changes: [changePath],
       }],
     });
 
@@ -1080,11 +1088,11 @@ describe('syncDesignToMemory', () => {
     // If dedup worked, no new write calls should be made for this project+change combination
     const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
     const hasDuplicateChange = writeCalls.some((c: unknown[]) => {
-      const cfg = c[0] as { projects: Array<{ project: string; changes: Array<Record<string, unknown>> }> };
+      const cfg = c[0] as { projects: Array<{ project: string; changes: string[] }> };
       if (!cfg.projects) return false;
       for (const proj of cfg.projects) {
         if (proj.project === memoryDir) {
-          const matching = proj.changes?.filter((ch: Record<string, unknown>) => ch.path === changePath) ?? [];
+          const matching = proj.changes?.filter((ch: string) => ch === changePath) ?? [];
           return matching.length > 1;
         }
       }
@@ -1103,9 +1111,8 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with workAt=yesterday (nested structure)
     mockDreamwork._setState({
-      status: 'done',
       workAt: yesterdayStr,
-      projects: [{ project: '/old/project', changes: [{ path: '/old/change.md', status: 'done' }] }],
+      projects: [{ project: '/old/project', changes: ['/old/change.md'] }],
     });
 
     const designPath = path.join(CHANGES_DIR, 'my-change', 'design.md');
@@ -1119,16 +1126,14 @@ describe('syncDesignToMemory', () => {
     expect(writeCalls.length).toBeGreaterThanOrEqual(1);
 
     const lastCall = writeCalls[writeCalls.length - 1];
-    const config = lastCall[0] as { status: string; workAt: string; projects: Array<{ project: string; changes: Array<Record<string, unknown>> }> };
+    const config = lastCall[0] as { workAt: string; projects: Array<{ project: string; changes: string[] }> };
     // After reset, only the new project should be present
-    expect(config.status).toBe('ready');
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     expect(config.workAt).toBe(todayStr);
     expect(config.projects).toHaveLength(1);
     expect(config.projects[0].changes).toBeDefined();
     expect(config.projects[0].changes.length).toBeGreaterThanOrEqual(1);
-    expect(config.projects[0].changes[0].status).toBe('ready');
   });
 
   it('should send HTTP PUT to schedule API after updating dreamwork (AC-8)', () => {
@@ -1171,7 +1176,6 @@ describe('syncDesignToMemory', () => {
   it('should NOT update dreamwork.json or call schedule API when design.md does not exist (D4)', () => {
     // No design.md set up
     mockDreamwork._setState({
-      status: 'ready',
       workAt: new Date().toISOString().slice(0, 10),
       projects: [],
     });
@@ -1200,9 +1204,8 @@ describe('syncDesignToMemory', () => {
   it('should handle workAt neither today nor yesterday via else-if logic (D5)', () => {
     // Set workAt to a date that is neither today nor yesterday
     mockDreamwork._setState({
-      status: 'done',
       workAt: '2020-01-15',
-      projects: [{ project: '/old/project', changes: [{ path: '/old/change.md', status: 'done' }] }],
+      projects: [{ project: '/old/project', changes: ['/old/change.md'] }],
     });
 
     // readDreamworkConfig should detect old date and reset to default
@@ -1222,7 +1225,7 @@ describe('syncDesignToMemory', () => {
     // After reset, should treat as "today" logic: add new project with change
     const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
     const lastCall = writeCalls[writeCalls.length - 1];
-    const config = lastCall[0] as { projects: Array<{ project: string; changes: Array<Record<string, unknown>> }> };
+    const config = lastCall[0] as { projects: Array<{ project: string; changes: string[] }> };
     expect(config.projects).toBeDefined();
     expect(config.projects.length).toBeGreaterThanOrEqual(1);
     expect(config.projects[0].changes.length).toBeGreaterThanOrEqual(1);
@@ -1236,11 +1239,10 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with existing project that has a different change
     mockDreamwork._setState({
-      status: 'ready',
       workAt: new Date().toISOString().slice(0, 10),
       projects: [{
         project: memoryDir,
-        changes: [{ path: existingChangePath, status: 'ready' }],
+        changes: [existingChangePath],
       }],
     });
 
@@ -1252,17 +1254,16 @@ describe('syncDesignToMemory', () => {
 
     const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
     const lastCall = writeCalls[writeCalls.length - 1];
-    const config = lastCall[0] as { projects: Array<{ project: string; changes: Array<Record<string, unknown>> }> };
+    const config = lastCall[0] as { projects: Array<{ project: string; changes: string[] }> };
 
     // Should have exactly 1 project (not duplicated)
     const matchingProjects = config.projects.filter((p) => p.project === memoryDir);
     expect(matchingProjects).toHaveLength(1);
 
     // Should have 2 changes: existing + new
-    const changePaths = matchingProjects[0].changes.map((c) => c.path);
-    expect(changePaths).toContain(existingChangePath);
+    expect(matchingProjects[0].changes).toContain(existingChangePath);
     // The new change path should be added
-    expect(changePaths.some((p: unknown) => (p as string).includes('design_my-change.md'))).toBe(true);
+    expect(matchingProjects[0].changes.some((p: string) => p.includes('design_my-change.md'))).toBe(true);
     // Total changes should be 2 (no more, no less)
     expect(matchingProjects[0].changes).toHaveLength(2);
   });
@@ -1273,11 +1274,10 @@ describe('syncDesignToMemory', () => {
 
     // Pre-seed dreamwork with a different project
     mockDreamwork._setState({
-      status: 'ready',
       workAt: new Date().toISOString().slice(0, 10),
       projects: [{
         project: '/some/other/project',
-        changes: [{ path: '/some/other/change.md', status: 'ready' }],
+        changes: ['/some/other/change.md'],
       }],
     });
 
@@ -1289,7 +1289,7 @@ describe('syncDesignToMemory', () => {
 
     const writeCalls = mockDreamwork.writeDreamworkConfig.mock.calls;
     const lastCall = writeCalls[writeCalls.length - 1];
-    const config = lastCall[0] as { projects: Array<{ project: string; changes: Array<Record<string, unknown>> }> };
+    const config = lastCall[0] as { projects: Array<{ project: string; changes: string[] }> };
 
     // Should have 2 projects: existing + new
     expect(config.projects).toHaveLength(2);
@@ -1298,7 +1298,7 @@ describe('syncDesignToMemory', () => {
     const newProject = config.projects.find((p) => p.project.endsWith(flatCwd));
     expect(newProject).toBeDefined();
     expect(newProject!.changes).toHaveLength(1);
-    expect(newProject!.changes[0].status).toBe('ready');
+    expect(typeof newProject!.changes[0]).toBe('string');
   });
 
   it('should write correct dreamwork.json via real dreamwork module logic (e2e)', async () => {
@@ -1332,15 +1332,14 @@ describe('syncDesignToMemory', () => {
     expect(content).toBeDefined();
 
     const parsed = JSON.parse(content!);
-    expect(parsed.status).toBe('ready');
     expect(parsed.projects.length).toBeGreaterThanOrEqual(1);
 
     // Verify the new project entry exists with nested fields
     const flatCwd = process.cwd().replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_');
-    const project = parsed.projects.find((p: { project: string; changes: Array<Record<string, unknown>> }) => p.project.endsWith(flatCwd));
+    const project = parsed.projects.find((p: { project: string; changes: string[] }) => p.project.endsWith(flatCwd));
     expect(project).toBeDefined();
     expect(project.changes).toBeDefined();
     expect(project.changes.length).toBeGreaterThanOrEqual(1);
-    expect(project.changes.some((c: { status: string }) => c.status === 'ready')).toBe(true);
+    expect(typeof project.changes[0]).toBe('string');
   });
 });

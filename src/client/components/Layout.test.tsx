@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import i18next from 'i18next';
@@ -24,6 +24,9 @@ const defaultProps = {
   showToast: vi.fn(),
   enableOpenpowersProxy: false,
   onToggleProxy: vi.fn(),
+  activeView: 'providers' as const,
+  onViewChange: vi.fn(),
+  sidebar: null as React.ReactNode,
 };
 
 /** Helper to render Layout wrapped in I18nextProvider */
@@ -60,15 +63,18 @@ describe('Layout', () => {
     expect(screen.getByText('OpenPowers')).toBeInTheDocument();
   });
 
-  it('renders session management placeholder button', () => {
+  it('renders session management icon-only button (no text label)', () => {
     renderLayout();
-    expect(screen.getByText('会话管理')).toBeInTheDocument();
+    const sessionBtn = screen.getByLabelText('会话管理');
+    expect(sessionBtn).toBeInTheDocument();
+    // Icon-only: should not contain the text label
+    expect(sessionBtn.textContent).toBe('');
   });
 
   it('session management button click has no effect', async () => {
     const user = userEvent.setup();
     renderLayout();
-    const sessionBtn = screen.getByText('会话管理');
+    const sessionBtn = screen.getByLabelText('会话管理');
     await user.click(sessionBtn);
     // Button should still exist and not throw (placeholder)
     expect(sessionBtn).toBeInTheDocument();
@@ -91,14 +97,14 @@ describe('Layout', () => {
 
   it('renders language switcher between session management and add button', () => {
     renderLayout();
-    const sessionBtn = screen.getByText('会话管理').closest('button');
+    const sessionBtn = screen.getByLabelText('会话管理');
     const languageSwitcher = screen.getByLabelText('Switch to English');
     const addButton = screen.getByLabelText('添加供应商');
     // All three should be in the same parent container (right-side button group)
-    expect(sessionBtn?.parentElement).toBe(languageSwitcher.parentElement);
+    expect(sessionBtn.parentElement).toBe(languageSwitcher.parentElement);
     expect(languageSwitcher.parentElement).toBe(addButton.parentElement);
     // LanguageSwitcher should be between session button and add button
-    expect(sessionBtn?.nextElementSibling).toBe(languageSwitcher);
+    expect(sessionBtn.nextElementSibling).toBe(languageSwitcher);
     expect(languageSwitcher.nextElementSibling).toBe(addButton);
   });
 
@@ -212,9 +218,9 @@ describe('Layout', () => {
     expect(screen.getByLabelText('Switch to English')).toBeInTheDocument();
   });
 
-  it('renders language switcher between session management and add button', () => {
+  it('renders language switcher between session management and add button (order check)', () => {
     renderLayout();
-    const sessionBtn = screen.getByText('会话管理');
+    const sessionBtn = screen.getByLabelText('会话管理');
     const addBtn = screen.getByLabelText('添加供应商');
     // Language switcher button should be rendered between session management and add button
     const langBtn = screen.getByLabelText('Switch to English');
@@ -225,5 +231,66 @@ describe('Layout', () => {
     const langIndex = Array.from(buttons).indexOf(langBtn);
     const addIndex = Array.from(buttons).indexOf(addBtn);
     expect(langIndex).toBeLessThan(addIndex);
+  });
+
+  // --- ActivityBar tests ---
+
+  it('renders ActivityBar component', () => {
+    renderLayout();
+    expect(screen.getByLabelText('供应商管理')).toBeInTheDocument();
+    expect(screen.getByLabelText('项目管理')).toBeInTheDocument();
+  });
+
+  it('calls onViewChange when ActivityBar providers button is clicked', async () => {
+    const onViewChange = vi.fn();
+    const user = userEvent.setup();
+    renderLayout({ onViewChange, activeView: 'projects' });
+    const providersBtn = screen.getByLabelText('供应商管理');
+    await user.click(providersBtn);
+    expect(onViewChange).toHaveBeenCalledWith('providers');
+  });
+
+  it('calls onViewChange when ActivityBar projects button is clicked', async () => {
+    const onViewChange = vi.fn();
+    const user = userEvent.setup();
+    renderLayout({ onViewChange, activeView: 'providers' });
+    const projectsBtn = screen.getByLabelText('项目管理');
+    await user.click(projectsBtn);
+    expect(onViewChange).toHaveBeenCalledWith('projects');
+  });
+
+  // --- Sidebar tests ---
+
+  it('renders sidebar when sidebar prop is provided and activeView is projects', () => {
+    const sidebar = React.createElement('div', { 'data-testid': 'sidebar' }, 'sidebar content');
+    renderLayout({ sidebar, activeView: 'projects' });
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+  });
+
+  it('does not render sidebar area when sidebar prop is null', () => {
+    renderLayout({ sidebar: null });
+    expect(screen.queryByTestId('sidebar')).not.toBeInTheDocument();
+  });
+
+  // --- Conditional add button tests ---
+
+  it('renders add button when activeView is providers', () => {
+    renderLayout({ activeView: 'providers' });
+    const addButton = screen.getByLabelText('添加供应商');
+    expect(addButton).toBeInTheDocument();
+    expect(addButton.className).toContain('bg-orange-500');
+  });
+
+  it('does not render add button when activeView is projects', () => {
+    renderLayout({ activeView: 'projects' });
+    expect(screen.queryByLabelText('添加供应商')).not.toBeInTheDocument();
+  });
+
+  // --- Layout structure tests ---
+
+  it('renders root layout with flex-row horizontal structure', () => {
+    renderLayout();
+    const rootDiv = document.querySelector('.flex-row.h-screen');
+    expect(rootDiv).toBeInTheDocument();
   });
 });

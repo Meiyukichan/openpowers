@@ -7,6 +7,7 @@
 
 import * as express from 'express';
 import { startScheduler, isSchedulerRunning } from '../memory/scheduler.js';
+import { appendLog } from '../memory/schedule-logger.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -27,10 +28,12 @@ export const scheduleRouter = express.default.Router();
  */
 scheduleRouter.put('/', (_req, res) => {
   if (isSchedulerRunning()) {
+    appendLog('PUT /schedule: scheduler already running');
     res.status(200).json({ ok: true, started: false });
     return;
   }
 
+  appendLog('PUT /schedule: starting scheduler');
   startScheduler();
   res.status(200).json({ ok: true, started: true });
 });

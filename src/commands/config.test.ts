@@ -33,6 +33,7 @@ vi.mock('../utils/config.js', async () => {
     readUserConfig: actual.readUserConfig,
     writeUserConfig: actual.writeUserConfig,
     setUserConfigValue: actual.setUserConfigValue,
+    setDefaultConfigValue: vi.fn(),
   };
 });
 
@@ -612,5 +613,59 @@ describe('config set <key> <value> subcommand', () => {
 
     const output = stdoutCalls.join('');
     expect(output).toMatch(/language=chinese/);
+  });
+
+  it('set -g should call setDefaultConfigValue instead of writing to user config', async () => {
+    const { setDefaultConfigValue } = await import('../utils/config.js');
+    vi.mocked(setDefaultConfigValue).mockReturnValue('0 3 * * *');
+
+    const mod = await import('./config.js');
+    const program = new Command();
+    mod.registerConfigCommand(program);
+
+    await program.parseAsync(
+      ['config', 'set', '-g', 'enhancement.memory.schedule', '0 3 * * *'],
+      { from: 'user' },
+    );
+
+    // Should call setDefaultConfigValue, not write user config
+    expect(setDefaultConfigValue).toHaveBeenCalledWith('enhancement.memory.schedule', '0 3 * * *');
+    const filePath = tmpConfigFile(tmpDir);
+    expect(fs.existsSync(filePath)).toBe(false);
+
+    // Should print the stored key=value pair with (global) indicator
+    const output = stdoutCalls.join('');
+    expect(output).toMatch(/enhancement.memory.schedule=0 3 \* \* \* \(global\)/);
+  });
+
+  it('set --global should work as alias for -g', async () => {
+    const { setDefaultConfigValue } = await import('../utils/config.js');
+    vi.mocked(setDefaultConfigValue).mockReturnValue('0 4 * * *');
+
+    const mod = await import('./config.js');
+    const program = new Command();
+    mod.registerConfigCommand(program);
+
+    await program.parseAsync(
+      ['config', 'set', '--global', 'enhancement.memory.schedule', '0 4 * * *'],
+      { from: 'user' },
+    );
+
+    expect(setDefaultConfigValue).toHaveBeenCalledWith('enhancement.memory.schedule', '0 4 * * *');
+  });
+
+  it('set without -g should continue writing to user config', async () => {
+    const mod = await import('./config.js');
+    const program = new Command();
+    mod.registerConfigCommand(program);
+
+    await program.parseAsync(
+      ['config', 'set', 'language', 'english'],
+      { from: 'user' },
+    );
+
+    // User config file should exist
+    const filePath = tmpConfigFile(tmpDir);
+    expect(fs.existsSync(filePath)).toBe(true);
   });
 });

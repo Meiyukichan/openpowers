@@ -11,6 +11,7 @@ import {
   queryConfig,
   readUserConfig,
   setUserConfigValue,
+  setDefaultConfigValue,
   writeUserConfig,
   type OpenPowersConfig,
   type DeepPartial,
@@ -182,10 +183,16 @@ export function registerConfigCommand(program: Command): void {
   configCmd
     .command('set <key> <value>')
     .description('Write a single key=value entry to the user configuration (type inferred)')
-    .action((key: string, value: string) => {
-      const cwd = process.cwd();
+    .option('-g, --global', 'Write to the global default config (resources/openpowers.json) instead of project-level')
+    .action((key: string, value: string, options: { global?: boolean }) => {
       const inferred = inferValue(value);
-      setUserConfigValue(cwd, key, inferred);
-      process.stdout.write(`${key}=${formatValue(inferred)}\n`);
+      if (options.global) {
+        setDefaultConfigValue(key, inferred);
+        process.stdout.write(`${key}=${formatValue(inferred)} (global)\n`);
+      } else {
+        const cwd = process.cwd();
+        setUserConfigValue(cwd, key, inferred);
+        process.stdout.write(`${key}=${formatValue(inferred)}\n`);
+      }
     });
 }

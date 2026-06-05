@@ -1,6 +1,8 @@
 /**
- * Global memory scheduler: runs a daily task at 2 AM to copy resources/agents
+ * Global memory scheduler: runs a daily task to copy resources/agents
  * and resources/skills into project .claude directories and clean up .opencode.
+ * Cron expression is read from enhancement.memory.schedule in
+ * resources/openpowers.json, falling back to '0 2 * * *'.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -17,6 +19,30 @@ import { readDreamworkConfig, writeDreamworkConfig, formatYesterday } from './dr
 const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
 const resourcesDir = path.resolve(moduleDirname, '..', '..', 'resources');
 
+/**
+ * Reads the cron expression from resources/openpowers.json,
+ * falling back to '0 2 * * *' on any failure.
+ */
+function readCronFromConfig(): string {
+  const fallback = '0 2 * * *';
+  try {
+    const configPath = path.join(resourcesDir, 'openpowers.json');
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const enhancement = parsed?.['enhancement'] as Record<string, unknown> | undefined;
+    const memory = enhancement?.['memory'] as Record<string, unknown> | undefined;
+    const schedule = memory?.['schedule'];
+    if (typeof schedule === 'string' && schedule.length > 0) {
+      appendLog(`Scheduler using cron from config: ${schedule}`);
+      return schedule;
+    }
+    appendLog(`Scheduler using default cron: ${fallback} (enhancement.memory.schedule not found)`);
+  } catch {
+    appendLog(`Scheduler using default cron: ${fallback} (could not read config)`);
+  }
+  return fallback;
+}
+
 let cronTask: cron.ScheduledTask | null = null;
 
 /**
@@ -28,15 +54,21 @@ export function isSchedulerRunning(): boolean {
 
 /**
  * Starts the daily scheduler.
- * Registers a cron job for 2 AM daily that processes dreamwork.json projects.
+ * Reads the cron expression from enhancement.memory.schedule in
+ * resources/openpowers.json (fallback to '0 2 * * *').
+ * Registers a cron job that processes dreamwork.json projects,
+ * then writes back each project with status='done' and changes=[].
  * No-op if already running.
  */
 export function startScheduler(): void {
   if (cronTask) {
+    appendLog('Scheduler start skipped: already running');
     return;
   }
 
-  cronTask = cron.schedule('0 2 * * *', () => {
+  const cronExpression = readCronFromConfig();
+  appendLog(`Scheduler cron registered (${cronExpression})`);
+  cronTask = cron.schedule(cronExpression, () => {
     appendLog('Scheduler task started');
 
     // 1) Validate workAt is yesterday
@@ -47,7 +79,6 @@ export function startScheduler(): void {
       appendLog(`Scheduler aborted: workAt mismatch (expected ${yesterday}, got ${config.workAt})`);
       // Reset dreamwork config to default
       writeDreamworkConfig({
-        status: 'ready',
         workAt: formatYesterday(),
         projects: [],
       });
@@ -81,8 +112,14 @@ export function startScheduler(): void {
       }
 
       appendLog(`Project done: ${project.project}`);
+
+      // 3) Write back: mark project as done and clear changes
+      project.status = 'done';
+      project.changes = [];
     }
 
+    // Persist writeback
+    writeDreamworkConfig(config);
     appendLog('Scheduler task finished');
   });
 
@@ -95,6 +132,7 @@ export function startScheduler(): void {
  */
 export function stopScheduler(): void {
   if (cronTask) {
+    appendLog('Scheduler stopped');
     cronTask.stop();
     cronTask.destroy();
     cronTask = null;

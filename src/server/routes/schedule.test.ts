@@ -22,6 +22,10 @@ vi.mock('../memory/scheduler.js', () => ({
   isSchedulerRunning: isSchedulerRunningMock,
 }));
 
+vi.mock('../memory/schedule-logger.js', () => ({
+  appendLog: vi.fn(),
+}));
+
 // ---- helpers ----
 
 async function importFresh() {

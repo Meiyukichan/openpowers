@@ -55,7 +55,7 @@ describe('appendLog', () => {
     expect(typeof appendLog).toBe('function');
   });
 
-  it('should append a message to schedule.log with ISO timestamp format', () => {
+  it('should append a message to dreamwork.log with ISO timestamp format', () => {
     const testMessage = 'Scheduler started';
 
     appendLog(testMessage);
@@ -66,8 +66,8 @@ describe('appendLog', () => {
     const content = callArgs[1] as string;
     const encoding = callArgs[2] as string;
 
-    expect(filePath).toContain('schedule.log');
-    expect(filePath).toBe(path.join(mockHomedir, '.openpowers', 'memory', 'schedule.log'));
+    expect(filePath).toContain('dreamwork.log');
+    expect(filePath).toBe(path.join(mockHomedir, '.openpowers', 'memory', 'dreamwork.log'));
     expect(encoding).toBe('utf-8');
 
     // Verify ISO timestamp format: [YYYY-MM-DDTHH:mm:ss.sssZ]

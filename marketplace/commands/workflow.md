@@ -110,9 +110,6 @@ At this point, the final openpowers change directory: `openpowers/changes/<name>
   - Exploration content: $ARGUMENTS
   - Output file path: `{cwd}/openpowers/changes/<name>/exploration.md`
 
-### Output
-`{cwd}/openpowers/changes/<name>/exploration.md`
-
 ### Principle
 Exploration time, not implementation time. Do not write code.
 
@@ -234,7 +231,7 @@ Review passed (or modification suggestions).
 Plan quality determines development efficiency. Do not overlook unreasonable decomposition and dependencies.
 
 ### Transition
-"Plan review passed. Use the AskUserQuestion tool to ask the user whether to automatically enter subagent-driven development?"
+You MUST Use the AskUserQuestion tool to ask the user whether to automatically enter subagent-driven development
 
 ## Phase 5: Subagent-Driven Development
 
