@@ -9,7 +9,7 @@ import path from 'path';
 
 // ---- mocks ----
 
-type CronCallback = () => void;
+type CronCallback = () => Promise<void>;
 type Dirent = { name: string; isDirectory: () => boolean; isFile: () => boolean };
 
 const mockTaskStart = vi.fn();
@@ -36,7 +36,7 @@ function findInMockDirListing(searchPath: string): Dirent[] | undefined {
   return undefined;
 }
 
-const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, existsSyncMock, readFileSyncMock, readdirSyncMock, execSyncMock } = vi.hoisted(() => ({
+const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, existsSyncMock, readFileSyncMock, readdirSyncMock, execMock } = vi.hoisted(() => ({
   cronScheduleMock: vi.fn((_expr: string, cb: CronCallback) => {
     capturedCronCallback = cb;
     return { start: mockTaskStart, stop: mockTaskStop, destroy: mockTaskDestroy };
@@ -47,14 +47,20 @@ const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, 
   mkdirSyncMock: vi.fn(),
   existsSyncMock: vi.fn((p: unknown) => {
     const normalized = normalizeDirPath(String(p));
-    // Check mockDirListing
+    // Check mockDirListing (exact match for directories)
     if (findInMockDirListing(normalized)) return true;
-    // Check .claude parent directories
+    // Check if path is a file in a directory listed in mockDirListing
+    const lastSlash = normalized.lastIndexOf('/');
+    if (lastSlash > 0) {
+      const parentDir = normalized.substring(0, lastSlash);
+      const fileName = normalized.substring(lastSlash + 1);
+      const parentEntries = findInMockDirListing(parentDir);
+      if (parentEntries && parentEntries.some((e: Dirent) => e.name === fileName)) return true;
+    }
+    // Check .claude directories (created implicitly by cpSync)
     if (normalized.endsWith('/.claude')) {
       const parent = normalized.replace(/\/\.claude$/, '');
-      // Check if parent is in mockDirListing
       if (findInMockDirListing(parent)) return true;
-      // Also check if any listing key starts with parent
       for (const rawKey of Object.keys(mockDirListing)) {
         const nk = normalizeDirPath(rawKey);
         if (nk.startsWith(parent + '/')) return true;
@@ -82,7 +88,9 @@ const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, 
     }
     return entries;
   }),
-  execSyncMock: vi.fn(),
+  execMock: vi.fn((_command: string, _options: any, callback: any) => {
+    if (callback) callback(null, '', '');
+  }),
 }));
 
 vi.mock('node-cron', () => ({
@@ -107,7 +115,7 @@ vi.mock('fs', () => ({
 }));
 
 vi.mock('child_process', () => ({
-  execSync: execSyncMock,
+  exec: execMock,
 }));
 
 vi.mock('os', () => ({
@@ -140,6 +148,10 @@ beforeEach(() => {
   capturedCronCallback = null;
   mockFileSystem = {};
   mockDirListing = {};
+  execMock.mockReset();
+  execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+    if (callback) callback(null, '', '');
+  });
 });
 
 // ---- test suites ----
@@ -232,7 +244,7 @@ describe('cron callback: start and finish logging', () => {
     startScheduler();
     expect(capturedCronCallback).not.toBeNull();
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
@@ -260,7 +272,7 @@ describe('cron callback: directory scanning', () => {
     const project2DesignsDir = path.join(MEMORY_DIR, 'project2', 'designs');
     mockDirListing[project2DesignsDir] = [];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // readdirSync should have been called for the memory directory
     expect(readdirSyncMock).toHaveBeenCalled();
@@ -280,7 +292,7 @@ describe('cron callback: directory scanning', () => {
       makeDirent('change-a.md', false),
     ];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should have tried to copy agents and skills
     expect(cpSyncMock).toHaveBeenCalled();
@@ -299,7 +311,7 @@ describe('cron callback: directory scanning', () => {
     ];
     mockDirListing[designsDir] = [];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should NOT process (no cpSync calls)
     expect(cpSyncMock).not.toHaveBeenCalled();
@@ -313,7 +325,7 @@ describe('cron callback: directory scanning', () => {
       makeDirent('project1', true),
     ];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should NOT process (no cpSync calls)
     expect(cpSyncMock).not.toHaveBeenCalled();
@@ -325,7 +337,7 @@ describe('cron callback: directory scanning', () => {
 
     mockDirListing[MEMORY_DIR] = [];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should finish without errors
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
@@ -349,7 +361,7 @@ describe('cron callback: copy agents and skills', () => {
       makeDirent('change-a.md', false),
     ];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should call cpSync for agents
     expect(cpSyncMock).toHaveBeenCalledWith(
@@ -381,14 +393,15 @@ describe('cron callback: claude CLI execution', () => {
       makeDirent('change-a.md', false),
     ];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
-    // Verify execSync was called with claude command
-    expect(execSyncMock).toHaveBeenCalledTimes(1);
-    const execCall = execSyncMock.mock.calls[0];
+    // Verify exec was called with claude command containing the design file list
+    expect(execMock).toHaveBeenCalledTimes(1);
+    const execCall = execMock.mock.calls[0];
     const command = execCall[0] as string;
     expect(command).toContain('claude');
     expect(command).toContain('backgroud-designer');
+    expect(command).toContain('change-a.md');
 
     // Verify options: cwd, timeout, env
     const options = execCall[1] as Record<string, unknown>;
@@ -410,16 +423,22 @@ describe('cron callback: claude CLI execution', () => {
       makeDirent('change-a.md', false),
     ];
 
-    execSyncMock.mockImplementation(() => {
-      throw new Error('The operation was canceled');
+    execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+      if (callback) callback(new Error('The operation was canceled'), '', '');
     });
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should log the failure
     expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('failed'));
-    // Should still cleanup
-    expect(rmSyncMock).toHaveBeenCalled();
+    // Should NOT delete designs/ (execution failed), only .claude/
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
+    expect(designCalls.length).toBe(0);
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
+      { recursive: true, force: true },
+    );
   });
 
   it('should log and continue when claude execution fails', async () => {
@@ -436,27 +455,32 @@ describe('cron callback: claude CLI execution', () => {
       makeDirent('change-a.md', false),
     ];
 
-    execSyncMock.mockImplementation(() => {
-      throw new Error('Command failed with exit code 1');
+    execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+      if (callback) callback(new Error('Command failed with exit code 1'), '', '');
     });
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should log the failure
     expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('failed'));
-    // Should still proceed to cleanup
-    expect(rmSyncMock).toHaveBeenCalled();
+    // Should NOT delete designs/ (execution failed), only .claude/
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
+    expect(designCalls.length).toBe(0);
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
+      { recursive: true, force: true },
+    );
   });
 });
 
 describe('cron callback: cleanup', () => {
-  it('should delete designs/ and .claude/ directories after successful execution', async () => {
+  it('should delete designs/ and .claude/ when both project-design.md and project-portrait.md exist', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
     const projectDir = path.join(MEMORY_DIR, 'project1');
     const designsDir = path.join(projectDir, 'designs');
-    const claudeDir = path.join(projectDir, '.claude');
 
     mockDirListing[MEMORY_DIR] = [
       makeDirent('project1', true),
@@ -464,13 +488,15 @@ describe('cron callback: cleanup', () => {
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
     ];
+    // Both project-design.md and project-portrait.md exist
+    mockDirListing[path.join(projectDir, 'project-design.md')] = [];
+    mockDirListing[path.join(projectDir, 'project-portrait.md')] = [];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
-    // Should delete designs/ and .claude/
+    // Should delete individual design files and .claude/
     expect(rmSyncMock).toHaveBeenCalledWith(
-      expect.stringMatching(/designs/),
-      { recursive: true, force: true },
+      expect.stringMatching(/designs[/\\]change-a\.md/),
     );
     expect(rmSyncMock).toHaveBeenCalledWith(
       expect.stringMatching(/.claude/),
@@ -478,13 +504,42 @@ describe('cron callback: cleanup', () => {
     );
   });
 
-  it('should delete designs/ and .claude/ directories after failed execution', async () => {
+  it('should NOT delete designs/ when project-design.md or project-portrait.md missing', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
     const projectDir = path.join(MEMORY_DIR, 'project1');
     const designsDir = path.join(projectDir, 'designs');
-    const claudeDir = path.join(projectDir, '.claude');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+    // Only project-design.md exists, project-portrait.md missing
+    mockDirListing[path.join(projectDir, 'project-design.md')] = [];
+
+    await capturedCronCallback!();
+
+    // Should NOT delete designs/ (missing project-portrait.md)
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
+    expect(designCalls.length).toBe(0);
+
+    // Should still delete .claude/
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
+      { recursive: true, force: true },
+    );
+  });
+
+  it('should delete .claude/ but NOT designs/ after failed execution', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
       makeDirent('project1', true),
@@ -493,17 +548,18 @@ describe('cron callback: cleanup', () => {
       makeDirent('change-a.md', false),
     ];
 
-    execSyncMock.mockImplementation(() => {
-      throw new Error('Command failed');
+    execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+      if (callback) callback(new Error('Command failed'), '', '');
     });
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
-    // Should still delete designs/ and .claude/ even though execution failed
-    expect(rmSyncMock).toHaveBeenCalledWith(
-      expect.stringMatching(/designs/),
-      { recursive: true, force: true },
-    );
+    // Should NOT delete designs/ (execution failed)
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
+    expect(designCalls.length).toBe(0);
+
+    // Should still delete .claude/
     expect(rmSyncMock).toHaveBeenCalledWith(
       expect.stringMatching(/.claude/),
       { recursive: true, force: true },
@@ -525,11 +581,16 @@ describe('cron callback: cleanup', () => {
     ];
     mockDirListing[designs1Dir] = [makeDirent('a.md', false)];
     mockDirListing[designs2Dir] = [makeDirent('b.md', false)];
+    // Both projects have project-design.md and project-portrait.md
+    mockDirListing[path.join(project1Dir, 'project-design.md')] = [];
+    mockDirListing[path.join(project1Dir, 'project-portrait.md')] = [];
+    mockDirListing[path.join(project2Dir, 'project-design.md')] = [];
+    mockDirListing[path.join(project2Dir, 'project-portrait.md')] = [];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Two claude executions
-    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    expect(execMock).toHaveBeenCalledTimes(2);
 
     // Two sets of cleanup (designs + .claude for each project = 4 rmSync calls)
     const rmSyncCalls = rmSyncMock.mock.calls;
@@ -557,10 +618,10 @@ describe('cron callback: does not interact with dreamwork.json', () => {
       makeDirent('change-a.md', false),
     ];
 
-    capturedCronCallback!();
+    await capturedCronCallback!();
 
     // Should work normally without any dreamwork interaction
-    expect(execSyncMock).toHaveBeenCalled();
+    expect(execMock).toHaveBeenCalled();
     expect(cpSyncMock).toHaveBeenCalled();
   });
 });

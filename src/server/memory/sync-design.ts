@@ -69,11 +69,14 @@ export function syncDesignToMemory(changeName: string): void {
   const scheduleUrl = `http://localhost:${port}/openpowers/api/schedule`;
 
   try {
-    const req = http.request(scheduleUrl, { method: 'PUT' }, (res) => {
-      // Consume response to free memory
+    const req = http.request(scheduleUrl, { method: 'PUT', timeout: 5000 }, (res) => {
       res.resume();
       appendLog(`syncDesignToMemory: schedule API responded ${res.statusCode}`);
       logger.info(`Schedule API called: ${res.statusCode}`);
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      appendLog('syncDesignToMemory: schedule API call timed out');
     });
     req.on('error', () => {
       appendLog('syncDesignToMemory: schedule API call failed (backend may not be running)');
