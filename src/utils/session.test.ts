@@ -121,6 +121,24 @@ describe('readSessionSettings', () => {
     expect(existsSyncMock).toHaveBeenCalledTimes(1);
     expect(readFileSyncMock).toHaveBeenCalledTimes(1);
   });
+
+  it('should treat missing change field as undefined when reading legacy settings', () => {
+    existsSyncMock.mockReturnValue(true);
+    // Legacy settings.json without the change field
+    const legacySettings = {
+      sessionId: 'legacy-session',
+      cwd: '/legacy/project',
+      currentProvider: 'default',
+      switchProviders: {},
+    };
+    readFileSyncMock.mockReturnValue(JSON.stringify(legacySettings));
+
+    const result = readSessionSettings('legacy-session');
+
+    expect(result).toBeDefined();
+    expect(result?.sessionId).toBe('legacy-session');
+    expect(result?.change).toBeUndefined();
+  });
 });
 
 describe('writeSessionSettings', () => {

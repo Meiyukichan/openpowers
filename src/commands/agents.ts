@@ -297,7 +297,7 @@ function runAgentsGlobalSwitch(name: string): void {
 
 /**
  * Initializes a session settings file with validation.
- * Validates sessionId, cwd directory, proxy enabled state, and model names.
+ * Validates sessionId, cwd directory, and model names.
  * @param sessionId - The session identifier
  * @param cwd - The working directory path
  */
@@ -314,12 +314,6 @@ function runAgentsInit(sessionId: string, cwd: string): void {
     process.exit(1);
   }
 
-  // Check proxy is enabled
-  if (!getEnableOpenpowersProxy()) {
-    process.stderr.write('Proxy is not enabled, this feature is not supported\n');
-    process.exit(1);
-  }
-
   // Load switchProviders from config
   const config = loadConfig(cwd);
   const rawSwitchProviders: Record<string, string> = (config as Record<string, unknown>).switchProviders as Record<string, string> || {};
@@ -333,6 +327,7 @@ function runAgentsInit(sessionId: string, cwd: string): void {
     cwd,
     currentProvider: 'default',
     switchProviders: validatedSwitchProviders,
+    change: '',
   };
 
   writeSessionSettings(sessionId, settings);

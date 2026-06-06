@@ -658,10 +658,14 @@ describe('src/commands/agents.ts', () => {
   // Acceptance Criteria 14: agents init proxy disabled
   // -----------------------------------------------------------------------
 
-  it('agents init with proxy disabled should output reject message', async () => {
-    const { getEnableOpenpowersProxy } = await import('../server/providers-store.js');
+  it('agents init with proxy disabled should succeed and create settings', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
     vi.mocked(getEnableOpenpowersProxy).mockReturnValue(false);
     vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    const filePath = '/home/user/.openpowers/sessions/abc/settings.json';
+    mockGetSessionFilePath.mockReturnValue(filePath);
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -674,8 +678,18 @@ describe('src/commands/agents.ts', () => {
       // ignore exit
     }
 
-    const output = stderrCalls.join('');
-    expect(output).toContain('Proxy is not enabled');
+    // Should succeed: write settings and output file path
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: '',
+      }),
+    );
+    const output = stdoutCalls.join('');
+    expect(output).toContain(filePath);
   });
 
   // -----------------------------------------------------------------------
@@ -708,6 +722,7 @@ describe('src/commands/agents.ts', () => {
         sessionId: 'abc',
         cwd: '/valid',
         currentProvider: 'default',
+        change: '',
       }),
     );
 
@@ -771,6 +786,7 @@ describe('src/commands/agents.ts', () => {
         sessionId: 'abc',
         cwd: '/valid',
         currentProvider: 'default',
+        change: '',
         switchProviders: {
           workflow: 'default',
           explore: 'claude-sonnet-4-20250514',

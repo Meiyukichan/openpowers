@@ -140,24 +140,50 @@ describe('src/commands/change/new.ts', () => {
     expect(writeCalls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should output message and skip when change name already exists in changes.json', () => {
+  it('should update description and updateAt when change name already exists in changes.json', () => {
     // Pre-seed changes.json with an existing entry for the same name
+    const originalEntry = {
+      name: 'dup-feature',
+      path: 'openpowers/changes/dup-feature',
+      description: 'Old',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      features: 0,
+      todo: 0,
+    };
     mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
       framework: 'openpowers',
       version: '1.0.0',
-      changes: [
-        { name: 'dup-feature', path: 'openpowers/changes/dup-feature', description: 'Old', createdAt: '2026-01-01T00:00:00.000Z', features: 0, todo: 0 },
-      ],
+      changes: [originalEntry],
       archive: [],
     }));
     mockFs.setDir(path.join(CHANGES_DIR, 'dup-feature'));
 
+    // Clear write calls from setFile
+    mockFs.writeFileSync.mockClear();
+
     runChangeNew('dup-feature', { desc: 'New duplicate' });
 
-    // Should output duplicate message and not create a new entry
+    // Should output update message
     const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(stdoutCalls.some((s: unknown) => String(s).includes("already exists"))).toBe(true);
-    // Should NOT have written to changes.json since it returned early
-    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+    expect(stdoutCalls.some((s: unknown) => String(s).includes("already exists, description updated"))).toBe(true);
+
+    // Should have written to changes.json
+    expect(mockFs.writeFileSync).toHaveBeenCalled();
+
+    // Verify the written content: description updated, updateAt set, createdAt preserved
+    const writeCalls = mockFs.writeFileSync.mock.calls;
+    const lastWrite = writeCalls[writeCalls.length - 1];
+    const content = String(lastWrite[1]);
+    const parsed = JSON.parse(content);
+
+    const updatedEntry = parsed.changes.find((c: { name: string }) => c.name === 'dup-feature');
+    expect(updatedEntry).toBeDefined();
+    expect(updatedEntry.description).toBe('New duplicate');
+    expect(updatedEntry.createdAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(updatedEntry.updateAt).toBeDefined();
+    // updateAt should be a valid ISO timestamp newer than createdAt
+    expect(new Date(updatedEntry.updateAt).getTime()).toBeGreaterThan(new Date(updatedEntry.createdAt).getTime());
+    // Should not create duplicate entries
+    expect(parsed.changes.length).toBe(1);
   });
 });

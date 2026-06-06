@@ -27,6 +27,8 @@ export interface SessionSettings {
   currentProvider: string;
   /** Mapping from stage names to provider model names */
   switchProviders: Record<string, string>;
+  /** Associated change name, if any */
+  change?: string;
 }
 
 /**

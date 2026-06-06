@@ -34,7 +34,17 @@ export function runChangeNew(name: string, options: { desc: string }): void {
   const data = loadOrCreateChangesJson();
   const existing = data.changes.find((c) => c.name === name);
   if (existing) {
-    process.stdout.write(`Change '${name}' already exists\n`);
+    existing.description = options.desc ?? name;
+    existing.updateAt = new Date().toISOString();
+
+    // Write back
+    const dir = path.dirname(CHANGES_JSON_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+    process.stdout.write(`Change '${name}' already exists, description updated\n`);
     return;
   }
 

@@ -34,7 +34,27 @@ export function App(): React.ReactElement {
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
   const [enableOpenpowersProxy, setEnableOpenpowersProxy] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: ToastType } | null>(null);
-  const [activeView, setActiveView] = useState<ActivityBarView>('providers');
+  const [activeView, setActiveView] = useState<ActivityBarView>(() => {
+    try {
+      const stored = localStorage.getItem('openpowers:activeView');
+      return stored === 'projects' || stored === 'providers' ? stored : 'providers';
+    } catch {
+      return 'providers';
+    }
+  });
+
+  /**
+   * Persists the activeView to localStorage on change, with try-catch
+   * to gracefully handle environments where localStorage is unavailable.
+   */
+  const persistActiveView = (view: ActivityBarView) => {
+    try {
+      localStorage.setItem('openpowers:activeView', view);
+    } catch {
+      // silent fallback - localStorage unavailable
+    }
+    setActiveView(view);
+  };
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -211,7 +231,7 @@ export function App(): React.ReactElement {
         enableOpenpowersProxy,
         onToggleProxy: handleToggleProxy,
         activeView,
-        onViewChange: setActiveView,
+        onViewChange: persistActiveView,
         sidebar:
           activeView === 'projects'
             ? React.createElement(ProjectSidebar)
