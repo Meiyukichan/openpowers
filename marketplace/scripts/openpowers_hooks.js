@@ -29,6 +29,12 @@ const CWD_PATTERN = /"cwd"\s*:\s*"([^"]+)"/i;
 /** Extract prompt: matches only /openpowers:workflow prefix */
 const PROMPT_PATTERN = /"prompt"\s*:\s*"(\/openpowers:workflow[^"]*)"/i;
 
+/** Extract command field from rawInput: matches "command": "...","description": */
+const COMMAND_PATTERN = /"command"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"description":/;
+
+/** Extract change name from openpowers change new command */
+const CHANGE_NEW_PATTERN = /openpowers change new (\S+)/;
+
 /**
  * Parse stdin raw text to extract session_id, purpose, cwd, and prompt using regex.
  * Uses regex-based extraction (not JSON.parse) to avoid failures caused
@@ -315,6 +321,78 @@ export function runInitAgent(parsed) {
 }
 
 /**
+ * Extract the command field content from rawInput using regex.
+ * @param {string} rawInput - Raw stdin text
+ * @returns {string|undefined} The extracted command string, or undefined if not found
+ */
+export function extractCommandFromRawInput(rawInput) {
+  if (!rawInput || !rawInput.trim()) {
+    return undefined;
+  }
+  const match = rawInput.match(COMMAND_PATTERN);
+  return match ? match[1] : undefined;
+}
+
+/**
+ * Extract the change name from an openpowers change new command string.
+ * @param {string} rawCommand - The raw command string
+ * @returns {string|null} The change name, or null if not a change new command
+ */
+export function extractChangeName(rawCommand) {
+  if (!rawCommand || !rawCommand.includes('openpowers change new')) {
+    return null;
+  }
+  const match = rawCommand.match(CHANGE_NEW_PATTERN);
+  return match ? match[1] : null;
+}
+
+/**
+ * Handle --before-bash mode: extract command from rawInput, detect openpowers change new,
+ * and execute agents init with --change to auto-associate session change context.
+ * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ * @param {string} rawInput - Raw stdin text (needed to extract command field)
+ */
+export function runBeforeBash(parsed, rawInput) {
+  if (!parsed.sessionId) {
+    return;
+  }
+  if (!parsed.cwd) {
+    return;
+  }
+  if (!fs.existsSync(parsed.cwd)) {
+    return;
+  }
+
+  const rawCommand = extractCommandFromRawInput(rawInput);
+  if (!rawCommand) {
+    return;
+  }
+
+  // Non-openpowers commands: exit(0) without further processing
+  if (!rawCommand.includes('openpowers')) {
+    return;
+  }
+
+  const changeName = extractChangeName(rawCommand);
+  if (!changeName) {
+    return;
+  }
+
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- change-name: ${changeName}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  // Execute agents init with --change to auto-associate session change context
+  const initCommand = [...buildInitCommand(parsed.sessionId, parsed.cwd), '--change', changeName];
+  const commandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(initCommand, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of before-bash hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
  * Main entry point - reads stdin, determines mode, and delegates to handlers.
  */
 export function main() {
@@ -322,9 +400,10 @@ export function main() {
   const isAfterAgent = process.argv.includes('--after-agent');
   const isInitAgent = process.argv.includes('--init-agent');
   const isBeforePropose = process.argv.includes('--before-propose');
+  const isBeforeBash = process.argv.includes('--before-bash');
 
-  if (!isBeforeAgent && !isAfterAgent && !isInitAgent && !isBeforePropose) {
-    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose\n');
+  if (!isBeforeAgent && !isAfterAgent && !isInitAgent && !isBeforePropose && !isBeforeBash) {
+    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose|--before-bash\n');
     process.exitCode = 1;
     return;
   }
@@ -352,6 +431,8 @@ export function main() {
     runInitAgent(parsed);
   } else if (isBeforePropose) {
     runBeforePropose(parsed);
+  } else if (isBeforeBash) {
+    runBeforeBash(parsed, rawInput);
   }
 }
 

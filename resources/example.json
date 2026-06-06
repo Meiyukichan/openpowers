@@ -1,0 +1,65 @@
+{
+  "explore": {
+    "title": "",
+    "from": "time",
+    "to": "time",
+    "status": "ready/pending/in_progress/skipped/done"
+  },
+  "brainstorm": {
+    "title": "",
+    "from": "",
+    "to": "",
+    "status": ""
+  },
+  "propose": {
+    "title": "",
+    "from": "",
+    "to": "",
+    "status": ""
+  },
+  "plan": {
+    "title": "",
+    "from": "",
+    "to": "",
+    "status": ""
+  },
+  "reviewArtifacts": {
+    "title": "",
+    "from": "",
+    "to": "",
+    "status": ""
+  },
+  "subAgentDev": [
+    {
+      "featureId": "",
+      "progress": [
+        {
+          "title": "",
+          "from": "",
+          "to": "",
+          "status": ""
+        }
+      ]
+    }
+  ],
+  "finalize": {
+    "integration": {
+      "title": "",
+      "from": "",
+      "to": "",
+      "status": ""
+    },
+    "codecheck": {
+      "title": "",
+      "from": "",
+      "to": "",
+      "status": ""
+    },
+    "archive": {
+      "title": "",
+      "from": "",
+      "to": "",
+      "status": ""
+    }
+  }
+}

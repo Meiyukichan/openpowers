@@ -68,6 +68,9 @@ const {
   runAfterAgent,
   runInitAgent,
   runBeforePropose,
+  runBeforeBash,
+  extractCommandFromRawInput,
+  extractChangeName,
   main,
 } = hooksModule;
 
@@ -1025,6 +1028,204 @@ describe('runBeforePropose', () => {
   });
 });
 
+describe('extractCommandFromRawInput', () => {
+  it('should extract command field from rawInput with standard JSON-like format', () => {
+    const rawInput = '{"tool_name":"Bash","tool_input":{"command":"openpowers change new my-feature --desc \\"some description\\"","description":"run command"}}';
+    const result = extractCommandFromRawInput(rawInput);
+    expect(result).toBe('openpowers change new my-feature --desc \\"some description\\"');
+  });
+
+  it('should extract command with multi-line content', () => {
+    const rawInput = '{"tool_name":"Bash","tool_input":{"command":"openpowers change new my-feature --desc \\"multi\\nline\\"","description":"run command"}}';
+    const result = extractCommandFromRawInput(rawInput);
+    expect(result).toBe('openpowers change new my-feature --desc \\"multi\\nline\\"');
+  });
+
+  it('should return undefined when command field is not present', () => {
+    const rawInput = '{"tool_name":"Bash","tool_input":{"description":"run command"}}';
+    const result = extractCommandFromRawInput(rawInput);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined for empty input', () => {
+    expect(extractCommandFromRawInput('')).toBeUndefined();
+    expect(extractCommandFromRawInput('   ')).toBeUndefined();
+  });
+
+  it('should extract non-openpowers command', () => {
+    const rawInput = '{"tool_input":{"command":"ls -la","description":"list files"}}';
+    const result = extractCommandFromRawInput(rawInput);
+    expect(result).toBe('ls -la');
+  });
+});
+
+describe('extractChangeName', () => {
+  it('should extract change name from standard change new command', () => {
+    const result = extractChangeName('openpowers change new my-feature --desc "some description"');
+    expect(result).toBe('my-feature');
+  });
+
+  it('should extract change name with extra flags', () => {
+    const result = extractChangeName('openpowers change new my-feature --desc "desc" --other-flag');
+    expect(result).toBe('my-feature');
+  });
+
+  it('should return null when command is not change new', () => {
+    const result = extractChangeName('openpowers agents init --session abc');
+    expect(result).toBeNull();
+  });
+
+  it('should return null for non-openpowers command', () => {
+    const result = extractChangeName('ls -la');
+    expect(result).toBeNull();
+  });
+
+  it('should extract kebab-case change name', () => {
+    const result = extractChangeName('openpowers change new my-cool-feature --desc "test"');
+    expect(result).toBe('my-cool-feature');
+  });
+});
+
+describe('runBeforeBash', () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.exitCode = undefined;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    existsSyncMock.mockReturnValue(true);
+    homedirMock.mockReturnValue('/mock/home');
+  });
+
+  it('should silently return when sessionId is missing', () => {
+    runBeforeBash({
+      sessionId: undefined,
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    }, '{"tool_input":{"command":"openpowers change new x","description":"d"}}');
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it('should silently return when cwd is missing', () => {
+    runBeforeBash({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: undefined,
+      prompt: undefined,
+    }, '{"tool_input":{"command":"openpowers change new x","description":"d"}}');
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it('should silently return when cwd does not exist', () => {
+    existsSyncMock.mockReturnValue(false);
+
+    runBeforeBash({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/nonexistent',
+      prompt: undefined,
+    }, '{"tool_input":{"command":"openpowers change new x","description":"d"}}');
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it('should silently return when rawInput has no command field', () => {
+    runBeforeBash({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    }, '{"tool_input":{"description":"no command here"}}');
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it('should exit(0) without executing when command is not openpowers', () => {
+    runBeforeBash({
+      sessionId: 'abc-123',
+      purpose: undefined,
+      cwd: '/valid/path',
+      prompt: undefined,
+    }, '{"tool_input":{"command":"ls -la","description":"list files"}}');
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it('should execute agents init with --change when command is openpowers change new', () => {
+    execSyncMock.mockReturnValue('init successful');
+
+    runBeforeBash({
+      sessionId: 'sess-123',
+      purpose: undefined,
+      cwd: '/project',
+      prompt: undefined,
+    }, '{"tool_name":"Bash","tool_input":{"command":"openpowers change new my-feature --desc \\"some desc\\"","description":"run command"}}');
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const callArg = execSyncMock.mock.calls[0][0];
+    expect(callArg).toContain('openpowers');
+    expect(callArg).toContain('agents');
+    expect(callArg).toContain('init');
+    expect(callArg).toContain('--session');
+    expect(callArg).toContain('sess-123');
+    expect(callArg).toContain('--cwd');
+    expect(callArg).toContain('/project');
+    expect(callArg).toContain('--change');
+    expect(callArg).toContain('my-feature');
+  });
+
+  it('should write log entries on successful execution', () => {
+    execSyncMock.mockReturnValue('init successful');
+
+    runBeforeBash({
+      sessionId: 'log-test',
+      purpose: undefined,
+      cwd: '/project',
+      prompt: undefined,
+    }, '{"tool_input":{"command":"openpowers change new feat-x --desc \\"test\\"","description":"d"}}');
+
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- session-id: log-test'));
+    expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- change-name: feat-x'));
+    expect(logLines).toContainEqual(expect.stringContaining('Running command:'));
+    expect(logLines).toContainEqual(expect.stringContaining('--change'));
+    expect(logLines).toContainEqual(expect.stringContaining('feat-x'));
+    expect(logLines).toContainEqual(expect.stringContaining('Result of before-bash hook:'));
+  });
+
+  it('should log error result and not write to stderr when command execution fails', () => {
+    const execError = Object.assign(new Error('command failed'), {
+      stdout: '',
+      stderr: 'agent not found',
+      status: 1,
+    });
+    execSyncMock.mockImplementation(() => {
+      throw execError;
+    });
+
+    runBeforeBash({
+      sessionId: 'fail-test',
+      purpose: undefined,
+      cwd: '/project',
+      prompt: undefined,
+    }, '{"tool_input":{"command":"openpowers change new bad-feat --desc \\"test\\"","description":"d"}}');
+
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(appendFileSyncMock).toHaveBeenCalled();
+    const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
+    expect(logLines).toContainEqual(expect.stringContaining('Result of before-bash hook: returncode=1'));
+    expect(logLines).toContainEqual(expect.stringContaining('agent not found'));
+  });
+});
+
 describe('main', () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
@@ -1060,7 +1261,7 @@ describe('main', () => {
     main();
 
     expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose'),
+      expect.stringContaining('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose|--before-bash'),
     );
     expect(process.exitCode).toBe(1);
   });
@@ -1330,5 +1531,64 @@ describe('main', () => {
     expect(appendFileSyncMock).toHaveBeenCalledTimes(7);
     const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
     expect(logLines[1]).toContain('Accepted hook request --- openpowers-purpose: propose');
+  });
+
+  it('should handle --before-bash with openpowers change new command and execute agents init with --change', () => {
+    process.argv = ['node', '/fake/path/script.js', '--before-bash'];
+    const stdinJson = '{"tool_name":"Bash","tool_input":{"command":"openpowers change new my-feature --desc \\"some description\\"","description":"run command"},"session_id":"bash-sess-001","cwd":"/home/user/project"}';
+    mockStdin(stdinJson);
+    execSyncMock.mockReturnValue('init successful');
+
+    main();
+
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const callArg = execSyncMock.mock.calls[0][0];
+    expect(callArg).toContain('openpowers');
+    expect(callArg).toContain('agents');
+    expect(callArg).toContain('init');
+    expect(callArg).toContain('--session');
+    expect(callArg).toContain('bash-sess-001');
+    expect(callArg).toContain('--cwd');
+    expect(callArg).toContain('/home/user/project');
+    expect(callArg).toContain('--change');
+    expect(callArg).toContain('my-feature');
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently skip when --before-bash command is not openpowers', () => {
+    process.argv = ['node', '/fake/path/script.js', '--before-bash'];
+    const stdinJson = '{"tool_input":{"command":"ls -la","description":"list files"},"session_id":"bash-sess-002","cwd":"/home/user/project"}';
+    mockStdin(stdinJson);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently skip when --before-bash stdin has no command field', () => {
+    process.argv = ['node', '/fake/path/script.js', '--before-bash'];
+    const stdinJson = '{"tool_input":{"description":"no command"},"session_id":"bash-sess-003","cwd":"/home/user/project"}';
+    mockStdin(stdinJson);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('should silently skip when --before-bash command is openpowers but not change new', () => {
+    process.argv = ['node', '/fake/path/script.js', '--before-bash'];
+    const stdinJson = '{"tool_input":{"command":"openpowers agents list","description":"list agents"},"session_id":"bash-sess-004","cwd":"/home/user/project"}';
+    mockStdin(stdinJson);
+
+    main();
+
+    expect(execSyncMock).not.toHaveBeenCalled();
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
   });
 });

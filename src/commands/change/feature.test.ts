@@ -887,7 +887,7 @@ describe('Internal helpers', () => {
 describe('syncDesignToMemory', () => {
   const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
 
-  let syncDesignToMemory: (changeName: string) => void;
+  let syncDesignToMemory: (changeName: string, cwd: string) => void;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -923,7 +923,7 @@ describe('syncDesignToMemory', () => {
     mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
     mockFs.setFile(designPath, designContent);
 
-    syncDesignToMemory('my-change');
+    syncDesignToMemory('my-change', process.cwd());
 
     // Verify cpSync was called with correct paths
     const cpCalls = mockFs.cpSync.mock.calls;
@@ -938,7 +938,7 @@ describe('syncDesignToMemory', () => {
   it('should silently skip when design.md does not exist', () => {
     // No design.md set up
 
-    expect(() => syncDesignToMemory('my-change')).not.toThrow();
+    expect(() => syncDesignToMemory('my-change', process.cwd())).not.toThrow();
 
     // cpSync should not have been called for design.md
     const cpCalls = mockFs.cpSync.mock.calls;
@@ -951,7 +951,7 @@ describe('syncDesignToMemory', () => {
     mockFs.setDir(path.join(CHANGES_DIR, 'my-change'));
     mockFs.setFile(designPath, 'content');
 
-    syncDesignToMemory('my-change');
+    syncDesignToMemory('my-change', process.cwd());
 
     // Verify http.request was called
     expect(mockHttp._getMockRequest()).toHaveBeenCalled();
@@ -977,7 +977,7 @@ describe('syncDesignToMemory', () => {
     mockFs.setFile(designPath, 'content');
 
     // Should not throw - connection failure is silently skipped
-    expect(() => syncDesignToMemory('my-change')).not.toThrow();
+    expect(() => syncDesignToMemory('my-change', process.cwd())).not.toThrow();
 
     // design.md should still have been copied
     const cpCalls = mockFs.cpSync.mock.calls;
@@ -988,7 +988,7 @@ describe('syncDesignToMemory', () => {
   it('should NOT call schedule API when design.md does not exist', () => {
     // No design.md set up
 
-    syncDesignToMemory('no-design-change');
+    syncDesignToMemory('no-design-change', process.cwd());
 
     // HTTP PUT should not have been called
     const requestCalls = mockHttp._getMockRequest().mock.calls;

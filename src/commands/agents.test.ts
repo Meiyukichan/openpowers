@@ -799,4 +799,118 @@ describe('src/commands/agents.ts', () => {
       }),
     );
   });
+
+  // -----------------------------------------------------------------------
+  // Acceptance Criteria 17: agents init --change sets change field
+  // -----------------------------------------------------------------------
+
+  it('agents init --change <name> should set change field in settings', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid', '--change', 'my-change'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: 'my-change',
+      }),
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // Acceptance Criteria 18: agents init without --change preserves existing
+  // -----------------------------------------------------------------------
+
+  it('agents init without --change should preserve existing change value', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    // Simulate existing settings with a change value
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/valid',
+      currentProvider: 'default',
+      switchProviders: {},
+      change: 'existing-change',
+    });
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: 'existing-change',
+      }),
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // Acceptance Criteria 19: agents init without --change and no existing value
+  // -----------------------------------------------------------------------
+
+  it('agents init without --change and no existing value should set change to empty string', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    // No existing settings
+    mockReadSessionSettings.mockReturnValue(null);
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: '',
+      }),
+    );
+  });
 });

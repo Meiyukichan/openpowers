@@ -20,6 +20,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-bash"
+          }
+        ]
+      },
+      {
         "matcher": "mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose",
         "hooks": [
           {

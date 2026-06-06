@@ -9,19 +9,11 @@ import http from 'http';
 import os from 'os';
 import path from 'path';
 import { logger } from '../../utils/logger.js';
+import { flattenCwdPath } from '../../utils/memory.js';
 import { appendLog } from './schedule-logger.js';
 
-/**
- * Flattens a cwd path into a safe directory name.
- * Step 1: replace all \\ with /
- * Step 2: replace : with _ (Windows drive letter separator)
- * Step 3: replace / with _
- * @param cwd - The current working directory path
- * @returns Flattened path safe for use as a directory name
- */
-export function flattenCwdPath(cwd: string): string {
-  return cwd.replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_');
-}
+// Re-export for backward compatibility
+export { flattenCwdPath };
 
 /**
  * Syncs design.md to global memory under designs/ subdirectory.
@@ -35,9 +27,9 @@ export function flattenCwdPath(cwd: string): string {
  * calling the schedule API.
  *
  * @param changeName - The kebab-case change name
+ * @param cwd - The working directory path
  */
-export function syncDesignToMemory(changeName: string): void {
-  const cwd = process.cwd();
+export function syncDesignToMemory(changeName: string, cwd: string): void {
   const flatCwd = flattenCwdPath(cwd);
 
   // Resolve design path

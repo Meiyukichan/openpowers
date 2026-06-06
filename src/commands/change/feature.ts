@@ -214,12 +214,13 @@ function printFeatureDetails(feature: Feature): void {
  * Blocked is counted as a mutually exclusive category (pending with unmet deps
  * counts as blocked, not pending).
  * @param changeName - The kebab-case change name
+ * @param cwd - The working directory path (defaults to process.cwd())
  */
-export function runFeatureStatus(changeName: string): void {
+export function runFeatureStatus(changeName: string, cwd: string = process.cwd()): void {
   requireValidChangeName(changeName);
 
   // Sync design.md to global memory (mem-01)
-  syncDesignToMemory(changeName);
+  syncDesignToMemory(changeName, cwd);
 
   const planPath = path.join(CHANGES_DIR, changeName, 'plan.json');
   const features = loadPlan(planPath);

@@ -107,7 +107,7 @@ At this point, the final openpowers change directory: `openpowers/changes/<name>
 
 1. You MUST use following script to create an OpenPowers change (if this change already exists, following command will mark change invoked):
   ```bash
-   openpowers change new <name> --desc <brief description of this change [15-30 words]>
+   openpowers change new <name> --desc <brief description of this change [15-30 words] in `language`>
   ```
 1. Invoke Skill: openpowers-explore to explore the project code, with parameters:
   - Exploration type: project
@@ -147,7 +147,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
    - Standard (Standard mode, Code exploration ✅ | Propose & Plan ✅ | Artifacts review ❌ | Reference exploration ✅ | Feature Implement ✅ | Spec review ❌ | Code review ✅ | Final Integration ✅)
    - Max      (Full mode,     Code exploration ✅ | Propose & Plan ✅ | Artifacts review ✅ | Reference exploration ✅ | Feature Implement ✅ | Spec review ✅ | Code review ✅ | Final Integration ✅)
 
-  You need to determine a recommended option based on the scale of the demand (lite < 300, 300 < standard < 1000, max > 1000).
+  You need to determine a recommended option based on the scale of the demand (lite < 300, 300 < standard < 1000, max > 1000, standard is prefered defaultly).
 
   Then you **MUST** use following script to write OpenPowers config:
   ```

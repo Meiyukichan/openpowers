@@ -30,11 +30,11 @@ Feature auth-001: User login
 
 $ openpowers change feature auth --start auth-001
 
-[Dispatch reference explorer — invoke openpowers-explore skill to explore references for auth-001, output to openpowers/changes/auth/auth-001-reference.md]
+[Dispatch reference explorer — using reference-explorer-prompt.md prompt template]
 
 [Reference explorer completed, continue to next step]
 
-[Dispatch implementer subagent with feature data, reference docs, and context]
+[Dispatch implementer subagent — using code-implementer-prompt.md prompt template]
 
 Implementer: "Before I begin - should tokens expire after 1 hour or 24 hours?"
 
@@ -76,11 +76,11 @@ Feature auth-002: Token refresh
 
 $ openpowers change feature auth --start auth-002
 
-[Dispatch reference explorer — invoke openpowers-explore skill to explore references for auth-002]
+[Dispatch reference explorer — using reference-explorer-prompt.md prompt template for auth-002]
 
 [Reference explorer completed, continue to next step]
 
-[Dispatch implementer subagent with feature data, reference docs, and context]
+[Dispatch implementer subagent - using code-implementer-prompt.md prompt template]
 
 Implementer: [No questions, proceeds]
 Implementer:
@@ -119,8 +119,6 @@ Feature List Status:
   Total: 5
   ✅ Done: 5
   Progress: 100.0%
-
-[Invoke openpowers-finalize skill to complete development]
 
 Done!
 ```

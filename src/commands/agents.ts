@@ -300,8 +300,9 @@ function runAgentsGlobalSwitch(name: string): void {
  * Validates sessionId, cwd directory, and model names.
  * @param sessionId - The session identifier
  * @param cwd - The working directory path
+ * @param change - Optional change name to associate with the session
  */
-function runAgentsInit(sessionId: string, cwd: string): void {
+function runAgentsInit(sessionId: string, cwd: string, change?: string): void {
   // Validate sessionId is not empty
   if (!sessionId || sessionId.trim() === '') {
     process.stderr.write('Session ID is required and cannot be empty\n');
@@ -321,13 +322,24 @@ function runAgentsInit(sessionId: string, cwd: string): void {
   // Validate model names against providers
   const validatedSwitchProviders = validateSwitchProviders(rawSwitchProviders);
 
+  // Determine change value: use provided value, or preserve existing, or default to ''
+  let changeValue = '';
+  if (change) {
+    changeValue = change;
+  } else {
+    const existing = readSessionSettings(sessionId);
+    if (existing?.change) {
+      changeValue = existing.change;
+    }
+  }
+
   // Create session settings
   const settings = {
     sessionId,
     cwd,
     currentProvider: 'default',
     switchProviders: validatedSwitchProviders,
-    change: '',
+    change: changeValue,
   };
 
   writeSessionSettings(sessionId, settings);
@@ -390,7 +402,8 @@ export function registerAgentsCommand(program: Command): void {
     .description('Initialize session settings file')
     .requiredOption('--session <id>', 'Session ID')
     .requiredOption('--cwd <path>', 'Working directory path')
-    .action((options: { session: string; cwd: string }) => {
-      runAgentsInit(options.session, options.cwd);
+    .option('--change <name>', 'Change name to associate with session')
+    .action((options: { session: string; cwd: string; change?: string }) => {
+      runAgentsInit(options.session, options.cwd, options.change);
     });
 }
