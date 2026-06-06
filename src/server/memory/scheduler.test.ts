@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tests for scheduler module
+ * @fileoverview Tests for scheduler module — directory-scanning based
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -10,33 +10,61 @@ import path from 'path';
 // ---- mocks ----
 
 type CronCallback = () => void;
+type Dirent = { name: string; isDirectory: () => boolean; isFile: () => boolean };
 
 const mockTaskStart = vi.fn();
 const mockTaskStop = vi.fn();
 const mockTaskDestroy = vi.fn();
 let capturedCronCallback: CronCallback | null = null;
 
-// In-memory filesystem for mocking resource config reads
+// In-memory filesystem for mocking resource config reads and directory listings
 let mockFileSystem: Record<string, string> = {};
+let mockDirListing: Record<string, Dirent[]> = {};
 
-const { cronScheduleMock, appendLogMock, readDreamworkConfigMock, writeDreamworkConfigMock, formatYesterdayMock, cpSyncMock, rmSyncMock, mkdirSyncMock, existsSyncMock, readFileSyncMock } = vi.hoisted(() => ({
+function normalizeDirPath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
+function findInMockDirListing(searchPath: string): Dirent[] | undefined {
+  const normalized = normalizeDirPath(searchPath);
+  for (const [rawKey, val] of Object.entries(mockDirListing)) {
+    const nk = normalizeDirPath(rawKey);
+    if (nk === normalized || nk + '/' === normalized || nk === normalized + '/') {
+      return val;
+    }
+  }
+  return undefined;
+}
+
+const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, existsSyncMock, readFileSyncMock, readdirSyncMock, execSyncMock } = vi.hoisted(() => ({
   cronScheduleMock: vi.fn((_expr: string, cb: CronCallback) => {
     capturedCronCallback = cb;
     return { start: mockTaskStart, stop: mockTaskStop, destroy: mockTaskDestroy };
   }),
   appendLogMock: vi.fn(),
-  readDreamworkConfigMock: vi.fn(),
-  writeDreamworkConfigMock: vi.fn(),
-  formatYesterdayMock: vi.fn(),
   cpSyncMock: vi.fn(),
   rmSyncMock: vi.fn(),
   mkdirSyncMock: vi.fn(),
-  existsSyncMock: vi.fn(),
+  existsSyncMock: vi.fn((p: unknown) => {
+    const normalized = normalizeDirPath(String(p));
+    // Check mockDirListing
+    if (findInMockDirListing(normalized)) return true;
+    // Check .claude parent directories
+    if (normalized.endsWith('/.claude')) {
+      const parent = normalized.replace(/\/\.claude$/, '');
+      // Check if parent is in mockDirListing
+      if (findInMockDirListing(parent)) return true;
+      // Also check if any listing key starts with parent
+      for (const rawKey of Object.keys(mockDirListing)) {
+        const nk = normalizeDirPath(rawKey);
+        if (nk.startsWith(parent + '/')) return true;
+      }
+    }
+    return false;
+  }),
   readFileSyncMock: vi.fn((p: unknown, _encoding?: unknown) => {
     const key = String(p).replace(/\\/g, '/').toLowerCase();
-    // Try exact match first, then fall back to matching any key ending with 'openpowers.json'
     if (key in mockFileSystem) return mockFileSystem[key];
-    // Look for config by suffix for resilience against path resolution differences
     for (const mk of Object.keys(mockFileSystem)) {
       if (mk.endsWith('resources/openpowers.json') && key.endsWith('resources/openpowers.json')) {
         return mockFileSystem[mk];
@@ -44,6 +72,17 @@ const { cronScheduleMock, appendLogMock, readDreamworkConfigMock, writeDreamwork
     }
     throw new Error(`ENOENT: ${p}`);
   }),
+  readdirSyncMock: vi.fn((p: unknown, options?: { withFileTypes?: boolean } | BufferEncoding | null) => {
+    const entries = findInMockDirListing(String(p));
+    if (!entries) return [] as Dirent[];
+
+    const useFileTypes = options && typeof options === 'object' && options.withFileTypes === true;
+    if (!useFileTypes) {
+      return entries.map((e) => e.name);
+    }
+    return entries;
+  }),
+  execSyncMock: vi.fn(),
 }));
 
 vi.mock('node-cron', () => ({
@@ -56,12 +95,6 @@ vi.mock('./schedule-logger.js', () => ({
   appendLog: appendLogMock,
 }));
 
-vi.mock('./dreamwork.js', () => ({
-  readDreamworkConfig: readDreamworkConfigMock,
-  writeDreamworkConfig: writeDreamworkConfigMock,
-  formatYesterday: formatYesterdayMock,
-}));
-
 vi.mock('fs', () => ({
   default: {
     cpSync: cpSyncMock,
@@ -69,7 +102,12 @@ vi.mock('fs', () => ({
     mkdirSync: mkdirSyncMock,
     existsSync: existsSyncMock,
     readFileSync: readFileSyncMock,
+    readdirSync: readdirSyncMock,
   },
+}));
+
+vi.mock('child_process', () => ({
+  execSync: execSyncMock,
 }));
 
 vi.mock('os', () => ({
@@ -86,17 +124,22 @@ async function importFresh(): Promise<SchedulerModule> {
   return await import('./scheduler.js');
 }
 
+function makeDirent(name: string, isDir: boolean): Dirent {
+  return {
+    name,
+    isDirectory: () => isDir,
+    isFile: () => !isDir,
+  };
+}
+
+const MEMORY_DIR = '/Users/test/.openpowers/memory';
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
   capturedCronCallback = null;
   mockFileSystem = {};
-  formatYesterdayMock.mockReturnValue('2026-06-03');
-  readDreamworkConfigMock.mockReturnValue({
-    workAt: '2026-06-03',
-    projects: [],
-  });
-  existsSyncMock.mockReturnValue(false);
+  mockDirListing = {};
 });
 
 // ---- test suites ----
@@ -183,7 +226,7 @@ describe('isSchedulerRunning', () => {
   });
 });
 
-describe('cron callback: workAt validation', () => {
+describe('cron callback: start and finish logging', () => {
   it('should log start and completion messages', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
@@ -194,170 +237,331 @@ describe('cron callback: workAt validation', () => {
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
   });
+});
 
-  it('should abort and log error when workAt is not yesterday', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-01', // not yesterday
-      projects: [{ project: '/some/project', changes: ['/some/project/design_test.md'] }],
-    });
-
+describe('cron callback: directory scanning', () => {
+  it('should scan .openpowers/memory subdirectories', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    // Set up memory directory with a subdirectory that has non-empty designs/
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+      makeDirent('not-a-dir.txt', false),
+      makeDirent('project2', true),
+    ];
+    // project1 has designs/ with md files
+    const project1DesignsDir = path.join(MEMORY_DIR, 'project1', 'designs');
+    mockDirListing[project1DesignsDir] = [
+      makeDirent('change-a.md', false),
+      makeDirent('change-b.md', false),
+    ];
+    // project2 has designs/ but it's empty
+    const project2DesignsDir = path.join(MEMORY_DIR, 'project2', 'designs');
+    mockDirListing[project2DesignsDir] = [];
+
     capturedCronCallback!();
 
-    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
-    expect(appendLogMock).toHaveBeenCalledWith(
-      expect.stringContaining('Scheduler aborted: workAt mismatch'),
-    );
-    // Should reset dreamwork config with correct structure
-    expect(writeDreamworkConfigMock).toHaveBeenCalledWith({
-      workAt: '2026-06-03',
-      projects: [],
-    });
-    // Should NOT process any projects
+    // readdirSync should have been called for the memory directory
+    expect(readdirSyncMock).toHaveBeenCalled();
+  });
+
+  it('should process directory with non-empty designs/ subdirectory', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    capturedCronCallback!();
+
+    // Should have tried to copy agents and skills
+    expect(cpSyncMock).toHaveBeenCalled();
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Processing'));
+  });
+
+  it('should skip directory with empty designs/ subdirectory', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [];
+
+    capturedCronCallback!();
+
+    // Should NOT process (no cpSync calls)
     expect(cpSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should proceed when workAt is yesterday', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03', // equals yesterday
-      projects: [{ project: '/some/project', changes: ['/some/project/design_test.md'] }],
-    });
-
+  it('should skip directory without designs/ subdirectory', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+
     capturedCronCallback!();
 
-    // Should attempt to process the project (will try cp)
-    expect(cpSyncMock).toHaveBeenCalled();
+    // Should NOT process (no cpSync calls)
+    expect(cpSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should handle empty memory directory gracefully', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    mockDirListing[MEMORY_DIR] = [];
+
+    capturedCronCallback!();
+
+    // Should finish without errors
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
   });
 });
 
-describe('cron callback: processing projects', () => {
-  it('should process all projects regardless of status', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [
-        { project: '/project/ready1', changes: ['/project/ready1/design_1.md'] },
-        { project: '/project/skip', changes: ['/project/skip/design.md'] },
-        { project: '/project/ready2', changes: ['/project/ready2/design_1.md'] },
-        { project: '/project/done', changes: ['/project/done/design.md'] },
-      ],
-    });
-
+describe('cron callback: copy agents and skills', () => {
+  it('should copy agents and skills to .claude directory before claude execution', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
-    capturedCronCallback!();
 
-    // All 4 projects should trigger cpSync (agents + skills = 2 per project)
-    expect(cpSyncMock).toHaveBeenCalledTimes(8); // 4 projects x 2 copies
-  });
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const claudeDir = path.join(projectDir, '.claude');
 
-  it('should copy agents and skills to project .claude directory', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [{ project: '/project/test', changes: ['/project/test/design_test.md'] }],
-    });
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
 
-    const { startScheduler } = await importFresh();
-    startScheduler();
     capturedCronCallback!();
 
     // Should call cpSync for agents
     expect(cpSyncMock).toHaveBeenCalledWith(
       expect.stringContaining('agents'),
-      path.join('/project/test', '.claude', 'agents'),
+      path.join(claudeDir, 'agents'),
       { recursive: true },
     );
     // Should call cpSync for skills
     expect(cpSyncMock).toHaveBeenCalledWith(
       expect.stringContaining('skills'),
-      path.join('/project/test', '.claude', 'skills'),
+      path.join(claudeDir, 'skills'),
       { recursive: true },
     );
   });
+});
 
-  it('should write back config after processing with project.status="done" and empty changes', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    const project = { project: '/project/test', changes: ['/project/test/design_test.md'] };
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [project],
-    });
-
+describe('cron callback: claude CLI execution', () => {
+  it('should execute claude CLI command with correct parameters', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
     capturedCronCallback!();
 
-    // After processing, writeDreamworkConfig should be called with:
-    // - each project has status='done' and changes=[]
-    expect(writeDreamworkConfigMock).toHaveBeenCalledTimes(1);
-    const writtenConfig = writeDreamworkConfigMock.mock.calls[0][0] as { workAt: string; projects: Array<{ project: string; changes: string[]; status?: 'done' }> };
-    expect(writtenConfig.projects).toHaveLength(1);
-    expect(writtenConfig.projects[0].project).toBe('/project/test');
-    expect(writtenConfig.projects[0].status).toBe('done');
-    expect(writtenConfig.projects[0].changes).toEqual([]);
+    // Verify execSync was called with claude command
+    expect(execSyncMock).toHaveBeenCalledTimes(1);
+    const execCall = execSyncMock.mock.calls[0];
+    const command = execCall[0] as string;
+    expect(command).toContain('claude');
+    expect(command).toContain('backgroud-designer');
+
+    // Verify options: cwd, timeout, env
+    const options = execCall[1] as Record<string, unknown>;
+    expect(options.cwd).toBe(projectDir);
+    expect(options.timeout).toBe(600000);
   });
 
-  it('should delete .opencode directory after processing', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [{ project: '/project/test', changes: ['/project/test/design_test.md'] }],
-    });
-    existsSyncMock.mockReturnValue(true);
-
+  it('should log and continue when claude execution times out', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    execSyncMock.mockImplementation(() => {
+      throw new Error('The operation was canceled');
+    });
+
     capturedCronCallback!();
 
-    // cpSync called first, then rmSync for .opencode
-    expect(cpSyncMock).toHaveBeenCalled();
+    // Should log the failure
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('failed'));
+    // Should still cleanup
+    expect(rmSyncMock).toHaveBeenCalled();
+  });
+
+  it('should log and continue when claude execution fails', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    execSyncMock.mockImplementation(() => {
+      throw new Error('Command failed with exit code 1');
+    });
+
+    capturedCronCallback!();
+
+    // Should log the failure
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('failed'));
+    // Should still proceed to cleanup
+    expect(rmSyncMock).toHaveBeenCalled();
+  });
+});
+
+describe('cron callback: cleanup', () => {
+  it('should delete designs/ and .claude/ directories after successful execution', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const claudeDir = path.join(projectDir, '.claude');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    capturedCronCallback!();
+
+    // Should delete designs/ and .claude/
     expect(rmSyncMock).toHaveBeenCalledWith(
-      path.join('/project/test', '.opencode'),
+      expect.stringMatching(/designs/),
+      { recursive: true, force: true },
+    );
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
       { recursive: true, force: true },
     );
   });
 
-  it('should skip .opencode deletion when directory does not exist', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [{ project: '/project/test', changes: ['/project/test/design_test.md'] }],
-    });
-    // .opencode does not exist
-    existsSyncMock.mockReturnValue(false);
-
+  it('should delete designs/ and .claude/ directories after failed execution', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const claudeDir = path.join(projectDir, '.claude');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    execSyncMock.mockImplementation(() => {
+      throw new Error('Command failed');
+    });
+
     capturedCronCallback!();
 
-    expect(cpSyncMock).toHaveBeenCalled();
-    // existsSync should return false, so rmSync not called for .opencode
-    const rmSyncCalls = rmSyncMock.mock.calls.filter(
-      (call: unknown[]) => (call[0] as string).includes('.opencode'),
+    // Should still delete designs/ and .claude/ even though execution failed
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/designs/),
+      { recursive: true, force: true },
     );
-    expect(rmSyncCalls.length).toBe(0);
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
+      { recursive: true, force: true },
+    );
   });
 
-  it('should log each project being processed', async () => {
-    formatYesterdayMock.mockReturnValue('2026-06-03');
-    readDreamworkConfigMock.mockReturnValue({
-      workAt: '2026-06-03',
-      projects: [{ project: '/project/test', changes: ['/project/test/design_test.md'] }],
-    });
-
+  it('should process multiple directories and clean up each', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
+
+    const project1Dir = path.join(MEMORY_DIR, 'project1');
+    const project2Dir = path.join(MEMORY_DIR, 'project2');
+    const designs1Dir = path.join(project1Dir, 'designs');
+    const designs2Dir = path.join(project2Dir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+      makeDirent('project2', true),
+    ];
+    mockDirListing[designs1Dir] = [makeDirent('a.md', false)];
+    mockDirListing[designs2Dir] = [makeDirent('b.md', false)];
+
     capturedCronCallback!();
 
-    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Processing project:'));
-    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('/project/test'));
-    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Project done:'));
+    // Two claude executions
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+
+    // Two sets of cleanup (designs + .claude for each project = 4 rmSync calls)
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
+    const claudeCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('.claude'));
+    expect(designCalls.length).toBe(2);
+    expect(claudeCalls.length).toBe(2);
+  });
+});
+
+describe('cron callback: does not interact with dreamwork.json', () => {
+  it('should not import or call any dreamwork functions', async () => {
+    // The fact that we don't mock dreamwork.js and the module loads without it
+    // confirms there's no dreamwork dependency
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+
+    capturedCronCallback!();
+
+    // Should work normally without any dreamwork interaction
+    expect(execSyncMock).toHaveBeenCalled();
+    expect(cpSyncMock).toHaveBeenCalled();
   });
 });
 

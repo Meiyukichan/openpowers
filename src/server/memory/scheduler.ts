@@ -1,6 +1,7 @@
 /**
- * Global memory scheduler: runs a daily task to copy resources/agents
- * and resources/skills into project .claude directories and clean up .opencode.
+ * Global memory scheduler: runs a daily task to scan .openpowers/memory
+ * directories for pending designs, copy agents/skills, execute claude CLI,
+ * and clean up.
  * Cron expression is read from enhancement.memory.schedule in
  * resources/openpowers.json, falling back to '0 2 * * *'.
  * @author Meiyuki <meiyukichan@163.com>
@@ -8,16 +9,20 @@
  */
 
 import cron from 'node-cron';
+import { execSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendLog } from './schedule-logger.js';
-import { readDreamworkConfig, writeDreamworkConfig, formatYesterday } from './dreamwork.js';
 
 // Resolve resources directory relative to compiled output:
-//   dist/server/memory/scheduler.js -> ../../resources
+//   dist/server/memory/scheduler.js -> ../../../resources
 const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
-const resourcesDir = path.resolve(moduleDirname, '..', '..', 'resources');
+const resourcesDir = path.resolve(moduleDirname, '..', '..', '..', 'resources');
+
+// Memory root directory for scanning
+const MEMORY_DIR = path.join(os.homedir(), '.openpowers', 'memory');
 
 /**
  * Reads the cron expression from resources/openpowers.json,
@@ -53,11 +58,26 @@ export function isSchedulerRunning(): boolean {
 }
 
 /**
+ * Checks if a directory's designs/ subdirectory exists and is non-empty
+ * (contains at least one .md file).
+ */
+function hasNonEmptyDesigns(memorySubDir: string): boolean {
+  const designsDir = path.join(memorySubDir, 'designs');
+  try {
+    const entries = fs.readdirSync(designsDir);
+    return entries.some((entry) => entry.endsWith('.md'));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Starts the daily scheduler.
  * Reads the cron expression from enhancement.memory.schedule in
  * resources/openpowers.json (fallback to '0 2 * * *').
- * Registers a cron job that processes dreamwork.json projects,
- * then writes back each project with status='done' and changes=[].
+ * Registers a cron job that scans ~/.openpowers/memory/
+ * for subdirectories with non-empty designs/ folders,
+ * copies agents/skills, executes claude CLI, and cleans up.
  * No-op if already running.
  */
 export function startScheduler(): void {
@@ -71,55 +91,81 @@ export function startScheduler(): void {
   cronTask = cron.schedule(cronExpression, () => {
     appendLog('Scheduler task started');
 
-    // 1) Validate workAt is yesterday
-    const config = readDreamworkConfig();
-    const yesterday = formatYesterday();
-
-    if (config.workAt !== yesterday) {
-      appendLog(`Scheduler aborted: workAt mismatch (expected ${yesterday}, got ${config.workAt})`);
-      // Reset dreamwork config to default
-      writeDreamworkConfig({
-        workAt: formatYesterday(),
-        projects: [],
-      });
+    // 1) Scan memory directory for subdirectories
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(MEMORY_DIR, { withFileTypes: true });
+    } catch {
+      appendLog('Scheduler: could not read memory directory, skipping');
       appendLog('Scheduler task finished');
       return;
     }
 
-    // 2) Serial processing of projects
-    for (const project of config.projects) {
-      appendLog(`Processing project: ${project.project}`);
+    // 2) Filter to directories with non-empty designs/
+    const pendingDirs = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(MEMORY_DIR, entry.name))
+      .filter((subDir) => hasNonEmptyDesigns(subDir));
 
-      const claudeDir = path.join(project.project, '.claude');
-
-      // Copy resources/agents to {project.project}/.claude/agents
-      const srcAgents = path.join(resourcesDir, 'agents');
-      const destAgents = path.join(claudeDir, 'agents');
-      if (!fs.existsSync(claudeDir)) {
-        fs.mkdirSync(claudeDir, { recursive: true });
-      }
-      fs.cpSync(srcAgents, destAgents, { recursive: true });
-
-      // Copy resources/skills to {project.project}/.claude/skills
-      const srcSkills = path.join(resourcesDir, 'skills');
-      const destSkills = path.join(claudeDir, 'skills');
-      fs.cpSync(srcSkills, destSkills, { recursive: true });
-
-      // Delete .opencode directory if exists
-      const opencodeDir = path.join(project.project, '.opencode');
-      if (fs.existsSync(opencodeDir)) {
-        fs.rmSync(opencodeDir, { recursive: true, force: true });
-      }
-
-      appendLog(`Project done: ${project.project}`);
-
-      // 3) Write back: mark project as done and clear changes
-      project.status = 'done';
-      project.changes = [];
+    if (pendingDirs.length === 0) {
+      appendLog('Scheduler: no directories with pending designs found');
+      appendLog('Scheduler task finished');
+      return;
     }
 
-    // Persist writeback
-    writeDreamworkConfig(config);
+    // 3) Serial processing of directories
+    for (const projectDir of pendingDirs) {
+      appendLog(`Processing: ${projectDir}`);
+
+      const claudeDir = path.join(projectDir, '.claude');
+      const designsDir = path.join(projectDir, 'designs');
+
+      try {
+        // Copy resources/agents to {projectDir}/.claude/agents
+        const srcAgents = path.join(resourcesDir, 'agents');
+        const destAgents = path.join(claudeDir, 'agents');
+        fs.cpSync(srcAgents, destAgents, { recursive: true });
+
+        // Copy resources/skills to {projectDir}/.claude/skills
+        const srcSkills = path.join(resourcesDir, 'skills');
+        const destSkills = path.join(claudeDir, 'skills');
+        fs.cpSync(srcSkills, destSkills, { recursive: true });
+
+        // Execute claude CLI command
+        const command = `claude --add-dir "${designsDir}" --agent backgroud-designer --permission-mode bypassPermissions -p "使用子代理：backgroud-designer 按照它的要求和步骤处理。变更设计文档列表为： ${designsDir}下面的所有文件"`;
+        appendLog(`Executing: ${command}`);
+        execSync(command, {
+          cwd: projectDir,
+          timeout: 600000, // 10 minutes
+          env: process.env,
+        });
+        appendLog(`Claude execution succeeded: ${projectDir}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        appendLog(`Claude execution failed for ${projectDir}: ${message}`);
+      } finally {
+        // Cleanup: delete designs/ and .claude/ regardless of success or failure
+        try {
+          if (fs.existsSync(designsDir)) {
+            fs.rmSync(designsDir, { recursive: true, force: true });
+            appendLog(`Cleaned up designs: ${designsDir}`);
+          }
+        } catch (cleanupErr) {
+          const msg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+          appendLog(`Failed to cleanup designs ${designsDir}: ${msg}`);
+        }
+        try {
+          if (fs.existsSync(claudeDir)) {
+            fs.rmSync(claudeDir, { recursive: true, force: true });
+            appendLog(`Cleaned up .claude: ${claudeDir}`);
+          }
+        } catch (cleanupErr) {
+          const msg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+          appendLog(`Failed to cleanup .claude ${claudeDir}: ${msg}`);
+        }
+      }
+    }
+
     appendLog('Scheduler task finished');
   });
 

@@ -105,6 +105,10 @@ Deeply explore ideas, understand context, investigate the codebase, clarify requ
 ### Execution Steps
 At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user). In this phase, you must strictly and accurately follow these steps:
 
+1. You MUST use following script to create an OpenPowers change (if this change already exists, following command will mark change invoked):
+  ```bash
+   openpowers change new <name> --desc <brief description of this change [15-30 words]>
+  ```
 1. Invoke Skill: openpowers-explore to explore the project code, with parameters:
   - Exploration type: project
   - Exploration content: $ARGUMENTS

@@ -291,12 +291,12 @@ describe('src/utils/changes.ts', () => {
       mod.ChangesJsonSchema.parse(json);
 
       // If this compiles and runs, all 6 types are importable
-      void ({}) as StageStep;
-      void ({}) as SubAgentDevProgress;
-      void ({}) as FinalizeStage;
-      void ({}) as ChangeStage;
-      void (entry) as ChangeEntry;
-      void (json) as ChangesJson;
+      void ({} as unknown as StageStep);
+      void ({} as unknown as SubAgentDevProgress);
+      void ({} as unknown as FinalizeStage);
+      void ({} as unknown as ChangeStage);
+      void ({} as unknown as ChangeEntry);
+      void ({} as unknown as ChangesJson);
     });
   });
 });
