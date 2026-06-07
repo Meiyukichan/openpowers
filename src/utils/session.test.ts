@@ -139,6 +139,41 @@ describe('readSessionSettings', () => {
     expect(result?.sessionId).toBe('legacy-session');
     expect(result?.change).toBeUndefined();
   });
+
+  it('should read brainstorm and prompt fields when present in settings.json', () => {
+    existsSyncMock.mockReturnValue(true);
+    const settingsWithBrainstorm = {
+      sessionId: 'brainstorm-session',
+      cwd: '/brainstorm/project',
+      currentProvider: 'default',
+      switchProviders: {},
+      brainstorm: true,
+      prompt: '/openpowers:workflow explore the codebase',
+    };
+    readFileSyncMock.mockReturnValue(JSON.stringify(settingsWithBrainstorm));
+
+    const result = readSessionSettings('brainstorm-session');
+
+    expect(result).toBeDefined();
+    expect(result?.brainstorm).toBe(true);
+    expect(result?.prompt).toBe('/openpowers:workflow explore the codebase');
+  });
+
+  it('should treat missing brainstorm as undefined and missing prompt as undefined (backward compatible)', () => {
+    existsSyncMock.mockReturnValue(true);
+    const legacySettings = {
+      sessionId: 'legacy-session',
+      cwd: '/legacy/project',
+      currentProvider: 'default',
+      switchProviders: {},
+    };
+    readFileSyncMock.mockReturnValue(JSON.stringify(legacySettings));
+
+    const result = readSessionSettings('legacy-session');
+
+    expect(result?.brainstorm).toBeUndefined();
+    expect(result?.prompt).toBeUndefined();
+  });
 });
 
 describe('writeSessionSettings', () => {

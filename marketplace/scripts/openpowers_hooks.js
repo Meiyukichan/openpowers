@@ -94,10 +94,15 @@ export function buildBeforeAgentCommand(sessionId, purpose) {
  * Build the init command array
  * @param {string} sessionId - The session ID
  * @param {string} cwd - The working directory
+ * @param {string} [prompt] - Optional prompt text to pass to init
  * @returns {string[]} Command array
  */
-export function buildInitCommand(sessionId, cwd) {
-  return ['openpowers', 'agents', 'init', '--session', sessionId, '--cwd', cwd];
+export function buildInitCommand(sessionId, cwd, prompt) {
+  const command = ['openpowers', 'agents', 'init', '--session', sessionId, '--cwd', cwd];
+  if (prompt) {
+    command.push('--prompt', prompt);
+  }
+  return command;
 }
 
 /**
@@ -463,6 +468,26 @@ export function runBeforePropose(parsed) {
   if (result !== null) {
     writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
   }
+
+  // Enable brainstorm mode: update settings.json and call change stage
+  const settingsPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, 'settings.json');
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      settings.brainstorm = true;
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    }
+  } catch {
+    // Silent
+  }
+
+  const brainstormArgs = ['openpowers', 'change', 'stage', 'brainstorm', '--session', parsed.sessionId, '--status', 'in_progress'];
+  const brainstormCommandStr = brainstormArgs.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${brainstormCommandStr} (cwd: ${parsed.cwd})`);
+  const brainstormResult = executeCommand(brainstormArgs, parsed.cwd);
+  if (brainstormResult !== null) {
+    writeLog(parsed.sessionId, `Result of change-stage-brainstorm hook: returncode=${brainstormResult.status}, stdout='${brainstormResult.stdout}', stderr='${brainstormResult.stderr}'`);
+  }
 }
 
 /**
@@ -491,7 +516,7 @@ export function runInitAgent(parsed, rawInput) {
     return;
   }
 
-  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd);
+  const initCommand = buildInitCommand(parsed.sessionId, parsed.cwd, prompt);
   let commandStr = initCommand.join(' ');
   writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
   let result = executeCommand(initCommand, parsed.cwd, { silent: true });
@@ -509,7 +534,9 @@ export function runInitAgent(parsed, rawInput) {
 }
 
 /**
- * Extract the command field content from rawInput using regex.
+ * Extract the command field content from rawInput.
+ * Uses JSON.parse first to extract tool_input.command for reliability,
+ * falls back to regex COMMAND_PATTERN on parse failure or missing field.
  * @param {string} rawInput - Raw stdin text
  * @returns {string|undefined} The extracted command string, or undefined if not found
  */
@@ -517,6 +544,20 @@ export function extractCommandFromRawInput(rawInput) {
   if (!rawInput || !rawInput.trim()) {
     return undefined;
   }
+
+  // JSON-first strategy: try JSON.parse for reliable extraction
+  try {
+    const data = JSON.parse(rawInput);
+    const command = data.tool_input?.command;
+    if (command) {
+      return command;
+    }
+    // JSON parsed but no tool_input.command — fall through to regex fallback
+  } catch {
+    // JSON parse failed — fall through to regex fallback
+  }
+
+  // Regex fallback for malformed JSON, encoding issues, BOM characters
   const match = rawInput.match(COMMAND_PATTERN);
   return match ? match[1] : undefined;
 }
@@ -554,8 +595,57 @@ export function executeChangeNewInit(parsed, changeName) {
 }
 
 /**
+ * Handle openpowers change instruction --proposal case:
+ * sets brainstorm to false in settings.json and calls change stage propose.
+ * @param {{ sessionId: string, cwd: string }} parsed
+ */
+function handleChangeInstructionProposal(parsed) {
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  // Update settings.json: set brainstorm to false
+  const settingsPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, 'settings.json');
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      settings.brainstorm = false;
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    }
+  } catch {
+    // Silent
+  }
+
+  // Call change stage propose
+  const stageArgs = ['openpowers', 'change', 'stage', 'propose', '--session', parsed.sessionId, '--status', 'in_progress'];
+  const commandStr = stageArgs.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(stageArgs, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of change-instruction-proposal hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
+ * Handle openpowers change archive case:
+ * calls change stage archive --status in_progress.
+ * @param {{ sessionId: string, cwd: string }} parsed
+ */
+function handleChangeArchive(parsed) {
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  const stageArgs = ['openpowers', 'change', 'stage', 'archive', '--session', parsed.sessionId, '--status', 'in_progress'];
+  const commandStr = stageArgs.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(stageArgs, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of change-archive hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
  * Handle --before-bash mode: extract command from rawInput, detect openpowers commands,
- * and dispatch to the appropriate case handler.
+ * and dispatch to the appropriate case handler via if-else chain.
  * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
  * @param {string} rawInput - Raw stdin text (needed to extract command field)
  */
@@ -575,20 +665,104 @@ export function runBeforeBash(parsed, rawInput) {
     return;
   }
 
-  // Non-openpowers commands: exit(0) without further processing
+  // Non-openpowers commands: exit without further processing
   if (!rawCommand.includes('openpowers')) {
     return;
   }
 
-  // Case dispatch for openpowers commands
-  const changeName = extractChangeName(rawCommand);
-  if (changeName) {
-    // Case: openpowers change new <name> --desc <desc>
-    executeChangeNewInit(parsed, changeName);
+  // if-else chain dispatch for openpowers commands
+  if (rawCommand.includes('openpowers change new')) {
+    const changeName = extractChangeName(rawCommand);
+    if (changeName) {
+      executeChangeNewInit(parsed, changeName);
+    }
+  } else if (rawCommand.includes('openpowers change instruction') && rawCommand.includes('--proposal')) {
+    handleChangeInstructionProposal(parsed);
+  } else if (rawCommand.includes('openpowers change archive')) {
+    handleChangeArchive(parsed);
+  }
+  // Unmatched openpowers commands are silently ignored
+}
+
+/**
+ * Handle --before-question mode: check brainstorm flag in settings.json,
+ * and if enabled, parse AskUserQuestion questions from stdin and append
+ * them to question.json in the session directory.
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string} rawInput - Raw stdin text
+ */
+export function runBeforeQuestion(parsed, rawInput) {
+  if (!parsed.sessionId) {
     return;
   }
 
-  // Future cases can be added here
+  // Read settings.json to check brainstorm flag
+  const settingsPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, 'settings.json');
+  if (!fs.existsSync(settingsPath)) {
+    return;
+  }
+
+  let settings;
+  try {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  } catch {
+    return;
+  }
+
+  // If brainstorm is not enabled, exit silently
+  if (!settings.brainstorm) {
+    process.exitCode = 0;
+    return;
+  }
+
+  // Extract tool_use_id and questions from stdin
+  let toolUseId;
+  let questions;
+
+  try {
+    const data = JSON.parse(rawInput);
+    toolUseId = data.tool_use_id;
+    questions = data.tool_input?.questions;
+  } catch {
+    // JSON.parse failed, fall back to regex extraction
+    const tidMatch = rawInput.match(TOOL_USE_ID_PATTERN);
+    toolUseId = tidMatch ? tidMatch[1] : undefined;
+
+    // Try to extract questions array using regex
+    const questionsMatch = rawInput.match(/"questions"\s*:\s*(\[[\s\S]*?\])\s*\}/);
+    if (questionsMatch) {
+      try {
+        questions = JSON.parse(questionsMatch[1]);
+      } catch {
+        questions = undefined;
+      }
+    }
+  }
+
+  if (!toolUseId || !questions) {
+    return;
+  }
+
+  // Read existing question.json or initialize empty array
+  const questionPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, 'question.json');
+  let existingQuestions = [];
+  if (fs.existsSync(questionPath)) {
+    try {
+      existingQuestions = JSON.parse(fs.readFileSync(questionPath, 'utf-8'));
+    } catch {
+      existingQuestions = [];
+    }
+  }
+
+  // Append new entry
+  existingQuestions.push({ tool_use_id: toolUseId, questions });
+
+  // Write back
+  const sessionDir = path.dirname(questionPath);
+  if (!fs.existsSync(sessionDir)) {
+    fs.mkdirSync(sessionDir, { recursive: true });
+  }
+  fs.writeFileSync(questionPath, JSON.stringify(existingQuestions, null, 2), 'utf-8');
 }
 
 /**
@@ -632,10 +806,9 @@ export function main() {
   } else if (isBeforePropose) {
     runBeforePropose(parsed);
   } else if (isBeforeBash) {
-    fs.writeFileSync('b.txt', rawInput)
     runBeforeBash(parsed, rawInput);
   } else if (isBeforeQuestion) {
-    fs.writeFileSync('a.txt', rawInput)
+    runBeforeQuestion(parsed, rawInput);
   }
 }
 

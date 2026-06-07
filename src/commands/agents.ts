@@ -20,6 +20,7 @@ import {
   writeSessionSettings,
   getSessionFilePath,
 } from '../utils/session.js';
+import type { SessionSettings } from '../utils/session.js';
 
 // Valid stage names that can be used with show and switch commands
 const VALID_STAGES = ['workflow', 'explore', 'propose', 'plan', 'review', 'coding', 'finalize'];
@@ -301,8 +302,9 @@ function runAgentsGlobalSwitch(name: string): void {
  * @param sessionId - The session identifier
  * @param cwd - The working directory path
  * @param change - Optional change name to associate with the session
+ * @param prompt - Optional prompt text to store in settings
  */
-function runAgentsInit(sessionId: string, cwd: string, change?: string): void {
+function runAgentsInit(sessionId: string, cwd: string, change?: string, prompt?: string): void {
   // Validate sessionId is not empty
   if (!sessionId || sessionId.trim() === '') {
     process.stderr.write('Session ID is required and cannot be empty\n');
@@ -324,13 +326,21 @@ function runAgentsInit(sessionId: string, cwd: string, change?: string): void {
 
   const existing = readSessionSettings(sessionId);
   // Create session settings
-  const settings = {
+  const settings: SessionSettings = {
     sessionId,
     cwd,
     currentProvider: existing?.currentProvider || 'default',
     switchProviders: validatedSwitchProviders,
     change: change || existing?.change || '',
+    brainstorm: existing?.brainstorm,
   };
+
+  // Only set prompt if explicitly provided, or preserve existing
+  if (prompt !== undefined) {
+    settings.prompt = prompt;
+  } else if (existing?.prompt !== undefined) {
+    settings.prompt = existing.prompt;
+  }
 
   writeSessionSettings(sessionId, settings);
 
@@ -393,7 +403,8 @@ export function registerAgentsCommand(program: Command): void {
     .requiredOption('--session <id>', 'Session ID')
     .requiredOption('--cwd <path>', 'Working directory path')
     .option('--change <name>', 'Change name to associate with session')
-    .action((options: { session: string; cwd: string; change?: string }) => {
-      runAgentsInit(options.session, options.cwd, options.change);
+    .option('--prompt <text>', 'Prompt text for the session')
+    .action((options: { session: string; cwd: string; change?: string; prompt?: string }) => {
+      runAgentsInit(options.session, options.cwd, options.change, options.prompt);
     });
 }

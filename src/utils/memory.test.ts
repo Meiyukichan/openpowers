@@ -2287,4 +2287,913 @@ describe('src/utils/memory.ts', () => {
       expect((entry.stage as any)?.reviewArtifacts.status).toBe('in_progress');
     });
   });
+
+  // =========================================================
+  // Stage predecessor auto-closing tests
+  // =========================================================
+  describe('stage predecessor auto-closing', () => {
+    // --- handleBrainstormStage predecessor: explore ---
+    describe('brainstorm closes explore', () => {
+      it('should set explore status to done and update to when explore is in_progress and brainstorm is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            explore: {
+              title: 'Explore',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        const beforeCall = new Date().toISOString();
+        createOrUpdateStage(entry as any, {
+          brainstorm: { title: 'Brainstorm', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).explore.status).toBe('done');
+        expect((entry.stage as any).explore.to).not.toBe('2026-06-01T00:00:00Z'); // updated to current time
+        // Other fields preserved
+        expect((entry.stage as any).explore.title).toBe('Explore');
+        expect((entry.stage as any).explore.from).toBe('2026-06-01T00:00:00Z');
+        expect((entry.stage as any).brainstorm.title).toBe('Brainstorm');
+      });
+
+      it('should NOT modify explore when explore is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            explore: {
+              title: 'Explore',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          brainstorm: { title: 'Brainstorm', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).explore.status).toBe('done'); // unchanged
+        expect((entry.stage as any).explore.to).toBe('2026-06-01T00:00:00Z'); // unchanged
+      });
+    });
+
+    // --- handleProposeStage predecessor: brainstorm ---
+    describe('propose closes brainstorm', () => {
+      it('should set brainstorm status to done and update to when brainstorm is in_progress and propose is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            brainstorm: {
+              title: 'Brainstorm',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          propose: { title: 'Propose', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).brainstorm.status).toBe('done');
+        expect((entry.stage as any).brainstorm.to).not.toBe('2026-06-01T00:00:00Z');
+        expect((entry.stage as any).brainstorm.title).toBe('Brainstorm');
+        expect((entry.stage as any).propose.title).toBe('Propose');
+      });
+
+      it('should NOT modify brainstorm when it is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            brainstorm: {
+              title: 'Brainstorm',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          propose: { title: 'Propose', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).brainstorm.status).toBe('done');
+        expect((entry.stage as any).brainstorm.to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+
+    // --- handlePlanStage predecessor: propose ---
+    describe('plan closes propose', () => {
+      it('should set propose status to done when propose is in_progress and plan is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            propose: {
+              title: 'Propose',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          plan: { title: 'Plan', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).propose.status).toBe('done');
+        expect((entry.stage as any).plan.title).toBe('Plan');
+      });
+
+      it('should NOT modify propose when it is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            propose: {
+              title: 'Propose',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          plan: { title: 'Plan', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).propose.status).toBe('done');
+        expect((entry.stage as any).propose.to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+
+    // --- handleReviewArtifactsStage predecessor: plan ---
+    describe('reviewArtifacts closes plan', () => {
+      it('should set plan status to done when plan is in_progress and reviewArtifacts is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: 'Plan',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          reviewArtifacts: { title: 'Review', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).plan.status).toBe('done');
+        expect((entry.stage as any).reviewArtifacts.title).toBe('Review');
+      });
+
+      it('should NOT modify plan when it is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: 'Plan',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          reviewArtifacts: { title: 'Review', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress' },
+        });
+
+        expect((entry.stage as any).plan.status).toBe('done');
+        expect((entry.stage as any).plan.to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+
+    // --- handleCodingStage predecessor: plan/reviewArtifacts ---
+    describe('coding closes plan and reviewArtifacts', () => {
+      it('should close plan when plan is in_progress and subAgentDev is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: 'Plan',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Red', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        expect((entry.stage as any).plan.status).toBe('done');
+        expect((entry.stage as any).subAgentDev).toHaveLength(1);
+        expect((entry.stage as any).subAgentDev[0].featureId).toBe('feat-1');
+      });
+
+      it('should close reviewArtifacts when reviewArtifacts is in_progress and subAgentDev is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            reviewArtifacts: {
+              title: 'Review',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Red', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        expect((entry.stage as any).reviewArtifacts.status).toBe('done');
+      });
+
+      it('should close both plan and reviewArtifacts when both are in_progress and subAgentDev is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: 'Plan',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+            reviewArtifacts: {
+              title: 'Review',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'in_progress',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Red', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        expect((entry.stage as any).plan.status).toBe('done');
+        expect((entry.stage as any).reviewArtifacts.status).toBe('done');
+      });
+
+      it('should NOT modify plan or reviewArtifacts when they are already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: 'Plan',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+            reviewArtifacts: {
+              title: 'Review',
+              from: '2026-06-01T00:00:00Z',
+              to: '2026-06-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Red', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        expect((entry.stage as any).plan.to).toBe('2026-06-01T00:00:00Z');
+        expect((entry.stage as any).reviewArtifacts.to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+
+    // --- handleCodingStage: same-feature progress predecessor ---
+    describe('coding closes same-feature previous progress', () => {
+      it('should close previous progress when appending new progress to same feature', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Append new progress with different title to same feature
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Green', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev[0].progress).toHaveLength(2);
+        expect(subAgentDev[0].progress[0].status).toBe('done');
+        expect(subAgentDev[0].progress[0].to).not.toBe('2026-06-01T00:00:00Z');
+        expect(subAgentDev[0].progress[1].title).toBe('TDD-Green');
+        expect(subAgentDev[0].progress[1].status).toBe('in_progress');
+      });
+
+      it('should only close the last progress when it is in_progress (not earlier done progresses)', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                  { title: 'TDD-Green', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Append new progress — only TDD-Green (last, in_progress) should close
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Refactor', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev[0].progress).toHaveLength(3);
+        expect(subAgentDev[0].progress[0].status).toBe('done'); // unchanged
+        expect(subAgentDev[0].progress[0].to).toBe('2026-06-01T00:00:00Z'); // unchanged
+        expect(subAgentDev[0].progress[1].status).toBe('done'); // closed
+        expect(subAgentDev[0].progress[2].title).toBe('TDD-Refactor');
+      });
+
+      it('should NOT close last progress when it is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Append new progress — TDD-Red is done, should NOT be touched
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Green', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev[0].progress).toHaveLength(2);
+        expect(subAgentDev[0].progress[0].status).toBe('done'); // still done
+        expect(subAgentDev[0].progress[0].to).toBe('2026-06-01T00:00:00Z'); // unchanged
+      });
+
+      it('should NOT close anything when updating single-existing progress (no new progress appended)', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Update existing progress by title match (merge, not append)
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Red', from: '', to: '', status: 'done' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev[0].progress).toHaveLength(1);
+        expect(subAgentDev[0].progress[0].status).toBe('done'); // updated via merge
+      });
+    });
+
+    // --- handleCodingStage: previous-feature progress predecessor ---
+    describe('coding closes previous-feature in_progress progresses', () => {
+      it('should close all in_progress progresses of previous feature when new feature is added', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                  { title: 'TDD-Green', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                  { title: 'TDD-Refactor', from: '2026-06-03T00:00:00Z', to: '2026-06-03T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Add new feature (different featureId)
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-2', progress: [{ title: 'Implement', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev).toHaveLength(2);
+        expect(subAgentDev[0].featureId).toBe('feat-1');
+        // feat-1: TDD-Red was done, stays done
+        expect(subAgentDev[0].progress[0].status).toBe('done');
+        // feat-1: TDD-Green was in_progress, should be closed
+        expect(subAgentDev[0].progress[1].status).toBe('done');
+        // feat-1: TDD-Refactor was in_progress, should be closed
+        expect(subAgentDev[0].progress[2].status).toBe('done');
+        // feat-2: new in_progress
+        expect(subAgentDev[1].featureId).toBe('feat-2');
+        expect(subAgentDev[1].progress[0].status).toBe('in_progress');
+      });
+
+      it('should only close previous feature (the one immediately before the new one)', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                ],
+              },
+              {
+                featureId: 'feat-2',
+                progress: [
+                  { title: 'Implement', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        // Add new feature feat-3: only feat-2 (previous) should close, feat-1 should be untouched
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-3', progress: [{ title: 'Test', from: '', to: '', status: 'in_progress' as const, inputPath: '', outputPath: '' }] }],
+        });
+
+        const subAgentDev = (entry.stage as any)?.subAgentDev;
+        expect(subAgentDev).toHaveLength(3);
+        // feat-1 stays unchanged
+        expect(subAgentDev[0].progress[0].status).toBe('done');
+        // feat-2: was in_progress, should be closed
+        expect(subAgentDev[1].progress[0].status).toBe('done');
+        // feat-3: new in_progress
+        expect(subAgentDev[2].featureId).toBe('feat-3');
+        expect(subAgentDev[2].progress[0].status).toBe('in_progress');
+      });
+    });
+
+    // --- handleFinalizeStage: close all subAgentDev in_progress ---
+    describe('finalize closes all subAgentDev in_progress', () => {
+      it('should close all in_progress progresses in subAgentDev when finalize.integration is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                  { title: 'TDD-Green', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+              {
+                featureId: 'feat-2',
+                progress: [
+                  { title: 'Implement', from: '2026-06-03T00:00:00Z', to: '2026-06-03T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            integration: [{ title: 'Integration', from: '', to: '', status: 'in_progress' as const }],
+          },
+        });
+
+        // feat-1: TDD-Red stays done, TDD-Green closes
+        expect((entry.stage as any).subAgentDev[0].progress[0].status).toBe('done');
+        expect((entry.stage as any).subAgentDev[0].progress[1].status).toBe('done');
+        // feat-2: Implement closes
+        expect((entry.stage as any).subAgentDev[1].progress[0].status).toBe('done');
+        // finalize.integration is set
+        expect((entry.stage as any).finalize.integration).toHaveLength(1);
+        expect((entry.stage as any).finalize.integration[0].status).toBe('in_progress');
+      });
+
+      it('should not error when subAgentDev is empty', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+        };
+
+        expect(() =>
+          createOrUpdateStage(entry as any, {
+            finalize: {
+              integration: [{ title: 'Integration', from: '', to: '', status: 'in_progress' as const }],
+            },
+          }),
+        ).not.toThrow();
+        expect((entry.stage as any).finalize.integration).toHaveLength(1);
+      });
+    });
+
+    // --- handleFinalizeStage: codecheck closes integration in_progress ---
+    describe('finalize codecheck closes integration', () => {
+      it('should close all in_progress integration items when codecheck is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              integration: [
+                { title: 'Int-1', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                { title: 'Int-2', from: '2026-06-02T00:00:00Z', to: '2026-06-02T00:00:00Z', status: 'in_progress', inputPath: '', outputPath: '' },
+              ],
+            },
+          },
+        } as any;
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            codecheck: { title: 'CodeCheck', from: '', to: '', status: 'in_progress' as const },
+          },
+        });
+
+        expect((entry.stage as any).finalize.integration[0].status).toBe('done'); // was done, stays done
+        expect((entry.stage as any).finalize.integration[1].status).toBe('done'); // was in_progress, now done
+        expect((entry.stage as any).finalize.codecheck.status).toBe('in_progress');
+      });
+
+      it('should NOT modify integration when all are already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              integration: [
+                { title: 'Int-1', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+              ],
+            },
+          },
+        } as any;
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            codecheck: { title: 'CodeCheck', from: '', to: '', status: 'in_progress' as const },
+          },
+        });
+
+        expect((entry.stage as any).finalize.integration[0].status).toBe('done');
+        expect((entry.stage as any).finalize.integration[0].to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+
+    // --- handleFinalizeStage: archive closes codecheck ---
+    describe('finalize archive closes codecheck', () => {
+      it('should close codecheck when codecheck is in_progress and archive is written', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              codecheck: {
+                title: 'CodeCheck',
+                from: '2026-06-01T00:00:00Z',
+                to: '2026-06-01T00:00:00Z',
+                status: 'in_progress',
+                inputPath: '',
+                outputPath: '',
+              },
+            },
+          },
+        } as any;
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            archive: { title: 'Archive', from: '', to: '', status: 'in_progress' as const },
+          },
+        });
+
+        expect((entry.stage as any).finalize.codecheck.status).toBe('done');
+        expect((entry.stage as any).finalize.codecheck.to).not.toBe('2026-06-01T00:00:00Z');
+        expect((entry.stage as any).finalize.archive.status).toBe('in_progress');
+      });
+
+      it('should NOT modify codecheck when it is already done', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              codecheck: {
+                title: 'CodeCheck',
+                from: '2026-06-01T00:00:00Z',
+                to: '2026-06-01T00:00:00Z',
+                status: 'done',
+                inputPath: '',
+                outputPath: '',
+              },
+            },
+          },
+        } as any;
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            archive: { title: 'Archive', from: '', to: '', status: 'in_progress' as const },
+          },
+        });
+
+        expect((entry.stage as any).finalize.codecheck.status).toBe('done');
+        expect((entry.stage as any).finalize.codecheck.to).toBe('2026-06-01T00:00:00Z');
+      });
+    });
+  });
 });

@@ -699,6 +699,118 @@ describe('src/commands/agents.ts', () => {
   // Acceptance Criteria 15: agents init success
   // -----------------------------------------------------------------------
 
+  // -----------------------------------------------------------------------
+  // Acceptance Criteria: agents init --prompt
+  // -----------------------------------------------------------------------
+
+  it('agents init --prompt should include prompt field in settings', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid', '--prompt', '/openpowers:workflow explore'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: '',
+        prompt: '/openpowers:workflow explore',
+      }),
+    );
+  });
+
+  it('agents init without --prompt should not include prompt in settings', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: '',
+      }),
+    );
+    // Verify that prompt is explicitly NOT set
+    const callArgs = mockWriteSessionSettings.mock.calls[0];
+    const settingsArg = callArgs[1];
+    expect(settingsArg.prompt).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(settingsArg, 'prompt')).toBe(false);
+  });
+
+  it('agents init without --prompt should preserve existing prompt field in settings', async () => {
+    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(getProviderByModels).mockReturnValue({});
+
+    // Simulate existing settings with a prompt value
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/valid',
+      currentProvider: 'default',
+      switchProviders: {},
+      prompt: '/openpowers:workflow explore',
+    });
+
+    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+
+    const mod = await import('./agents.js');
+    registerAgentsCommand = mod.registerAgentsCommand;
+    const program = new Command();
+    registerAgentsCommand(program);
+
+    try {
+      // Call init without --prompt flag
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid'], { from: 'user' });
+    } catch {
+      // ignore exit
+    }
+
+    // Verify the existing prompt is preserved (not overwritten, not lost)
+    expect(mockWriteSessionSettings).toHaveBeenCalledWith(
+      'abc',
+      expect.objectContaining({
+        sessionId: 'abc',
+        cwd: '/valid',
+        currentProvider: 'default',
+        change: '',
+        prompt: '/openpowers:workflow explore',
+      }),
+    );
+  });
+
   it('agents init should create settings.json and output success with file path', async () => {
     const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
     vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);

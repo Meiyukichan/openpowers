@@ -468,6 +468,18 @@ function syncEntryProgress(entry: ChangeEntry, cwd: string, changeName: string):
 }
 
 /**
+ * Closes the given stage step if its status is 'in_progress': sets status to 'done'
+ * and updates 'to' to the current timestamp. Does nothing if step is undefined or
+ * already done/skipped.
+ */
+function closeIfInProgress(step: StageStep | undefined): void {
+  if (step?.status === 'in_progress') {
+    step.status = 'done';
+    step.to = new Date().toISOString();
+  }
+}
+
+/**
  * Handles the explore stage update.
  * - status=in_progress: directly assigns changeStage.explore to entry.stage.explore
  * - status=done: only updates outputPath, to, status; preserves from/title/inputPath
@@ -522,6 +534,10 @@ function handleExploreStage(entry: ChangeEntry, exploreData: Partial<StageStep>)
 function handleBrainstormStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
   if (!data) return;
   if (!entry.stage) entry.stage = {} as ChangeStage;
+
+  // Auto-close predecessor: explore
+  closeIfInProgress(entry.stage.explore);
+
   entry.stage.brainstorm = {
     title: data.title ?? '',
     from: data.from ?? new Date().toISOString(),
@@ -540,6 +556,10 @@ function handleBrainstormStage(entry: ChangeEntry, data?: Partial<StageStep>): v
 function handleProposeStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
   if (!data) return;
   if (!entry.stage) entry.stage = {} as ChangeStage;
+
+  // Auto-close predecessor: brainstorm
+  closeIfInProgress(entry.stage.brainstorm);
+
   entry.stage.propose = {
     title: data.title ?? '',
     from: data.from ?? new Date().toISOString(),
@@ -558,6 +578,10 @@ function handleProposeStage(entry: ChangeEntry, data?: Partial<StageStep>): void
 function handlePlanStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
   if (!data) return;
   if (!entry.stage) entry.stage = {} as ChangeStage;
+
+  // Auto-close predecessor: propose
+  closeIfInProgress(entry.stage.propose);
+
   entry.stage.plan = {
     title: data.title ?? '',
     from: data.from ?? new Date().toISOString(),
@@ -576,6 +600,10 @@ function handlePlanStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
 function handleReviewArtifactsStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
   if (!data) return;
   if (!entry.stage) entry.stage = {} as ChangeStage;
+
+  // Auto-close predecessor: plan
+  closeIfInProgress(entry.stage.plan);
+
   entry.stage.reviewArtifacts = {
     title: data.title ?? '',
     from: data.from ?? new Date().toISOString(),
@@ -609,6 +637,10 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
   if (!entry.stage) {
     entry.stage = {} as ChangeStage;
   }
+
+  // Auto-close predecessors: plan and reviewArtifacts
+  closeIfInProgress(entry.stage.plan);
+  closeIfInProgress(entry.stage.reviewArtifacts);
 
   if (!Array.isArray(entry.stage.subAgentDev)) {
     entry.stage.subAgentDev = [];
@@ -646,6 +678,8 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
           if (newItem.outputPath && newItem.outputPath !== '') existing.outputPath = newItem.outputPath;
         } else {
           // No title match — append as new progress entry
+          // Auto-close previous progress in same feature if in_progress
+          closeIfInProgress(existingSAD.progress[existingSAD.progress.length - 1]);
           const newEntry: StageStep = {
             title: newItem.title ?? '',
             from: newItem.from ?? new Date().toISOString(),
@@ -659,6 +693,13 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
       }
     } else {
       // No matching featureId — create new SubAgentDevProgress
+      // Auto-close all in_progress progresses of previous feature
+      const prevFeature = entry.stage.subAgentDev[entry.stage.subAgentDev.length - 1];
+      if (prevFeature) {
+        for (const p of prevFeature.progress) {
+          closeIfInProgress(p);
+        }
+      }
       const newProgressEntries: StageStep[] = newProgress.map((np) => ({
         title: np.title ?? '',
         from: np.from ?? new Date().toISOString(),
@@ -687,6 +728,27 @@ function handleFinalizeStage(entry: ChangeEntry, data?: { integration?: Partial<
   if (!data) return;
   if (!entry.stage) entry.stage = {} as ChangeStage;
   if (!entry.stage.finalize) entry.stage.finalize = {} as FinalizeStage;
+
+  // Auto-close predecessors: all subAgentDev in_progress progresses
+  if (Array.isArray(entry.stage.subAgentDev)) {
+    for (const feature of entry.stage.subAgentDev) {
+      for (const p of feature.progress) {
+        closeIfInProgress(p);
+      }
+    }
+  }
+
+  // Auto-close finalize sub-stage predecessor: codecheck closes integration
+  if (data.codecheck && Array.isArray(entry.stage.finalize.integration)) {
+    for (const item of entry.stage.finalize.integration) {
+      closeIfInProgress(item);
+    }
+  }
+
+  // Auto-close finalize sub-stage predecessor: archive closes codecheck
+  if (data.archive) {
+    closeIfInProgress(entry.stage.finalize.codecheck);
+  }
 
   if (Array.isArray(data.integration)) {
     entry.stage.finalize.integration = data.integration.map((item) => ({

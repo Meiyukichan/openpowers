@@ -29,6 +29,10 @@ export interface SessionSettings {
   switchProviders: Record<string, string>;
   /** Associated change name, if any */
   change?: string;
+  /** Whether brainstorm mode is enabled */
+  brainstorm?: boolean;
+  /** Initial prompt text for the session */
+  prompt?: string;
 }
 
 /**
