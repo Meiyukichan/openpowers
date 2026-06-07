@@ -600,9 +600,10 @@ export function main() {
   const isInitAgent = process.argv.includes('--init-agent');
   const isBeforePropose = process.argv.includes('--before-propose');
   const isBeforeBash = process.argv.includes('--before-bash');
+  const isBeforeQuestion = process.argv.includes('--before-question');
 
-  if (!isBeforeAgent && !isAfterAgent && !isInitAgent && !isBeforePropose && !isBeforeBash) {
-    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose|--before-bash\n');
+  if (!isBeforeAgent && !isAfterAgent && !isInitAgent && !isBeforePropose && !isBeforeBash && !isBeforeQuestion) {
+    process.stderr.write('Usage: node openpowers_hooks.js --before-agent|--after-agent|--init-agent|--before-propose|--before-bash|--before-question\n');
     process.exitCode = 1;
     return;
   }
@@ -631,7 +632,10 @@ export function main() {
   } else if (isBeforePropose) {
     runBeforePropose(parsed);
   } else if (isBeforeBash) {
+    fs.writeFileSync('b.txt', rawInput)
     runBeforeBash(parsed, rawInput);
+  } else if (isBeforeQuestion) {
+    fs.writeFileSync('a.txt', rawInput)
   }
 }
 

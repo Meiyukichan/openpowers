@@ -36,6 +36,15 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --after-agent"
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-question"
+          }
+        ]
       }
     ],
     "PostToolUse": [

@@ -176,8 +176,8 @@ describe('src/commands/change/stage.ts', () => {
     expect(stderrCalls.some((s: string) => s.includes('Valid stages'))).toBe(true);
   });
 
-  it('should reject old stage names brainstorm, reviewArtifacts, subAgentDev', () => {
-    const oldNames = ['brainstorm', 'reviewArtifacts', 'subAgentDev'];
+  it('should reject old stage names reviewArtifacts, subAgentDev', () => {
+    const oldNames = ['reviewArtifacts', 'subAgentDev'];
     for (const oldName of oldNames) {
       vi.clearAllMocks();
       mockReadSessionSettings.mockReturnValue({
@@ -190,6 +190,32 @@ describe('src/commands/change/stage.ts', () => {
       expect(() => runChangeStage(oldName, { session: 'abc', status: 'in_progress' })).toThrow('process.exit called');
       expect(stderrWriteSpy).toHaveBeenCalled();
     }
+  });
+
+  it('should accept brainstorm as valid stage-name', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('brainstorm', { session: 'abc', status: 'in_progress' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalled();
+  });
+
+  it('should reject finalize as invalid stage-name', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('finalize', { session: 'abc', status: 'in_progress' })).toThrow('process.exit called');
+    expect(stderrWriteSpy).toHaveBeenCalled();
+    const stderrCalls = stderrWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(stderrCalls.some((s: string) => s.includes('Valid stages'))).toBe(true);
   });
 
   it('should accept explore as valid stage-name', () => {
@@ -217,7 +243,7 @@ describe('src/commands/change/stage.ts', () => {
     expect(stdoutWriteSpy).toHaveBeenCalled();
   });
 
-  it('should accept review as valid stage-name and map to reviewArtifacts field', () => {
+  it('should accept review as valid stage-name and route to subAgentDev when features in progress', () => {
     mockReadSessionSettings.mockReturnValue({
       sessionId: 'abc',
       cwd: '/test/project',
@@ -231,9 +257,7 @@ describe('src/commands/change/stage.ts', () => {
       'my-change',
       undefined,
       expect.objectContaining({
-        reviewArtifacts: expect.objectContaining({
-          status: 'in_progress',
-        }),
+        subAgentDev: expect.any(Array),
       }),
     );
   });
@@ -258,7 +282,7 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should accept all valid stage names', () => {
-    const validStages = ['workflow', 'explore', 'propose', 'plan', 'review', 'coding', 'finalize', 'integration'];
+    const validStages = ['workflow', 'explore', 'brainstorm', 'propose', 'plan', 'review', 'coding', 'integration', 'codecheck', 'archive'];
     for (const stage of validStages) {
       vi.clearAllMocks();
       mockReadSessionSettings.mockReturnValue({
@@ -334,8 +358,173 @@ describe('src/commands/change/stage.ts', () => {
       undefined,
       expect.objectContaining({
         finalize: expect.objectContaining({
-          integration: expect.objectContaining({
-            title: 'Integration Step',
+          integration: expect.arrayContaining([
+            expect.objectContaining({
+              title: 'Integration Step',
+              status: 'in_progress',
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('should append integration to existing finalize.integration array when no title match', () => {
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          finalize: {
+            integration: [
+              { title: 'First Integration', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            ],
+          },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('integration', {
+        session: 'abc',
+        status: 'in_progress',
+        title: 'Second Integration',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          integration: expect.arrayContaining([
+            expect.objectContaining({ title: 'First Integration', status: 'done' }),
+            expect.objectContaining({ title: 'Second Integration', status: 'in_progress' }),
+          ]),
+        }),
+      }),
+    );
+    // Verify array length is 2
+    const callArgs = mockCreateOrUpdateChange.mock.calls[0];
+    const finalize = (callArgs[3] as Record<string, unknown>).finalize as Record<string, unknown>;
+    const integration = finalize.integration as Array<Record<string, unknown>>;
+    expect(integration).toHaveLength(2);
+  });
+
+  it('should merge integration by title using non-empty overwrite', () => {
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          finalize: {
+            integration: [
+              { title: 'Integration Step', from: 'old-from', to: 'old-to', status: 'in_progress', inputPath: '/old-in', outputPath: '' },
+            ],
+          },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('integration', {
+        session: 'abc',
+        status: 'done',
+        title: 'Integration Step',
+        input: '',
+        output: '/new-out',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          integration: expect.arrayContaining([
+            expect.objectContaining({
+              title: 'Integration Step',
+              status: 'done',
+              inputPath: '/old-in', // empty input should not overwrite
+              outputPath: '/new-out', // non-empty should overwrite
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('should map brainstorm to brainstorm field', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('brainstorm', {
+        session: 'abc',
+        status: 'in_progress',
+        title: 'Brainstorm Step',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        brainstorm: expect.objectContaining({
+          title: 'Brainstorm Step',
+          status: 'in_progress',
+        }),
+      }),
+    );
+  });
+
+  it('should map codecheck to finalize.codecheck', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('codecheck', {
+        session: 'abc',
+        status: 'in_progress',
+        title: 'Code Check Step',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          codecheck: expect.objectContaining({
+            title: 'Code Check Step',
             status: 'in_progress',
           }),
         }),
@@ -343,10 +532,272 @@ describe('src/commands/change/stage.ts', () => {
     );
   });
 
+  it('should merge codecheck with existing finalize.codecheck using non-empty overwrite', () => {
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          finalize: {
+            codecheck: { title: 'Old Codecheck', from: '2024-01-01', to: '2024-01-01', inputPath: '/old', outputPath: '/old-out', status: 'in_progress' },
+          },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('codecheck', {
+        session: 'abc',
+        status: 'done',
+        title: '',
+        input: '',
+        output: '/new-out',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          codecheck: expect.objectContaining({
+            title: 'Old Codecheck', // empty title should not overwrite
+            outputPath: '/new-out', // non-empty should overwrite
+            status: 'done', // status always overwrites
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('should map archive to finalize.archive', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('archive', {
+        session: 'abc',
+        status: 'in_progress',
+        title: 'Archive Step',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          archive: expect.objectContaining({
+            title: 'Archive Step',
+            status: 'in_progress',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('should merge archive with existing finalize.archive using non-empty overwrite', () => {
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          finalize: {
+            archive: { title: 'Old Archive', from: '2024-01-01', to: '2024-01-01', inputPath: '/old', outputPath: '', status: 'in_progress' },
+          },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() =>
+      runChangeStage('archive', {
+        session: 'abc',
+        status: 'done',
+        title: 'New Archive',
+        input: '',
+        output: '/new-out',
+      }),
+    ).not.toThrow();
+
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          archive: expect.objectContaining({
+            title: 'New Archive', // non-empty should overwrite
+            inputPath: '/old', // empty input should not overwrite
+            outputPath: '/new-out', // non-empty should overwrite
+            status: 'done', // status always overwrites
+          }),
+        }),
+      }),
+    );
+  });
+
+  // =========================================================
+  // Review stage smart routing tests
+  // =========================================================
+  it('should route review to reviewArtifacts when all features pending and no reviewArtifacts', () => {
+    // Set plan.json with all features pending
+    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+      { featureId: 'feat-1', status: 'pending' },
+      { featureId: 'feat-2', status: 'pending' },
+    ]));
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('review', { session: 'abc', status: 'in_progress', title: 'Review Step' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        reviewArtifacts: expect.objectContaining({
+          title: 'Review Step',
+          status: 'in_progress',
+        }),
+      }),
+    );
+  });
+
+  it('should route review to reviewArtifacts when all features pending and reviewArtifacts not done', () => {
+    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+      { featureId: 'feat-1', status: 'pending' },
+    ]));
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          reviewArtifacts: { title: 'Old Review', from: '', to: '', status: 'in_progress' },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('review', { session: 'abc', status: 'done', title: 'Review Done' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        reviewArtifacts: expect.objectContaining({
+          title: 'Review Done',
+          status: 'done',
+        }),
+      }),
+    );
+  });
+
+  it('should route review to subAgentDev when reviewArtifacts is done', () => {
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          reviewArtifacts: { title: 'Done Review', from: '', to: '', status: 'done' },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('review', { session: 'abc', status: 'in_progress', title: 'Dev Step' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        subAgentDev: expect.arrayContaining([
+          expect.objectContaining({
+            featureId: 'feat-1',
+            progress: expect.arrayContaining([
+              expect.objectContaining({
+                title: 'Dev Step',
+                status: 'in_progress',
+              }),
+            ]),
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('should route review to subAgentDev when features have in_progress', () => {
+    // Default plan.json has in_progress feature
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('review', { session: 'abc', status: 'in_progress', title: 'Dev Task' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        subAgentDev: expect.arrayContaining([
+          expect.objectContaining({
+            featureId: 'feat-1',
+            progress: expect.arrayContaining([
+              expect.objectContaining({
+                title: 'Dev Task',
+                status: 'in_progress',
+              }),
+            ]),
+          }),
+        ]),
+      }),
+    );
+  });
+
   // =========================================================
   // Change end detection tests
   // =========================================================
-  it('should block non-finalize stages when change not in changes.json', () => {
+  it('should block non-end stages when change not in changes.json', () => {
     // Set up changes.json without 'my-change'
     mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
       name: 'openpowers',
@@ -363,10 +814,10 @@ describe('src/commands/change/stage.ts', () => {
     expect(() => runChangeStage('explore', { session: 'abc', status: 'in_progress' })).not.toThrow();
     expect(mockCreateOrUpdateChange).not.toHaveBeenCalled();
     const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(stdoutCalls.some((s: string) => s.includes('has ended') || s.includes('only finalize/integration'))).toBe(true);
+    expect(stdoutCalls.some((s: string) => s.includes('has ended') || s.includes('only integration/codecheck/archive'))).toBe(true);
   });
 
-  it('should allow finalize stage when change not in changes.json', () => {
+  it('should allow archive stage when change not in changes.json', () => {
     mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
       name: 'openpowers',
       changes: [],
@@ -379,7 +830,24 @@ describe('src/commands/change/stage.ts', () => {
       switchProviders: {},
       change: 'my-change',
     });
-    expect(() => runChangeStage('finalize', { session: 'abc', status: 'in_progress' })).not.toThrow();
+    expect(() => runChangeStage('archive', { session: 'abc', status: 'in_progress' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalled();
+  });
+
+  it('should allow codecheck stage when change not in changes.json', () => {
+    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
+      name: 'openpowers',
+      changes: [],
+      archive: [],
+    }));
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('codecheck', { session: 'abc', status: 'in_progress' })).not.toThrow();
     expect(mockCreateOrUpdateChange).toHaveBeenCalled();
   });
 
@@ -400,7 +868,7 @@ describe('src/commands/change/stage.ts', () => {
     expect(mockCreateOrUpdateChange).toHaveBeenCalled();
   });
 
-  it('should block non-finalize stages when plan.json features are all done', () => {
+  it('should block non-end stages when plan.json features are all done', () => {
     // Set up changes.json WITH 'my-change'
     mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
       name: 'openpowers',
@@ -422,7 +890,7 @@ describe('src/commands/change/stage.ts', () => {
     expect(() => runChangeStage('explore', { session: 'abc', status: 'in_progress' })).not.toThrow();
     expect(mockCreateOrUpdateChange).not.toHaveBeenCalled();
     const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(stdoutCalls.some((s: string) => s.includes('has ended') || s.includes('only finalize/integration'))).toBe(true);
+    expect(stdoutCalls.some((s: string) => s.includes('has ended') || s.includes('only integration/codecheck/archive'))).toBe(true);
   });
 
   it('should proceed normally when change is active and has in_progress features', () => {
@@ -444,6 +912,23 @@ describe('src/commands/change/stage.ts', () => {
     });
     expect(() => runChangeStage('explore', { session: 'abc', status: 'in_progress' })).not.toThrow();
     expect(mockCreateOrUpdateChange).toHaveBeenCalled();
+  });
+
+  // =========================================================
+  // Stage context shared at top level
+  // =========================================================
+  it('should read memory changes json at top level for all stages', () => {
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    // For propose stage (no internal readMemoryChangesJson call), the top-level should still read it
+    expect(() => runChangeStage('propose', { session: 'abc', status: 'in_progress' })).not.toThrow();
+    // readMemoryChangesJson should be called exactly once (from runChangeStage top level)
+    expect(mockReadMemoryChangesJson).toHaveBeenCalledTimes(1);
   });
 
   // =========================================================
@@ -666,6 +1151,82 @@ describe('src/commands/change/stage.ts', () => {
             featureId: '',
           }),
         ]),
+      }),
+    );
+  });
+
+  it('should route coding to finalize.integration when all features done', () => {
+    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+      { featureId: 'feat-1', status: 'done' },
+      { featureId: 'feat-2', status: 'done' },
+    ]));
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('coding', { session: 'abc', status: 'in_progress', title: 'Integration Step' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          integration: expect.arrayContaining([
+            expect.objectContaining({
+              title: 'Integration Step',
+              status: 'in_progress',
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('should route coding to finalize.integration and merge by title when all features done', () => {
+    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+      { featureId: 'feat-1', status: 'done' },
+    ]));
+    mockReadMemoryChangesJson.mockReturnValue({
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [{
+        name: 'my-change',
+        stage: {
+          finalize: {
+            integration: [
+              { title: 'Integration Step', from: 'old', to: 'old', status: 'in_progress', inputPath: '/old', outputPath: '' },
+            ],
+          },
+        },
+      }],
+    });
+    mockReadSessionSettings.mockReturnValue({
+      sessionId: 'abc',
+      cwd: '/test/project',
+      currentProvider: 'explore',
+      switchProviders: {},
+      change: 'my-change',
+    });
+    expect(() => runChangeStage('coding', { session: 'abc', status: 'done', title: 'Integration Step', output: '/new-out' })).not.toThrow();
+    expect(mockCreateOrUpdateChange).toHaveBeenCalledWith(
+      '/test/project',
+      'my-change',
+      undefined,
+      expect.objectContaining({
+        finalize: expect.objectContaining({
+          integration: expect.arrayContaining([
+            expect.objectContaining({
+              title: 'Integration Step',
+              status: 'done',
+              outputPath: '/new-out', // non-empty overwrites
+              inputPath: '/old', // empty input should not overwrite
+            }),
+          ]),
+        }),
       }),
     );
   });

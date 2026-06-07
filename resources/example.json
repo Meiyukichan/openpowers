@@ -55,14 +55,16 @@
     }
   ],
   "finalize": {
-    "integration": {
-      "title": "",
-      "inputPath": "",
-      "outputPath": "",
-      "from": "",
-      "to": "",
-      "status": ""
-    },
+    "integration": [
+      {
+        "title": "",
+        "inputPath": "",
+        "outputPath": "",
+        "from": "",
+        "to": "",
+        "status": ""
+      }
+    ],
     "codecheck": {
       "title": "",
       "inputPath": "",

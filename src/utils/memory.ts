@@ -57,7 +57,7 @@ export type SubAgentDevProgress = z.infer<typeof SubAgentDevProgressSchema>;
 
 /** Schema for the finalize stage with integration/codecheck/archive sub-stages */
 export const FinalizeStageSchema = z.object({
-  integration: StageStepSchema,
+  integration: z.array(StageStepSchema),
   codecheck: StageStepSchema,
   archive: StageStepSchema,
 });
@@ -87,7 +87,7 @@ export interface StageUpdate {
   plan?: Partial<StageStep>;
   reviewArtifacts?: Partial<StageStep>;
   subAgentDev?: unknown[];
-  finalize?: { integration?: Partial<StageStep>; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> };
+  finalize?: { integration?: Partial<StageStep>[]; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> };
   review?: Partial<StageStep>;
   coding?: unknown[];
 }
@@ -224,7 +224,11 @@ function normalizeStageStatuses(entry: ChangeEntry): void {
   if (stage.reviewArtifacts) stageSteps.push(stage.reviewArtifacts);
 
   // Finalize sub-steps
-  if (stage.finalize?.integration) stageSteps.push(stage.finalize.integration);
+  if (Array.isArray(stage.finalize?.integration)) {
+    for (const step of stage.finalize.integration) {
+      stageSteps.push(step);
+    }
+  }
   if (stage.finalize?.codecheck) stageSteps.push(stage.finalize.codecheck);
   if (stage.finalize?.archive) stageSteps.push(stage.finalize.archive);
 
@@ -511,39 +515,75 @@ function handleExploreStage(entry: ChangeEntry, exploreData: Partial<StageStep>)
 }
 
 /**
- * Placeholder for brainstorm stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The brainstorm stage data (unused)
+ * Handles the brainstorm stage update — writes data to entry.stage.brainstorm.
+ * @param entry - The change entry to update
+ * @param data - The brainstorm stage data to apply
  */
-function handleBrainstormStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
-  // No-op: not yet implemented
+function handleBrainstormStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
+  if (!data) return;
+  if (!entry.stage) entry.stage = {} as ChangeStage;
+  entry.stage.brainstorm = {
+    title: data.title ?? '',
+    from: data.from ?? new Date().toISOString(),
+    to: data.to ?? new Date().toISOString(),
+    status: data.status ?? 'in_progress',
+    inputPath: data.inputPath ?? '',
+    outputPath: data.outputPath ?? '',
+  };
 }
 
 /**
- * Placeholder for propose stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The propose stage data (unused)
+ * Handles the propose stage update — writes data to entry.stage.propose.
+ * @param entry - The change entry to update
+ * @param data - The propose stage data to apply
  */
-function handleProposeStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
-  // No-op: not yet implemented
+function handleProposeStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
+  if (!data) return;
+  if (!entry.stage) entry.stage = {} as ChangeStage;
+  entry.stage.propose = {
+    title: data.title ?? '',
+    from: data.from ?? new Date().toISOString(),
+    to: data.to ?? new Date().toISOString(),
+    status: data.status ?? 'in_progress',
+    inputPath: data.inputPath ?? '',
+    outputPath: data.outputPath ?? '',
+  };
 }
 
 /**
- * Placeholder for plan stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The plan stage data (unused)
+ * Handles the plan stage update — writes data to entry.stage.plan.
+ * @param entry - The change entry to update
+ * @param data - The plan stage data to apply
  */
-function handlePlanStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
-  // No-op: not yet implemented
+function handlePlanStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
+  if (!data) return;
+  if (!entry.stage) entry.stage = {} as ChangeStage;
+  entry.stage.plan = {
+    title: data.title ?? '',
+    from: data.from ?? new Date().toISOString(),
+    to: data.to ?? new Date().toISOString(),
+    status: data.status ?? 'in_progress',
+    inputPath: data.inputPath ?? '',
+    outputPath: data.outputPath ?? '',
+  };
 }
 
 /**
- * Placeholder for reviewArtifacts stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The reviewArtifacts stage data (unused)
+ * Handles the reviewArtifacts stage update — writes data to entry.stage.reviewArtifacts.
+ * @param entry - The change entry to update
+ * @param data - The reviewArtifacts stage data to apply
  */
-function handleReviewArtifactsStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
-  // No-op: not yet implemented
+function handleReviewArtifactsStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
+  if (!data) return;
+  if (!entry.stage) entry.stage = {} as ChangeStage;
+  entry.stage.reviewArtifacts = {
+    title: data.title ?? '',
+    from: data.from ?? new Date().toISOString(),
+    to: data.to ?? new Date().toISOString(),
+    status: data.status ?? 'in_progress',
+    inputPath: data.inputPath ?? '',
+    outputPath: data.outputPath ?? '',
+  };
 }
 
 /**
@@ -636,12 +676,48 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
 }
 
 /**
- * Placeholder for finalize stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The finalize stage data (unused)
+ * Handles the finalize stage update — writes data to entry.stage.finalize.
+ * integration is an array of StageStep, codecheck and archive are single StageStep.
+ * All merge logic is performed upstream in stage.ts dispatchers; this handler
+ * directly assigns the pre-merged data with defaults filled in.
+ * @param entry - The change entry to update
+ * @param data - The finalize stage data to apply
  */
-function handleFinalizeStage(_entry: ChangeEntry, _data?: { integration?: Partial<StageStep>; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> }): void {
-  // No-op: not yet implemented
+function handleFinalizeStage(entry: ChangeEntry, data?: { integration?: Partial<StageStep>[]; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> }): void {
+  if (!data) return;
+  if (!entry.stage) entry.stage = {} as ChangeStage;
+  if (!entry.stage.finalize) entry.stage.finalize = {} as FinalizeStage;
+
+  if (Array.isArray(data.integration)) {
+    entry.stage.finalize.integration = data.integration.map((item) => ({
+      title: item.title ?? '',
+      from: item.from ?? new Date().toISOString(),
+      to: item.to ?? new Date().toISOString(),
+      status: item.status ?? 'in_progress',
+      inputPath: item.inputPath ?? '',
+      outputPath: item.outputPath ?? '',
+    }));
+  }
+  if (data.codecheck) {
+    entry.stage.finalize.codecheck = {
+      title: data.codecheck.title ?? (entry.stage.finalize.codecheck?.title ?? ''),
+      from: data.codecheck.from ?? (entry.stage.finalize.codecheck?.from ?? new Date().toISOString()),
+      to: data.codecheck.to ?? (entry.stage.finalize.codecheck?.to ?? new Date().toISOString()),
+      status: data.codecheck.status ?? (entry.stage.finalize.codecheck?.status ?? 'in_progress'),
+      inputPath: data.codecheck.inputPath ?? (entry.stage.finalize.codecheck?.inputPath ?? ''),
+      outputPath: data.codecheck.outputPath ?? (entry.stage.finalize.codecheck?.outputPath ?? ''),
+    };
+  }
+  if (data.archive) {
+    entry.stage.finalize.archive = {
+      title: data.archive.title ?? (entry.stage.finalize.archive?.title ?? ''),
+      from: data.archive.from ?? (entry.stage.finalize.archive?.from ?? new Date().toISOString()),
+      to: data.archive.to ?? (entry.stage.finalize.archive?.to ?? new Date().toISOString()),
+      status: data.archive.status ?? (entry.stage.finalize.archive?.status ?? 'in_progress'),
+      inputPath: data.archive.inputPath ?? (entry.stage.finalize.archive?.inputPath ?? ''),
+      outputPath: data.archive.outputPath ?? (entry.stage.finalize.archive?.outputPath ?? ''),
+    };
+  }
 }
 
 /**

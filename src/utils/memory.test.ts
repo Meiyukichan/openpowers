@@ -141,17 +141,31 @@ describe('src/utils/memory.ts', () => {
   // FinalizeStageSchema tests
   // =========================================================
   describe('FinalizeStageSchema', () => {
-    it('should accept valid integration/codecheck/archive fields', async () => {
+    it('should accept valid integration array with codecheck/archive fields', async () => {
       const mod = await import('./memory.js');
       const { FinalizeStageSchema } = mod;
       const result = FinalizeStageSchema.parse({
-        integration: { title: 'Integration', from: '', to: '', status: 'in_progress' },
+        integration: [{ title: 'Integration', from: '', to: '', status: 'in_progress' }],
         codecheck: { title: 'Code Check', from: '', to: '', status: 'in_progress' },
         archive: { title: 'Archive', from: '', to: '', status: 'in_progress' },
       });
-      expect(result.integration.title).toBe('Integration');
+      expect(Array.isArray(result.integration)).toBe(true);
+      expect(result.integration).toHaveLength(1);
+      expect(result.integration[0].title).toBe('Integration');
       expect(result.codecheck.title).toBe('Code Check');
       expect(result.archive.title).toBe('Archive');
+    });
+
+    it('should reject integration as single object (must be array)', async () => {
+      const mod = await import('./memory.js');
+      const { FinalizeStageSchema } = mod;
+      expect(() =>
+        FinalizeStageSchema.parse({
+          integration: { title: 'Integration', from: '', to: '', status: 'in_progress' },
+          codecheck: { title: 'Code Check', from: '', to: '', status: 'in_progress' },
+          archive: { title: 'Archive', from: '', to: '', status: 'in_progress' },
+        }),
+      ).toThrow();
     });
 
     it('should reject missing integration field', async () => {
@@ -181,7 +195,7 @@ describe('src/utils/memory.ts', () => {
         reviewArtifacts: { title: 'Review Artifacts', from: '', to: '', status: 'in_progress' },
         subAgentDev: [],
         finalize: {
-          integration: { title: '', from: '', to: '', status: 'in_progress' },
+          integration: [{ title: '', from: '', to: '', status: 'in_progress' }],
           codecheck: { title: '', from: '', to: '', status: 'in_progress' },
           archive: { title: '', from: '', to: '', status: 'in_progress' },
         },
@@ -206,7 +220,7 @@ describe('src/utils/memory.ts', () => {
         reviewArtifacts: { title: '', from: '', to: '', status: 'in_progress' },
         subAgentDev: [],
         finalize: {
-          integration: { title: '', from: '', to: '', status: 'in_progress' },
+          integration: [{ title: '', from: '', to: '', status: 'in_progress' }],
           codecheck: { title: '', from: '', to: '', status: 'in_progress' },
           archive: { title: '', from: '', to: '', status: 'in_progress' },
         },
@@ -253,7 +267,7 @@ describe('src/utils/memory.ts', () => {
           reviewArtifacts: { title: 'Review', from: '', to: '', status: 'in_progress' },
           subAgentDev: [],
           finalize: {
-            integration: { title: '', from: '', to: '', status: 'in_progress' },
+            integration: [{ title: '', from: '', to: '', status: 'in_progress' }],
             codecheck: { title: '', from: '', to: '', status: 'in_progress' },
             archive: { title: '', from: '', to: '', status: 'in_progress' },
           },
@@ -852,7 +866,7 @@ describe('src/utils/memory.ts', () => {
               reviewArtifacts: { title: 'Review', from: '', to: '', status: 'skipped', inputPath: '', outputPath: '' },
               subAgentDev: [],
               finalize: {
-                integration: { title: 'Integration', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' },
+                integration: [{ title: 'Integration', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' }],
                 codecheck: { title: 'Code Check', from: '', to: '', status: 'skipped', inputPath: '', outputPath: '' },
                 archive: { title: 'Archive', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' },
               },
@@ -884,7 +898,8 @@ describe('src/utils/memory.ts', () => {
       expect(entry.stage!.propose.status).toBe('done');
       expect(entry.stage!.plan.status).toBe('done');
       expect(entry.stage!.reviewArtifacts.status).toBe('done');
-      expect(entry.stage!.finalize.integration.status).toBe('done');
+      expect(entry.stage!.finalize.integration).toHaveLength(1);
+      entry.stage!.finalize.integration.forEach((it) => expect(it.status).toBe('done'));
       expect(entry.stage!.finalize.codecheck.status).toBe('done');
       expect(entry.stage!.finalize.archive.status).toBe('done');
     });
@@ -930,7 +945,7 @@ describe('src/utils/memory.ts', () => {
                 },
               ],
               finalize: {
-                integration: { title: 'I', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+                integration: [{ title: 'I', from: '', to: '', status: 'done', inputPath: '', outputPath: '' }],
                 codecheck: { title: 'C', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
                 archive: { title: 'A', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
               },
@@ -992,7 +1007,7 @@ describe('src/utils/memory.ts', () => {
               reviewArtifacts: { title: 'R', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
               subAgentDev: [],
               finalize: {
-                integration: { title: 'I', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+                integration: [{ title: 'I', from: '', to: '', status: 'done', inputPath: '', outputPath: '' }],
                 codecheck: { title: 'C', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
                 archive: { title: 'A', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
               },
@@ -1080,7 +1095,7 @@ describe('src/utils/memory.ts', () => {
               reviewArtifacts: { title: 'R', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
               subAgentDev: [],
               finalize: {
-                integration: { title: 'I', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' },
+                integration: [{ title: 'I', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' }],
                 codecheck: { title: 'C', from: '', to: '', status: 'skipped', inputPath: '', outputPath: '' },
                 archive: { title: 'A', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' },
               },
@@ -1101,7 +1116,8 @@ describe('src/utils/memory.ts', () => {
       // Stage statuses should NOT be normalized
       expect(entry.stage!.explore.status).toBe('in_progress');
       expect(entry.stage!.brainstorm.status).toBe('skipped');
-      expect(entry.stage!.finalize.integration.status).toBe('in_progress');
+      expect(entry.stage!.finalize.integration).toHaveLength(1);
+      entry.stage!.finalize.integration.forEach((it) => expect(it.status).toBe('in_progress'));
     });
 
     it('should sync features and todo from plan.json for entries with existing path', async () => {
@@ -1663,7 +1679,7 @@ describe('src/utils/memory.ts', () => {
       expect(entry.stage).toBeUndefined();
     });
 
-    it('should dispatch to handleBrainstormStage without throwing (no-op placeholder)', async () => {
+    it('should dispatch to handleBrainstormStage and write to entry.stage.brainstorm', async () => {
       const mod = await import('./memory.js');
       const { createOrUpdateStage } = mod;
 
@@ -1677,17 +1693,18 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           brainstorm: { title: 'Test', from: '', to: '', status: 'in_progress' },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.brainstorm).toBeDefined();
+      expect((entry.stage as any)?.brainstorm.title).toBe('Test');
+      expect((entry.stage as any)?.brainstorm.status).toBe('in_progress');
     });
 
-    it('should dispatch to handleProposeStage without throwing (no-op placeholder)', async () => {
+    it('should dispatch to handleProposeStage and write to entry.stage.propose', async () => {
       const mod = await import('./memory.js');
       const { createOrUpdateStage } = mod;
 
@@ -1701,17 +1718,18 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           propose: { title: 'Test', from: '', to: '', status: 'in_progress' },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.propose).toBeDefined();
+      expect((entry.stage as any)?.propose.title).toBe('Test');
+      expect((entry.stage as any)?.propose.status).toBe('in_progress');
     });
 
-    it('should dispatch to handlePlanStage without throwing (no-op placeholder)', async () => {
+    it('should dispatch to handlePlanStage and write to entry.stage.plan', async () => {
       const mod = await import('./memory.js');
       const { createOrUpdateStage } = mod;
 
@@ -1725,17 +1743,18 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           plan: { title: 'Test', from: '', to: '', status: 'in_progress' },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.plan).toBeDefined();
+      expect((entry.stage as any)?.plan.title).toBe('Test');
+      expect((entry.stage as any)?.plan.status).toBe('in_progress');
     });
 
-    it('should dispatch to handleReviewArtifactsStage without throwing (no-op placeholder)', async () => {
+    it('should dispatch to handleReviewArtifactsStage and write to entry.stage.reviewArtifacts', async () => {
       const mod = await import('./memory.js');
       const { createOrUpdateStage } = mod;
 
@@ -1749,14 +1768,15 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           reviewArtifacts: { title: 'Test', from: '', to: '', status: 'in_progress' },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.reviewArtifacts).toBeDefined();
+      expect((entry.stage as any)?.reviewArtifacts.title).toBe('Test');
+      expect((entry.stage as any)?.reviewArtifacts.status).toBe('in_progress');
     });
 
     it('should dispatch to handleCodingStage without throwing and create stage.subAgentDev', async () => {
@@ -1784,7 +1804,7 @@ describe('src/utils/memory.ts', () => {
       expect((entry.stage as any)?.subAgentDev).toEqual([]);
     });
 
-    it('should dispatch to handleFinalizeStage without throwing (no-op placeholder)', async () => {
+    it('should dispatch to handleFinalizeStage and write to entry.stage.finalize.integration', async () => {
       const mod = await import('./memory.js');
       const { createOrUpdateStage } = mod;
 
@@ -1798,16 +1818,18 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           finalize: {
-            integration: { title: '', from: '', to: '', status: 'in_progress' },
+            integration: [{ title: '', from: '', to: '', status: 'in_progress' }],
           },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.finalize).toBeDefined();
+      expect((entry.stage as any)?.finalize.integration).toBeDefined();
+      expect((entry.stage as any)?.finalize.integration).toHaveLength(1);
+      expect((entry.stage as any)?.finalize.integration[0].status).toBe('in_progress');
     });
 
     it('should dispatch to handleFinalizeStage with partial data (finalize.integration alias mapping from CLI)', async () => {
@@ -1824,17 +1846,19 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
-      // Simulates the CLI integration alias: { finalize: { integration: StageStep } }
+      // Simulates the CLI integration alias: { finalize: { integration: [StageStep] } }
       expect(() =>
         createOrUpdateStage(entry as any, {
           finalize: {
-            integration: { title: 'Integration Step', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '/in', outputPath: '/out' },
+            integration: [{ title: 'Integration Step', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'done', inputPath: '/in', outputPath: '/out' }],
           },
         }),
       ).not.toThrow();
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      expect((entry.stage as any)?.finalize?.integration).toBeDefined();
+      expect((entry.stage as any)?.finalize?.integration).toHaveLength(1);
+      expect((entry.stage as any)?.finalize?.integration[0].title).toBe('Integration Step');
+      expect((entry.stage as any)?.finalize?.integration[0].status).toBe('done');
     });
 
     it('should not add stage.explore when explore data is undefined in changeStage', async () => {
@@ -2251,15 +2275,16 @@ describe('src/utils/memory.ts', () => {
         todo: 0,
         artifacts: [],
       };
-      const snapshot = JSON.stringify(entry);
 
       expect(() =>
         createOrUpdateStage(entry as any, {
           review: { title: 'Test', from: '', to: '', status: 'in_progress' },
         }),
       ).not.toThrow();
-      // currently handleReviewArtifactsStage is a no-op, so entry should be unchanged
-      expect(JSON.stringify(entry)).toBe(snapshot);
+      // review field alias dispatches to handleReviewArtifactsStage
+      expect((entry.stage as any)?.reviewArtifacts).toBeDefined();
+      expect((entry.stage as any)?.reviewArtifacts.title).toBe('Test');
+      expect((entry.stage as any)?.reviewArtifacts.status).toBe('in_progress');
     });
   });
 });
