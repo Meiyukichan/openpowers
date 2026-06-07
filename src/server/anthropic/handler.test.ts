@@ -388,6 +388,7 @@ function createProvider(overrides?: Partial<Provider>): Provider {
     sonnetModel: '',
     opusModel: '',
     haikuModel: '',
+    enabled: true,
     createdAt: new Date().toISOString(),
     ...overrides,
   };

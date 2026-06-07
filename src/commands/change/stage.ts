@@ -1,140 +1,121 @@
 /**
- * Stage model definitions and update logic for change entries
- * Contains zod schemas, types, and the updateChangeInfo function
+ * Change stage command — updates the stage progress of a change via CLI
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
 
-import fs from 'fs';
-import path from 'path';
-import { z } from 'zod';
-import { CHANGES_JSON_PATH } from './shared.js';
-import { computeProgress } from './shared.js';
-import { buildArtifacts } from './shared.js';
-import { loadOrCreateChangesJson } from './shared.js';
+import { readSessionSettings } from '../../utils/session.js';
+import { createOrUpdateChange } from '../../utils/memory.js';
+import type { StageUpdate } from '../../utils/memory.js';
+import { logger } from '../../utils/logger.js';
 
-// =========================================================
-// Zod schemas for stage structure
-// =========================================================
+/** Valid stage names that can be passed to the CLI */
+const VALID_STAGES = [
+  'explore',
+  'brainstorm',
+  'propose',
+  'plan',
+  'reviewArtifacts',
+  'subAgentDev',
+  'finalize',
+  'integration',
+] as const;
 
-/** Schema for a basic stage with from/to/status string fields */
-export const BasicStageSchema = z.object({
-  from: z.string(),
-  to: z.string(),
-  status: z.string(),
-});
-
-/** Type for a basic stage */
-export type BasicStage = z.infer<typeof BasicStageSchema>;
-
-/** Schema for a sub-agent dev item: featureId + four sub-stages */
-const SubAgentDevItemSchema = z.object({
-  featureId: z.string(),
-  explore: BasicStageSchema,
-  coding: BasicStageSchema,
-  specReview: BasicStageSchema,
-  codeReview: BasicStageSchema,
-});
-
-/** Schema for a sub-agent dev stage (array of sub-agent dev items) */
-export const SubAgentDevStageSchema = z.array(SubAgentDevItemSchema);
-
-/** Type for a sub-agent dev stage */
-export type SubAgentDevStage = z.infer<typeof SubAgentDevStageSchema>;
-
-/** Schema for the finalize stage with integration/codecheck/archive sub-stages */
-export const FinalizeStageSchema = z.object({
-  integration: BasicStageSchema,
-  codecheck: BasicStageSchema,
-  archive: BasicStageSchema,
-});
-
-/** Type for the finalize stage */
-export type FinalizeStage = z.infer<typeof FinalizeStageSchema>;
-
-/** Schema for the full change stage with all workflow stages */
-export const ChangeStageSchema = z.object({
-  explore: BasicStageSchema,
-  brainstorm: BasicStageSchema,
-  propose: BasicStageSchema,
-  plan: BasicStageSchema,
-  reviewArtifacts: BasicStageSchema,
-  subAgentDev: SubAgentDevStageSchema,
-  finalize: FinalizeStageSchema,
-});
-
-/** Type for the full change stage */
-export type ChangeStage = z.infer<typeof ChangeStageSchema>;
+/** Type for valid stage names */
+type ValidStage = (typeof VALID_STAGES)[number];
 
 /**
- * Schema for partial stage updates with unknown key stripping.
- * `.strip()` is the zod v4 equivalent of v3's `.stripUnknown(true)` — it silently
- * removes any keys not defined in the schema instead of throwing an error.
+ * Runs the `change stage` command.
+ *
+ * Reads session settings via sessionId to obtain cwd and change name,
+ * validates the stage name, and combines all parameters into a changeStage
+ * structure before passing it to createOrUpdateChange.
+ *
+ * @param stageName - The stage name (e.g. 'explore', 'brainstorm')
+ * @param options - CLI options: session, status, and optional title/input/output
  */
-export const StagePartialSchema = ChangeStageSchema.partial().strip();
-
-/** Type for partial stage updates */
-export type StagePartial = z.infer<typeof StagePartialSchema>;
-
-/**
- * Updates the stage information for a change entry in changes.json.
- * Merges partial stage data into the existing stage, recomputes features/todo/artifacts,
- * and refreshes the updateAt timestamp. Throws if the change name is not found.
- * @param changeName - The change name to update
- * @param stagePartial - Partial stage data to merge (validated by StagePartialSchema)
- */
-export function updateChangeInfo(changeName: string, stagePartial: StagePartial): void {
-  const data = loadOrCreateChangesJson();
-
-  // Find entry across both active changes and archive
-  let entry: Record<string, unknown> | undefined;
-  let isArchive = false;
-
-  entry = data.changes.find((c) => c.name === changeName) as Record<string, unknown> | undefined;
-  if (!entry) {
-    entry = data.archive.find((a) => a.name === changeName) as Record<string, unknown> | undefined;
-    isArchive = true;
+export function runChangeStage(
+  stageName: string,
+  options: { session?: string; status?: string; title?: string; input?: string; output?: string },
+): void {
+  // Validate required options
+  if (!options.session) {
+    process.stderr.write('Error: Required option --session <sessionId> is missing\n');
+    logger.error('Required option --session <sessionId> is missing');
+    process.exit(1);
   }
 
-  if (!entry) {
-    throw new Error(`Change '${changeName}' not found in changes.json`);
+  if (!options.status) {
+    process.stderr.write('Error: Required option --status <status> is missing\n');
+    logger.error('Required option --status <status> is missing');
+    process.exit(1);
   }
 
-  // Validate and strip unknown keys from stagePartial
-  const validated = StagePartialSchema.parse(stagePartial);
-
-  // Initialize stage field if not present
-  if (!entry.stage) {
-    entry.stage = {};
+  // Validate status value
+  const validStatuses = ['in_progress', 'done', 'skipped'];
+  if (!validStatuses.includes(options.status)) {
+    process.stderr.write(`Error: Invalid status '${options.status}'. Must be one of: ${validStatuses.join(', ')}\n`);
+    logger.error(`Invalid status '${options.status}'`);
+    process.exit(1);
   }
 
-  // Merge validated partial into existing stage
-  const stage = entry.stage as Record<string, unknown>;
-  for (const key of Object.keys(validated)) {
-    stage[key] = (validated as Record<string, unknown>)[key];
+  // Validate stage name
+  if (!VALID_STAGES.includes(stageName as ValidStage)) {
+    process.stderr.write(`Error: Invalid stage name '${stageName}'. Valid stages: ${VALID_STAGES.join(', ')}\n`);
+    logger.error(`Invalid stage name '${stageName}'`);
+    process.exit(1);
   }
 
-  // Determine the change path for computeProgress and buildArtifacts
-  const entryPath = path.resolve(process.cwd(), String(entry.path));
-  const planPath = path.join(entryPath, 'plan.json');
-
-  // Recompute features/todo from plan.json
-  const progress = computeProgress(planPath);
-  entry.features = progress.features;
-  if (!isArchive) {
-    entry.todo = progress.todo;
+  // Read session settings
+  const session = readSessionSettings(options.session);
+  if (!session) {
+    process.stderr.write(`Error: Session '${options.session}' not found\n`);
+    logger.error(`Session '${options.session}' not found`);
+    process.exit(1);
   }
 
-  // Rebuild artifacts from filesystem
-  entry.artifacts = buildArtifacts(entryPath);
-
-  // Update updateAt timestamp
-  entry.updateAt = new Date().toISOString();
-
-  // Write back to changes.json
-  const dir = path.dirname(CHANGES_JSON_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  // Validate session has change field
+  if (!session.change) {
+    process.stderr.write(`Error: Session '${options.session}' has no associated change\n`);
+    logger.error(`Session '${options.session}' has no associated change`);
+    process.exit(1);
   }
-  fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+  // Build the StageStep data
+  const now = new Date().toISOString();
+  const stageData = {
+    title: options.title ?? '',
+    inputPath: options.input ?? '',
+    outputPath: options.output ?? '',
+    from: now,
+    to: now,
+    status: options.status as 'in_progress' | 'done' | 'skipped',
+  };
+
+  // Build the changeStage structure
+  let changeStage: StageUpdate;
+
+  if (stageName === 'integration') {
+    // integration is an alias for finalize.integration
+    changeStage = {
+      finalize: {
+        integration: stageData,
+      },
+    };
+  } else if (stageName === 'subAgentDev') {
+    // subAgentDev wraps the stage step in an array
+    changeStage = {
+      subAgentDev: [stageData],
+    };
+  } else {
+    changeStage = {
+      [stageName]: stageData,
+    };
+  }
+
+  // Call memory utility
+  createOrUpdateChange(session.cwd, session.change, undefined, changeStage);
+
+  process.stdout.write(`Stage '${stageName}' updated to '${options.status}' for change '${session.change}'\n`);
+  logger.info(`Stage '${stageName}' updated to '${options.status}' for change '${session.change}'`);
 }

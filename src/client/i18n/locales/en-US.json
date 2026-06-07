@@ -17,7 +17,9 @@
     "addTemplateFailed": "Failed to add template: {{message}}",
     "saveFailed": "Failed to save provider: {{message}}",
     "deleteFailed": "Failed to delete provider: {{message}}",
-    "nameRequiredForTemplate": "Name is required to add a template"
+    "nameRequiredForTemplate": "Name is required to add a template",
+    "providerEnabled": "Provider enabled",
+    "providerDisabled": "Provider disabled"
   },
   "layout": {
     "settings": "Settings",
@@ -62,7 +64,10 @@
     "editProvider": "Edit {{name}}",
     "edit": "Edit",
     "deleteProvider": "Delete {{name}}",
-    "delete": "Delete"
+    "delete": "Delete",
+    "disable": "Disable",
+    "disabled": "Disabled",
+    "enableToggle": "Enable"
   },
   "common": {
     "form": {

@@ -42,7 +42,7 @@ Follow these change steps strictly and accurately to complete the creation of ch
 2. **Create the change directory**
 
    ```bash
-   openpowers change new <name> --desc <brief description of this change [15-30 words]>
+   openpowers change new <name> --desc <brief description of this change [15-30 words] in `language`>
    ```
 
    This creates the change at `openpowers/changes/<name>/` and brings it into the OpenPowers change management system.

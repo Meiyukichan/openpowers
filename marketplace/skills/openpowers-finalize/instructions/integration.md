@@ -5,11 +5,11 @@ Output is a feature list JSON file that serves as the execution contract: agents
 
 ## Execute Integration
 
-You **MUST** dispatch the `integration testing subagent` strictly in the following parameter format (`OpenPowers:coding:Purpose` is the critical description marker of `integration testing subagent`, do NOT mistake it):
+You **MUST** dispatch the `integration testing subagent` strictly in the following parameter format (`OpenPowers:integration:Purpose` is the critical description marker of `integration testing subagent`, do NOT mistake it):
 
 ```
 Task tool (general-purpose):
-  description: "OpenPowers:coding:Purpose Execute integration testing: {change name}"
+  description: "OpenPowers:integration:Purpose Execute integration testing: {change name}"
   prompt: |
     You are executing integration testing for {`openpowers/changes/<name>`}
 

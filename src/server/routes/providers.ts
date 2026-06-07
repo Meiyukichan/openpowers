@@ -176,8 +176,13 @@ providersRouter.put('/active', (req, res) => {
   }
   try {
     setActiveProviderId(parsed.data.providerId);
-  } catch {
-    res.status(404).json({ error: `Provider not found: ${parsed.data.providerId}` });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('disabled')) {
+      res.status(400).json({ error: message });
+    } else {
+      res.status(404).json({ error: message });
+    }
     return;
   }
   try {
@@ -264,6 +269,43 @@ providersRouter.put('/proxy', (req, res) => {
   } catch (err) {
     logger.error(`Failed to update proxy settings: ${err instanceof Error ? err.message : String(err)}`);
     res.status(500).json({ error: 'Failed to update proxy settings' });
+  }
+});
+
+/** Zod schema for toggling a provider's enabled state. */
+const SetEnabledSchema = z.object({
+  enabled: z.boolean(),
+});
+
+/**
+ * PUT /openpowers/api/providers/:id/enabled
+ * Toggles the enabled state of a provider. When disabling, clears the active
+ * provider ID and syncs Claude settings if the disabled provider was active.
+ */
+providersRouter.put('/:id/enabled', (req, res) => {
+  const parsed = SetEnabledSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(formatZodError(parsed.error));
+    return;
+  }
+  const wasActive = getActiveProviderId() === req.params.id;
+  let provider;
+  try {
+    provider = updateProvider(req.params.id, { enabled: parsed.data.enabled });
+  } catch {
+    res.status(404).json({ error: `Provider not found: ${req.params.id}` });
+    return;
+  }
+  try {
+    if (parsed.data.enabled === false && wasActive && !getEnableOpenpowersProxy()) {
+      restoreClaudeSettings();
+    } else if (parsed.data.enabled === false && wasActive && getEnableOpenpowersProxy()) {
+      writeEnvToClaudeSettings(getProxyEnv());
+    }
+    res.status(200).json(provider);
+  } catch (err) {
+    logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(500).json({ error: 'Failed to sync Claude settings' });
   }
 });
 

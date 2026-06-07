@@ -156,7 +156,14 @@ describe('src/commands/change/new.ts', () => {
       changes: [originalEntry],
       archive: [],
     }));
+    // Ensure CHANGES_DIR itself exists in the mock so syncChangesJson scans it
+    mockFs.setDir(CHANGES_DIR);
     mockFs.setDir(path.join(CHANGES_DIR, 'dup-feature'));
+
+    // syncChangesJson scans CHANGES_DIR; make readdirSync return the directory entry
+    mockFs.readdirSync.mockReturnValue([
+      { name: 'dup-feature', isDirectory: () => true, isFile: () => false },
+    ]);
 
     // Clear write calls from setFile
     mockFs.writeFileSync.mockClear();

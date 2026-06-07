@@ -18,6 +18,8 @@ interface ProviderListProps {
   onAddProvider: () => void;
   /** Callback to set a provider as the active provider */
   onSetActive: (provider: Provider) => void;
+  /** Callback to toggle the enabled state of a provider */
+  onToggleEnabled?: (provider: Provider) => void;
   /** The ID of the currently active provider, or null if none */
   activeProviderId?: string | null;
   /** Incrementing this value triggers a re-fetch of the provider list */
@@ -127,7 +129,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }): React.ReactElement {
  * ProviderList fetches and displays providers from the API.
  * Handles loading, empty, and error states.
  */
-export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, activeProviderId, refreshTrigger }: ProviderListProps): React.ReactElement {
+export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, onToggleEnabled, activeProviderId, refreshTrigger }: ProviderListProps): React.ReactElement {
   const { t } = useTranslation();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,6 +196,7 @@ export function ProviderList({ onEdit, onDelete, onAddProvider, onSetActive, act
         onEdit,
         onDelete,
         onSetActive,
+        onToggleEnabled,
         isActive: activeProviderId === provider.id,
       }),
     ),

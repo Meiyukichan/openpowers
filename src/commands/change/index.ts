@@ -11,6 +11,7 @@ import { runChangeStatus } from './status.js';
 import { runChangeInstruction } from './instruction.js';
 import { runFeatureStatus, runFeatureNext, runFeatureStart, runFeatureComplete } from './feature.js';
 import { runChangeArchive } from './archive.js';
+import { runChangeStage } from './stage.js';
 
 /**
  * Registers the `change` command and its subcommands on the given program.
@@ -85,5 +86,18 @@ export function registerChangeCommand(program: Command): void {
         process.stderr.write('Error: No action specified. Use --status, --next, --start <featureId>, or --complete <featureId>\n');
         process.exit(1);
       }
+    });
+
+  // Stage progress tracking subcommand
+  changeCmd
+    .command('stage <stageName>')
+    .description('Update the stage progress of a change')
+    .requiredOption('--session <sessionId>', 'Session ID to read change config from')
+    .requiredOption('--status <status>', 'Stage status: in_progress, done, or skipped')
+    .option('--title <title>', 'Stage title')
+    .option('--input <inputPath>', 'Input path for the stage')
+    .option('--output <outputPath>', 'Output path for the stage')
+    .action((stageName: string, options: { session: string; status: string; title?: string; input?: string; output?: string }) => {
+      runChangeStage(stageName, options);
     });
 }

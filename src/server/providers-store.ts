@@ -40,6 +40,7 @@ export const ProviderSchema = z.object({
   sonnetModel: z.string().default(''),
   opusModel: z.string().default(''),
   haikuModel: z.string().default(''),
+  enabled: z.boolean().default(true),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
 });
@@ -73,6 +74,7 @@ export const ProviderInputSchema = z.object({
   icon: z.string().optional(),
   iconColor: z.string().optional(),
   usedTemplate: z.string().optional(),
+  enabled: z.boolean().default(true),
 });
 
 /** Inferred TypeScript type for provider creation input. */
@@ -91,6 +93,7 @@ export const ProviderUpdateSchema = z.object({
   baseUrl: z.string().optional(),
   icon: z.string().optional(),
   iconColor: z.string().optional(),
+  enabled: z.boolean().optional(),
 });
 
 /** Inferred TypeScript type for provider update input. */
@@ -213,6 +216,7 @@ export function createProvider(input: ProviderInput): Provider {
     icon: input.icon,
     iconColor: input.iconColor,
     usedTemplate: input.usedTemplate,
+    enabled: input.enabled,
     createdAt: now,
   };
 
@@ -248,6 +252,12 @@ export function updateProvider(id: string, update: ProviderUpdate): Provider {
   const existing = data.providers[index];
   const updated: Provider = { ...existing, ...update, updatedAt: new Date().toISOString() };
   data.providers[index] = updated;
+
+  // Cascade: clear active provider if the provider is being disabled and was active
+  if (update.enabled === false && data.activeProviderId === id) {
+    data.activeProviderId = null;
+  }
+
   writeStoreData(data);
   logger.info(`Provider updated: ${updated.name} (${updated.id})`);
 
@@ -302,7 +312,9 @@ export function getActiveProviderId(): string | null {
 export function getActiveProvider(): Provider | null {
   const data = readStoreData();
   if (data.activeProviderId === null) return null;
-  return data.providers.find((p) => p.id === data.activeProviderId) ?? null;
+  const provider = data.providers.find((p) => p.id === data.activeProviderId);
+  if (!provider || provider.enabled === false) return null;
+  return provider;
 }
 
 /**
@@ -315,6 +327,9 @@ export function setActiveProviderId(providerId: string): void {
   const provider = data.providers.find((p) => p.id === providerId);
   if (!provider) {
     throw new Error(`Provider not found: ${providerId}`);
+  }
+  if (provider.enabled === false) {
+    throw new Error(`Cannot activate disabled provider: ${providerId}`);
   }
   data.activeProviderId = providerId;
   writeStoreData(data);
@@ -413,9 +428,9 @@ export function getDefaultProvider(): Provider | null {
   const data = readStoreData();
   if (data.activeProviderId !== null) {
     const provider = data.providers.find((p) => p.id === data.activeProviderId);
-    if (provider) return provider;
+    if (provider && provider.enabled !== false) return provider;
   }
-  return data.providers.length > 0 ? data.providers[0] : null;
+  return data.providers.find((p) => p.enabled !== false) ?? null;
 }
 
 // Model field names used by getProviderByModels for matching
@@ -430,11 +445,12 @@ const MODEL_FIELDS = ['defaultModel', 'sonnetModel', 'opusModel', 'haikuModel'] 
  */
 export function getProviderByModels(models: string[]): Record<string, Provider | null> {
   const providers = loadProviders();
+  const enabledProviders = providers.filter((p) => p.enabled !== false);
   const result: Record<string, Provider | null> = {};
 
   for (const model of models) {
     let found: Provider | null = null;
-    for (const provider of providers) {
+    for (const provider of enabledProviders) {
       for (const field of MODEL_FIELDS) {
         if (provider[field] === model) {
           found = provider;

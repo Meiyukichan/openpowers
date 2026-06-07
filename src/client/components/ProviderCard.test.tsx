@@ -393,4 +393,118 @@ describe('ProviderCard', () => {
     const iconImg = document.querySelector('img[alt="供应商图标"]');
     expect(iconImg).not.toBeInTheDocument();
   });
+
+  // provider-01: Disabled provider shows greyscale/opacity visual distinction
+  it('applies opacity-50 and grayscale classes when provider is disabled', () => {
+    const { container } = renderProviderCard({
+      provider: { ...baseProvider, enabled: false },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    });
+    const rootElement = container.firstElementChild as HTMLElement;
+    expect(rootElement.className).toContain('opacity-50');
+    expect(rootElement.className).toContain('grayscale');
+  });
+
+  // provider-01: Enabled provider does not have greyscale visual
+  it('does not apply opacity-50 or grayscale classes when provider is enabled', () => {
+    const { container } = renderProviderCard({
+      provider: { ...baseProvider, enabled: true },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    });
+    const rootElement = container.firstElementChild as HTMLElement;
+    expect(rootElement.className).not.toContain('opacity-50');
+    expect(rootElement.className).not.toContain('grayscale');
+  });
+
+  // provider-01: Disabled provider with no explicit enabled field defaults to enabled (no greyscale)
+  it('does not apply opacity-50 or grayscale classes when provider has no enabled field (default enabled)', () => {
+    const { container } = renderProviderCard({
+      provider: baseProvider,
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    });
+    const rootElement = container.firstElementChild as HTMLElement;
+    expect(rootElement.className).not.toContain('opacity-50');
+    expect(rootElement.className).not.toContain('grayscale');
+  });
+
+  // provider-01: Disable button shown for enabled providers
+  it('renders disable button when provider is enabled (not disabled)', () => {
+    renderProviderCard({
+      provider: { ...baseProvider, enabled: true },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onToggleEnabled: vi.fn(),
+    });
+    expect(screen.getByText('禁用')).toBeInTheDocument();
+  });
+
+  // provider-01: Enable toggle button shown for disabled providers (using aria-label)
+  it('renders enable toggle button when provider is disabled', () => {
+    renderProviderCard({
+      provider: { ...baseProvider, enabled: false },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onToggleEnabled: vi.fn(),
+    });
+    const enableToggleButton = screen.getByRole('button', { name: '启用' });
+    expect(enableToggleButton).toBeInTheDocument();
+  });
+
+  // provider-01: Clicking disable button calls onToggleEnabled with provider
+  it('calls onToggleEnabled when disable button is clicked', async () => {
+    const onToggleEnabled = vi.fn();
+    const user = userEvent.setup();
+    const enabledProvider = { ...baseProvider, enabled: true };
+    renderProviderCard({
+      provider: enabledProvider,
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onToggleEnabled,
+    });
+    const disableButton = screen.getByRole('button', { name: '禁用' });
+    await user.click(disableButton);
+    expect(onToggleEnabled).toHaveBeenCalledWith(enabledProvider);
+  });
+
+  // provider-01: Toggle button not rendered when onToggleEnabled is not provided
+  it('does not render disable/enable toggle button when onToggleEnabled is undefined', () => {
+    renderProviderCard({
+      provider: { ...baseProvider, enabled: true },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    });
+    // The toggle button uses aria-label '禁用' (when enabled) — this should not exist
+    expect(screen.queryByRole('button', { name: '禁用' })).not.toBeInTheDocument();
+    // Also verify it's not rendered for a disabled provider without onToggleEnabled
+  });
+
+  // provider-01: Toggle button not rendered for disabled provider when onToggleEnabled is undefined
+  it('does not render enable toggle button when onToggleEnabled is undefined and provider is disabled', () => {
+    renderProviderCard({
+      provider: { ...baseProvider, enabled: false },
+      onSetActive: vi.fn(),
+      isActive: false,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    });
+    // The toggle button uses aria-label '启用' when provider is disabled — this should not exist
+    expect(screen.queryByRole('button', { name: '启用' })).not.toBeInTheDocument();
+  });
 });

@@ -322,24 +322,14 @@ function runAgentsInit(sessionId: string, cwd: string, change?: string): void {
   // Validate model names against providers
   const validatedSwitchProviders = validateSwitchProviders(rawSwitchProviders);
 
-  // Determine change value: use provided value, or preserve existing, or default to ''
-  let changeValue = '';
-  if (change) {
-    changeValue = change;
-  } else {
-    const existing = readSessionSettings(sessionId);
-    if (existing?.change) {
-      changeValue = existing.change;
-    }
-  }
-
+  const existing = readSessionSettings(sessionId);
   // Create session settings
   const settings = {
     sessionId,
     cwd,
-    currentProvider: 'default',
+    currentProvider: existing?.currentProvider || 'default',
     switchProviders: validatedSwitchProviders,
-    change: changeValue,
+    change: change || existing?.change || '',
   };
 
   writeSessionSettings(sessionId, settings);

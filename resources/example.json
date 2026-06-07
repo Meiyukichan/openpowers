@@ -1,30 +1,40 @@
 {
   "explore": {
     "title": "",
+    "inputPath": "",
+    "outputPath": "",
     "from": "time",
     "to": "time",
-    "status": "ready/pending/in_progress/skipped/done"
+    "status": "in_progress/skipped/done"
   },
   "brainstorm": {
     "title": "",
+    "inputPath": "",
+    "outputPath": "",
     "from": "",
     "to": "",
     "status": ""
   },
   "propose": {
     "title": "",
+    "inputPath": "",
+    "outputPath": "",
     "from": "",
     "to": "",
     "status": ""
   },
   "plan": {
     "title": "",
+    "inputPath": "",
+    "outputPath": "",
     "from": "",
     "to": "",
     "status": ""
   },
   "reviewArtifacts": {
     "title": "",
+    "inputPath": "",
+    "outputPath": "",
     "from": "",
     "to": "",
     "status": ""
@@ -35,6 +45,8 @@
       "progress": [
         {
           "title": "",
+          "inputPath": "",
+          "outputPath": "",
           "from": "",
           "to": "",
           "status": ""
@@ -45,18 +57,24 @@
   "finalize": {
     "integration": {
       "title": "",
+      "inputPath": "",
+      "outputPath": "",
       "from": "",
       "to": "",
       "status": ""
     },
     "codecheck": {
       "title": "",
+      "inputPath": "",
+      "outputPath": "",
       "from": "",
       "to": "",
       "status": ""
     },
     "archive": {
       "title": "",
+      "inputPath": "",
+      "outputPath": "",
       "from": "",
       "to": "",
       "status": ""

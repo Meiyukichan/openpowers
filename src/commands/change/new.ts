@@ -8,12 +8,13 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../../utils/logger.js';
+import { createOrUpdateChange } from '../../utils/memory.js';
 import {
   CHANGES_DIR,
   CHANGES_JSON_PATH,
   toRelativePath,
   validateChangeName,
-  loadOrCreateChangesJson,
+  syncChangesJson,
 } from './shared.js';
 
 /**
@@ -30,8 +31,8 @@ export function runChangeNew(name: string, options: { desc: string }): void {
     process.exit(1);
   }
 
-  // Check for duplicate in changes.json
-  const data = loadOrCreateChangesJson();
+  // Sync changes.json from filesystem, then check for duplicate
+  const data = syncChangesJson();
   const existing = data.changes.find((c) => c.name === name);
   if (existing) {
     existing.description = options.desc ?? name;
@@ -43,6 +44,9 @@ export function runChangeNew(name: string, options: { desc: string }): void {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+    // Sync to global memory changes.json
+    createOrUpdateChange(process.cwd(), name, options.desc ?? name);
 
     process.stdout.write(`Change '${name}' already exists, description updated\n`);
     return;
@@ -78,6 +82,9 @@ export function runChangeNew(name: string, options: { desc: string }): void {
     fs.mkdirSync(dir, { recursive: true });
   }
   fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+  // Sync to global memory changes.json
+  createOrUpdateChange(process.cwd(), name, options.desc ?? name);
 
   logger.info(`Change '${name}' registered in changes.json`);
   process.stdout.write(`Change '${name}' created successfully\n`);

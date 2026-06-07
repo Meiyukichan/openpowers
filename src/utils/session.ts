@@ -52,7 +52,11 @@ export function readSessionSettings(sessionId: string): SessionSettings | null {
     return null;
   }
   const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw) as SessionSettings;
+  const settings = JSON.parse(raw) as SessionSettings;
+  // Normalize cwd: resolve double-escaped backslashes from stored JSON
+  // (e.g., D:\\project-code\\llm -> D:\project-code\llm)
+  settings.cwd = settings.cwd.replace(/\\\\/g, '\\');
+  return settings;
 }
 
 /**

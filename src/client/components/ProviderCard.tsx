@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Provider } from '../../server/providers-store.js';
-import { Play, Check, Pencil, Trash2 } from 'lucide-react';
+import { Play, Check, Pencil, Trash2, Power, PowerOff } from 'lucide-react';
 import AnthropicSvg from '../icons/anthropic.svg?url';
 import DeepSeekSvg from '../icons/deepseek.svg?url';
 import XiaomimimoSvg from '../icons/xiaomimimo.svg?url';
@@ -27,6 +27,8 @@ interface ProviderCardProps {
   onDelete: (provider: Provider) => void;
   /** Callback to set this provider as the active provider */
   onSetActive: (provider: Provider) => void;
+  /** Callback to toggle the enabled state of this provider */
+  onToggleEnabled?: (provider: Provider) => void;
   /** Whether this provider is the currently active provider */
   isActive: boolean;
 }
@@ -93,10 +95,12 @@ function getEnableButtonState(
  * ProviderCard renders a card for a single provider.
  * Shows provider details and reveals action buttons on hover via group opacity transition.
  */
-export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive }: ProviderCardProps): React.ReactElement {
+export function ProviderCard({ provider, onEdit, onDelete, onSetActive, onToggleEnabled, isActive }: ProviderCardProps): React.ReactElement {
   const { t } = useTranslation();
   const [enablePending, setEnablePending] = useState(false);
+  const [togglePending, setTogglePending] = useState(false);
   const buttonState = getEnableButtonState(isActive, t);
+  const isDisabled = provider.enabled === false;
 
   const handleEnable = async () => {
     if (isActive) return;
@@ -108,6 +112,16 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
     }
   };
 
+  const handleToggleEnabled = async () => {
+    if (!onToggleEnabled) return;
+    setTogglePending(true);
+    try {
+      await onToggleEnabled(provider);
+    } finally {
+      setTogglePending(false);
+    }
+  };
+
   return React.createElement(
     'div',
     {
@@ -115,7 +129,7 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
         isActive
           ? 'border-blue-500/60 shadow-sm shadow-blue-500/10'
           : 'border-border hover:border-blue-500/50'
-      }`,
+      }${isDisabled ? ' opacity-50 grayscale' : ''}`,
     },
     // Gradient overlay for active provider blue background
     React.createElement('div', {
@@ -193,6 +207,24 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isActive
           React.createElement(buttonState.icon, { size: 14 }),
           buttonState.text,
         ),
+        // Disable/Enable toggle button
+        onToggleEnabled &&
+          React.createElement(
+            'button',
+            {
+              type: 'button',
+              onClick: handleToggleEnabled,
+              disabled: togglePending,
+              'aria-label': isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
+              className: `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                isDisabled
+                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-900/60'
+                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+              }`,
+            },
+            React.createElement(isDisabled ? Power : PowerOff, { size: 14 }),
+            isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
+          ),
         // Edit button
         React.createElement(
           'button',

@@ -18,6 +18,7 @@ const mockProviders: Provider[] = [
     sonnetModel: 'claude-sonnet-4-20250514',
     opusModel: 'claude-opus-4-20250514',
     haikuModel: 'claude-haiku-3-5-20241022',
+    enabled: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   },
   {
@@ -27,6 +28,7 @@ const mockProviders: Provider[] = [
     sonnetModel: 'gpt-4-turbo',
     opusModel: 'gpt-4',
     haikuModel: 'gpt-4o-mini',
+    enabled: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   },
 ];
@@ -38,6 +40,7 @@ const mockDefaultProvider: Provider = {
   sonnetModel: 'claude-sonnet-4-20250514',
   opusModel: 'claude-opus-4-20250514',
   haikuModel: 'claude-haiku-3-5-20241022',
+  enabled: true,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 

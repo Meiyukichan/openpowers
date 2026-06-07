@@ -87,6 +87,7 @@ const sampleProvider = {
   sonnetModel: 'test-sonnet-model',
   opusModel: 'test-opus-model',
   haikuModel: 'test-haiku-model',
+  enabled: true,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -162,6 +163,32 @@ describe('loadProviders', () => {
     expect(result).toEqual(sampleProviderList);
   });
 
+  it('should apply Zod default enabled=true for providers missing the enabled field (backward compatibility)', () => {
+    existsSyncMock.mockReturnValue(true);
+    // Write a provider without the enabled field (simulating legacy data)
+    const providerWithoutEnabled = {
+      id: 'legacy-uuid',
+      name: 'Legacy Provider',
+      apiKey: 'sk-legacy',
+      defaultModel: 'legacy-model',
+      sonnetModel: '',
+      opusModel: '',
+      haikuModel: '',
+      createdAt: '2025-01-01T00:00:00.000Z',
+    };
+    const storeJson = JSON.stringify({
+      activeProviderId: null,
+      providers: [providerWithoutEnabled],
+    });
+    readFileSyncMock.mockReturnValue(storeJson);
+
+    const result = mod.loadProviders();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('legacy-uuid');
+    expect(result[0].enabled).toBe(true);
+  });
+
   it('should ensure file exists before reading', () => {
     mod.loadProviders();
 
@@ -212,6 +239,7 @@ describe('createProvider', () => {
       sonnetModel: 'sonnet-model',
       opusModel: 'opus-model',
       haikuModel: 'haiku-model',
+      enabled: true,
     };
     const result = mod.createProvider(input);
 
@@ -247,6 +275,7 @@ describe('createProvider', () => {
       defaultModel: 'dm',
       sonnetModel: 'sm',
       opusModel: 'om',
+      enabled: true,
       haikuModel: 'hm',
     };
     const result = mod.createProvider(input);
@@ -277,6 +306,7 @@ describe('createProvider', () => {
       sonnetModel: 'sm',
       opusModel: 'om',
       haikuModel: 'hm',
+      enabled: true,
     };
 
     expect(() => mod.createProvider(input)).toThrow(/already exists/i);
@@ -297,10 +327,32 @@ describe('createProvider', () => {
       sonnetModel: 'sm',
       opusModel: 'om',
       haikuModel: 'hm',
+      enabled: true,
     };
 
     expect(() => mod.createProvider(input)).toThrow();
     expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should create provider with enabled=false when input specifies enabled=false', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(combinedStore([]));
+    randomUUIDMock.mockReturnValue('disabled-uuid-123');
+
+    const input = {
+      name: 'Disabled Provider',
+      apiKey: 'sk-disabled',
+      defaultModel: 'default-model',
+      sonnetModel: 'sonnet-model',
+      opusModel: 'opus-model',
+      haikuModel: 'haiku-model',
+      enabled: false,
+    };
+    const result = mod.createProvider(input);
+
+    expect(result.id).toBe('disabled-uuid-123');
+    expect(result.name).toBe('Disabled Provider');
+    expect(result.enabled).toBe(false);
   });
 
   it('should create provider when name differs only in case (case-sensitive matching)', () => {
@@ -319,6 +371,7 @@ describe('createProvider', () => {
       sonnetModel: 'sm',
       opusModel: 'om',
       haikuModel: 'hm',
+      enabled: true,
     };
 
     const result = mod.createProvider(input);
@@ -372,6 +425,48 @@ describe('updateProvider', () => {
     readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
 
     expect(() => mod.updateProvider('non-existent', { name: 'X' })).toThrow('not found');
+  });
+
+  it('should clear activeProviderId when disabling the active provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    readFileSyncMock.mockReturnValue(
+      combinedStore(sampleProviderList, '550e8400-e29b-41d4-a716-446655440000'),
+    );
+
+    const result = mod.updateProvider('550e8400-e29b-41d4-a716-446655440000', { enabled: false });
+
+    expect(result.enabled).toBe(false);
+    // Should write once with activeProviderId cleared
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.activeProviderId).toBeNull();
+    // Provider should be updated in the providers array with enabled=false
+    const updatedProvider = parsed.providers.find(
+      (p: { id: string }) => p.id === '550e8400-e29b-41d4-a716-446655440000',
+    );
+    expect(updatedProvider.enabled).toBe(false);
+  });
+
+  it('should preserve activeProviderId when disabling a non-active provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    const otherProvider = {
+      ...sampleProvider,
+      id: 'other-id',
+      enabled: true,
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([sampleProvider, otherProvider], 'other-id'),
+    );
+
+    const result = mod.updateProvider('550e8400-e29b-41d4-a716-446655440000', { enabled: false });
+
+    expect(result.enabled).toBe(false);
+    // Should write once with activeProviderId preserved
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    const [, content] = writeFileSyncMock.mock.calls[0];
+    const parsed = JSON.parse(content);
+    expect(parsed.activeProviderId).toBe('other-id');
   });
 });
 
@@ -614,6 +709,22 @@ describe('getActiveProvider', () => {
     expect(result!.id).toBe('550e8400-e29b-41d4-a716-446655440000');
     expect(result!.name).toBe('Test Provider');
   });
+
+  it('should return null when activeProviderId points to a disabled provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    const disabledProvider = {
+      ...sampleProvider,
+      id: 'disabled-active-id',
+      enabled: false,
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([disabledProvider], 'disabled-active-id'),
+    );
+
+    const result = mod.getActiveProvider();
+
+    expect(result).toBeNull();
+  });
 });
 
 describe('setActiveProviderId', () => {
@@ -638,6 +749,49 @@ describe('setActiveProviderId', () => {
     readFileSyncMock.mockReturnValue(combinedStore(sampleProviderList));
 
     expect(() => mod.setActiveProviderId('non-existent-id')).toThrow('not found');
+  });
+
+  it('should throw error when trying to activate a disabled provider', () => {
+    existsSyncMock.mockReturnValue(true);
+    const disabledProvider = {
+      ...sampleProvider,
+      id: 'disabled-provider-id',
+      enabled: false,
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([disabledProvider, sampleProvider], null),
+    );
+
+    expect(() => mod.setActiveProviderId('disabled-provider-id')).toThrow(
+      /Cannot activate disabled provider/,
+    );
+  });
+
+  it('should allow activation after a disabled provider is re-enabled', () => {
+    existsSyncMock.mockReturnValue(true);
+    const disabledProvider = {
+      ...sampleProvider,
+      id: 're-enabled-provider-id',
+      enabled: false,
+    };
+    // Store with disabled provider
+    const initialData = combinedStore([disabledProvider], null);
+    readFileSyncMock.mockReturnValue(initialData);
+
+    // First, update the provider to enabled=true
+    mod.updateProvider('re-enabled-provider-id', { enabled: true });
+
+    // After updateProvider writes, capture the written JSON for the next read
+    const [, updatedJson] = writeFileSyncMock.mock.calls[writeFileSyncMock.mock.calls.length - 1];
+    readFileSyncMock.mockReturnValue(updatedJson);
+
+    // Now activation should succeed
+    expect(() => mod.setActiveProviderId('re-enabled-provider-id')).not.toThrow();
+
+    // Verify the active provider was set
+    const [, content] = writeFileSyncMock.mock.calls[writeFileSyncMock.mock.calls.length - 1];
+    const parsed = JSON.parse(content);
+    expect(parsed.activeProviderId).toBe('re-enabled-provider-id');
   });
 });
 
@@ -745,6 +899,31 @@ describe('getDefaultProvider', () => {
     expect(result).toBeNull();
     expect(readFileSyncMock).not.toHaveBeenCalled();
   });
+
+  it('should only return enabled=true providers, skipping disabled ones', () => {
+    existsSyncMock.mockReturnValue(true);
+    const disabledProvider = {
+      ...sampleProvider,
+      id: 'disabled-first-id',
+      name: 'Disabled First',
+      enabled: false,
+    };
+    const enabledProvider = {
+      ...sampleProvider,
+      id: 'enabled-second-id',
+      name: 'Enabled Second',
+      enabled: true,
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([disabledProvider, enabledProvider], null),
+    );
+
+    const result = mod.getDefaultProvider();
+
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('enabled-second-id');
+    expect(result!.enabled).toBe(true);
+  });
 });
 
 // ---- getProviderByModels ----
@@ -843,6 +1022,25 @@ describe('getProviderByModels', () => {
 
     // Should return the first provider that matches
     expect(result).toEqual({ 'shared-model': provider2 });
+  });
+
+  it('should not return disabled providers even when model matches', () => {
+    existsSyncMock.mockReturnValue(true);
+    const disabledProvider = {
+      ...sampleProvider,
+      id: 'disabled-match-id',
+      name: 'Disabled Match',
+      defaultModel: 'disabled-model',
+      enabled: false,
+    };
+    readFileSyncMock.mockReturnValue(
+      combinedStore([disabledProvider]),
+    );
+
+    const result = mod.getProviderByModels(['disabled-model']);
+
+    // The disabled provider should be filtered out, so no match
+    expect(result).toEqual({ 'disabled-model': null });
   });
 });
 

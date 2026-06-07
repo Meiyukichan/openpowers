@@ -140,22 +140,6 @@ export function computeProgress(planPath: string): { features: number; todo: num
   }
 }
 
-// Re-export stage schemas and types from stage.ts
-export {
-  BasicStageSchema,
-  SubAgentDevStageSchema,
-  FinalizeStageSchema,
-  ChangeStageSchema,
-  StagePartialSchema,
-} from './stage.js';
-export type {
-  BasicStage,
-  SubAgentDevStage,
-  FinalizeStage,
-  ChangeStage,
-  StagePartial,
-} from './stage.js';
-
 /**
  * Loads openpowers/changes.json or returns the default structure if it does not exist.
  * Silently auto-creates changes.json with default values when missing.

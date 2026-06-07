@@ -199,6 +199,32 @@ export function App(): React.ReactElement {
     }
   };
 
+  // --- Toggle enabled handler ---
+
+  /**
+   * Toggles the enabled state of a provider via PUT /openpowers/api/providers/:id/enabled,
+   * then refreshes the provider list and active state.
+   */
+  const handleToggleEnabled = async (provider: Provider) => {
+    const nextEnabled = !(provider.enabled ?? true);
+    try {
+      const response = await fetch(`/openpowers/api/providers/${provider.id}/enabled`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: nextEnabled }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      triggerRefresh();
+      showToast(nextEnabled ? t('toast.providerEnabled') : t('toast.providerDisabled'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to toggle provider enabled state: ${message}`);
+      showToast(t('toast.operationFailed', { message }), 'error');
+    }
+  };
+
   const handleToggleProxy = async () => {
     const nextState = !enableOpenpowersProxy;
     try {
@@ -243,6 +269,7 @@ export function App(): React.ReactElement {
             onDelete: handleOpenDeleteDialog,
             onAddProvider: handleOpenAddDialog,
             onSetActive: handleSetActive,
+            onToggleEnabled: handleToggleEnabled,
             activeProviderId,
             refreshTrigger,
           })

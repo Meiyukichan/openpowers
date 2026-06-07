@@ -231,6 +231,7 @@ describe('Provider Routes', () => {
         sonnetModel: 'sm',
         opusModel: 'om',
         haikuModel: 'hm',
+        enabled: true,
       });
     });
 
@@ -930,6 +931,130 @@ describe('Provider Routes', () => {
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
       expect(res.body.error).toMatch(/not found/i);
+    });
+  });
+
+  // ---- PUT /openpowers/api/providers/:id/enabled ----
+
+  describe('PUT /openpowers/api/providers/:id/enabled', () => {
+    it('should disable provider and return updated provider with 200', async () => {
+      const disabledProvider = { ...sampleProvider, enabled: false };
+      updateProviderMock.mockReturnValue(disabledProvider);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: false });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(disabledProvider);
+      expect(updateProviderMock).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+        { enabled: false },
+      );
+    });
+
+    it('should enable provider and return updated provider with 200', async () => {
+      const enabledProvider = { ...sampleProvider, enabled: true };
+      updateProviderMock.mockReturnValue(enabledProvider);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(enabledProvider);
+      expect(updateProviderMock).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+        { enabled: true },
+      );
+    });
+
+    it('should return 404 when provider ID does not exist', async () => {
+      updateProviderMock.mockImplementation(() => {
+        throw new Error('not found');
+      });
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/non-existent/enabled')
+        .send({ enabled: false });
+
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should return 400 when enabled field is missing', async () => {
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should return 400 when enabled field is not a boolean', async () => {
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: 'yes' });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should sync Claude settings when disabling active provider with proxy off', async () => {
+      getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      const disabledProvider = { ...sampleProvider, enabled: false };
+      updateProviderMock.mockReturnValue(disabledProvider);
+      getActiveProviderMock.mockReturnValue(null); // after disable, no active provider
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: false });
+
+      expect(res.status).toBe(200);
+      expect(restoreClaudeSettingsMock).toHaveBeenCalled();
+    });
+
+    it('should not sync Claude settings when disabling non-active provider', async () => {
+      getActiveProviderIdMock.mockReturnValue('different-provider-id');
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      const disabledProvider = { ...sampleProvider, enabled: false };
+      updateProviderMock.mockReturnValue(disabledProvider);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: false });
+
+      expect(res.status).toBe(200);
+      expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
+      expect(writeEnvToClaudeSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it('should write provider env when disabling active provider with proxy on', async () => {
+      getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
+      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      const disabledProvider = { ...sampleProvider, enabled: false };
+      updateProviderMock.mockReturnValue(disabledProvider);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: false });
+
+      expect(res.status).toBe(200);
+      expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
+    });
+
+    it('should return 200 when enabling a disabled provider', async () => {
+      getActiveProviderIdMock.mockReturnValue(null);
+      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      const enabledProvider = { ...sampleProvider, enabled: true };
+      updateProviderMock.mockReturnValue(enabledProvider);
+
+      const res = await request(app)
+        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .send({ enabled: true });
+
+      expect(res.status).toBe(200);
     });
   });
 

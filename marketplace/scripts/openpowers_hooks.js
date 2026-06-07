@@ -33,44 +33,42 @@ const PROMPT_PATTERN = /"prompt"\s*:\s*"(\/openpowers:workflow[^"]*)"/i;
 const COMMAND_PATTERN = /"command"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"description":/;
 
 /** Extract change name from openpowers change new command */
-const CHANGE_NEW_PATTERN = /openpowers change new (\S+)/;
+const CHANGE_NEW_PATTERN = /openpowers change new\s+(\S+)/;
 
 /**
- * Parse stdin raw text to extract session_id, purpose, cwd, and prompt using regex.
+ * Parse stdin raw text to extract session_id and cwd using regex.
  * Uses regex-based extraction (not JSON.parse) to avoid failures caused
  * by encoding issues, malformed JSON, BOM characters, or non-JSON content.
- * Matches the original Python openpowers_hooks.py logic exactly.
+ * Only extracts common fields needed by all handlers (sessionId, cwd).
+ * Purpose and prompt are parsed by individual handler functions as needed.
  * @param {string} rawInput - Raw stdin text
- * @returns {{ sessionId: string|undefined, purpose: string|undefined, cwd: string|undefined, prompt: string|undefined }}
+ * @returns {{ sessionId: string|undefined, cwd: string|undefined }}
  */
 export function parseStdin(rawInput) {
   if (!rawInput || !rawInput.trim()) {
-    return { sessionId: undefined, purpose: undefined, cwd: undefined, prompt: undefined };
+    return { sessionId: undefined, cwd: undefined };
   }
 
   const sessionMatch = rawInput.match(SESSION_ID_PATTERN);
-  const purposeMatch = rawInput.match(PURPOSE_PATTERN);
   const cwdMatch = rawInput.match(CWD_PATTERN);
-  const promptMatch = rawInput.match(PROMPT_PATTERN);
 
   return {
     sessionId: sessionMatch ? sessionMatch[1] : undefined,
-    purpose: purposeMatch ? purposeMatch[1].toLowerCase() : undefined,
     cwd: cwdMatch ? cwdMatch[1] : undefined,
-    prompt: promptMatch ? promptMatch[1] : undefined,
   };
 }
 
 /**
  * Validate data for --before-agent mode
- * @param {{ sessionId?: string, purpose?: string, cwd?: string }} parsed
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string|undefined} purpose - The parsed purpose (explicit parameter)
  * @returns {string|null} Error message if invalid, null if valid
  */
-export function validateBeforeAgent(parsed) {
+export function validateBeforeAgent(parsed, purpose) {
   if (!parsed.sessionId) {
     return 'Missing required field: session_id';
   }
-  if (!parsed.purpose) {
+  if (!purpose) {
     return 'Missing required field: purpose (OpenPowers:*:Purpose)';
   }
   if (!parsed.cwd) {
@@ -179,18 +177,82 @@ export function writeLog(sessionId, message) {
   }
 }
 
+/** Extract prompt from rawInput regex (for JSON.parse fallback) */
+const RAW_PROMPT_PATTERN = /"prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/;
+
+/** Extract description from rawInput regex (for JSON.parse fallback) */
+const DESCRIPTION_PATTERN = /"description"\s*:\s*"((?:[^"\\]|\\.)*)"/;
+
+/** Extract tool_use_id from rawInput regex (similar to SESSION_ID_PATTERN) */
+const TOOL_USE_ID_PATTERN = /"tool_use_id"\s*:\s*"([a-zA-Z0-9-]+)"/;
+
 /**
- * Handle --before-agent mode: validate input, init session, and switch to target stage.
- * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ * Extract prompt, description, and tool_use_id from rawInput.
+ * Tries JSON.parse first, falls back to regex extraction.
+ * @param {string} rawInput - Raw stdin text
+ * @returns {{ prompt: string|undefined, description: string|undefined, toolUseId: string|undefined }}
  */
-export function runBeforeAgent(parsed) {
-  const error = validateBeforeAgent(parsed);
+function extractToolInput(rawInput) {
+  let prompt;
+  let description;
+  let toolUseId;
+
+  try {
+    const data = JSON.parse(rawInput);
+    prompt = data.tool_input?.prompt;
+    description = data.tool_input?.description;
+    toolUseId = data.tool_use_id;
+  } catch {
+    // JSON.parse failed, fall back to regex
+    const promptMatch = rawInput.match(RAW_PROMPT_PATTERN);
+    const descMatch = rawInput.match(DESCRIPTION_PATTERN);
+    const tidMatch = rawInput.match(TOOL_USE_ID_PATTERN);
+    prompt = promptMatch ? promptMatch[1] : undefined;
+    description = descMatch ? descMatch[1] : undefined;
+    toolUseId = tidMatch ? tidMatch[1] : undefined;
+  }
+
+  return { prompt, description, toolUseId };
+}
+
+/**
+ * Write prompt content to a file in the session directory.
+ * Creates directory if it does not exist. Silently logs on failure.
+ * @param {string} sessionId - The session ID
+ * @param {string} toolUseId - The tool use ID (used as filename)
+ * @param {string} prompt - The prompt content to write
+ */
+function writePromptFile(sessionId, toolUseId, prompt) {
+  try {
+    const sessionDir = path.join(os.homedir(), '.openpowers', 'sessions', sessionId);
+    if (!fs.existsSync(sessionDir)) {
+      fs.mkdirSync(sessionDir, { recursive: true });
+    }
+    const filePath = path.join(sessionDir, `${toolUseId}.txt`);
+    fs.writeFileSync(filePath, prompt, 'utf-8');
+  } catch {
+    // Silently fail if writing prompt file is not available
+  }
+}
+
+/**
+ * Handle --before-agent mode: validate input, init session, switch to target stage,
+ * extract tool input, write prompt file, and call change stage.
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string} rawInput - Raw stdin text
+ */
+export function runBeforeAgent(parsed, rawInput) {
+  // Parse purpose internally
+  const purposeMatch = (rawInput || '').match(PURPOSE_PATTERN);
+  const purpose = purposeMatch ? purposeMatch[1].toLowerCase() : undefined;
+
+  const error = validateBeforeAgent(parsed, purpose);
   if (error) {
     return;
   }
 
   writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
-  writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: ${parsed.purpose}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- openpowers-purpose: ${purpose}`);
   writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
 
   // Initialize the agent session first
@@ -202,22 +264,56 @@ export function runBeforeAgent(parsed) {
     writeLog(parsed.sessionId, `Result of init-agent hook: returncode=${initResult.status}, stdout='${initResult.stdout}', stderr='${initResult.stderr}'`);
   }
 
+  // Map integration→coding for agents switch, keep original for change stage
+  const switchPurpose = purpose === 'integration' ? 'coding' : purpose;
+  const stagePurpose = purpose;
+
   // Then switch to the target stage
-  const command = buildBeforeAgentCommand(parsed.sessionId, parsed.purpose);
+  const command = buildBeforeAgentCommand(parsed.sessionId, switchPurpose);
   const commandStr = command.join(' ');
   writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
   const result = executeCommand(command, parsed.cwd);
   if (result !== null) {
     writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
   }
+
+  // Extract prompt/description/tool_use_id from stdin
+  const { prompt, description, toolUseId } = extractToolInput(rawInput);
+
+  // Write prompt to file if both prompt and toolUseId are present
+  let inputPath;
+  if (prompt && toolUseId) {
+    writePromptFile(parsed.sessionId, toolUseId, prompt);
+    inputPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, `${toolUseId}.txt`);
+  }
+
+  // Call change stage command
+  const stageArgs = ['openpowers', 'change', 'stage', stagePurpose, '--session', parsed.sessionId, '--status', 'in_progress'];
+  if (description) {
+    stageArgs.push('--title', description);
+  }
+  if (inputPath) {
+    stageArgs.push('--input', inputPath);
+  }
+  const stageCommandStr = stageArgs.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${stageCommandStr} (cwd: ${parsed.cwd})`);
+  const stageResult = executeCommand(stageArgs, parsed.cwd);
+  if (stageResult !== null) {
+    writeLog(parsed.sessionId, `Result of change-stage hook: returncode=${stageResult.status}, stdout='${stageResult.stdout}', stderr='${stageResult.stderr}'`);
+  }
 }
 
 /**
  * Handle --after-agent mode: validate input, init session, and switch to workflow stage.
- * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string} rawInput - Raw stdin text
  */
-export function runAfterAgent(parsed) {
-  const error = validateBeforeAgent(parsed);
+export function runAfterAgent(parsed, rawInput) {
+  // Parse purpose internally from rawInput
+  const purposeMatch = (rawInput || '').match(PURPOSE_PATTERN);
+  const purpose = purposeMatch ? purposeMatch[1].toLowerCase() : undefined;
+
+  const error = validateBeforeAgent(parsed, purpose);
   if (error) {
     return;
   }
@@ -287,10 +383,15 @@ export function runBeforePropose(parsed) {
  * Only processes when prompt matches /openpowers:workflow prefix and all
  * required fields (session_id, cwd) are present and cwd path exists.
  * No stdout/stderr output; writes execution log to the hooks log file.
- * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string} rawInput - Raw stdin text
  */
-export function runInitAgent(parsed) {
-  if (!parsed.prompt) {
+export function runInitAgent(parsed, rawInput) {
+  // Parse prompt internally from rawInput
+  const promptMatch = (rawInput || '').match(PROMPT_PATTERN);
+  const prompt = promptMatch ? promptMatch[1] : undefined;
+
+  if (!prompt) {
     return;
   }
   if (!parsed.sessionId) {
@@ -347,8 +448,27 @@ export function extractChangeName(rawCommand) {
 }
 
 /**
- * Handle --before-bash mode: extract command from rawInput, detect openpowers change new,
- * and execute agents init with --change to auto-associate session change context.
+ * Build and execute agents init command with --change for the "change new" case.
+ * @param {{ sessionId?: string, cwd?: string }} parsed
+ * @param {string} changeName - The change name extracted from the command
+ */
+export function executeChangeNewInit(parsed, changeName) {
+  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- change-name: ${changeName}`);
+  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
+
+  const initCommand = [...buildInitCommand(parsed.sessionId, parsed.cwd), '--change', changeName];
+  const commandStr = initCommand.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
+  const result = executeCommand(initCommand, parsed.cwd, { silent: true });
+  if (result !== null) {
+    writeLog(parsed.sessionId, `Result of before-bash hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+}
+
+/**
+ * Handle --before-bash mode: extract command from rawInput, detect openpowers commands,
+ * and dispatch to the appropriate case handler.
  * @param {{ sessionId?: string, purpose?: string, cwd?: string, prompt?: string }} parsed
  * @param {string} rawInput - Raw stdin text (needed to extract command field)
  */
@@ -373,23 +493,15 @@ export function runBeforeBash(parsed, rawInput) {
     return;
   }
 
+  // Case dispatch for openpowers commands
   const changeName = extractChangeName(rawCommand);
-  if (!changeName) {
+  if (changeName) {
+    // Case: openpowers change new <name> --desc <desc>
+    executeChangeNewInit(parsed, changeName);
     return;
   }
 
-  writeLog(parsed.sessionId, `Accepted hook request --- session-id: ${parsed.sessionId}`);
-  writeLog(parsed.sessionId, `Accepted hook request --- change-name: ${changeName}`);
-  writeLog(parsed.sessionId, `Accepted hook request --- cwd: ${parsed.cwd}`);
-
-  // Execute agents init with --change to auto-associate session change context
-  const initCommand = [...buildInitCommand(parsed.sessionId, parsed.cwd), '--change', changeName];
-  const commandStr = initCommand.join(' ');
-  writeLog(parsed.sessionId, `Running command: ${commandStr} (cwd: ${parsed.cwd})`);
-  const result = executeCommand(initCommand, parsed.cwd, { silent: true });
-  if (result !== null) {
-    writeLog(parsed.sessionId, `Result of before-bash hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
-  }
+  // Future cases can be added here
 }
 
 /**
@@ -424,11 +536,11 @@ export function main() {
   const parsed = parseStdin(rawInput);
 
   if (isBeforeAgent) {
-    runBeforeAgent(parsed);
+    runBeforeAgent(parsed, rawInput);
   } else if (isAfterAgent) {
-    runAfterAgent(parsed);
+    runAfterAgent(parsed, rawInput);
   } else if (isInitAgent) {
-    runInitAgent(parsed);
+    runInitAgent(parsed, rawInput);
   } else if (isBeforePropose) {
     runBeforePropose(parsed);
   } else if (isBeforeBash) {
