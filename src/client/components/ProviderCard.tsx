@@ -207,24 +207,6 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, onToggle
           React.createElement(buttonState.icon, { size: 14 }),
           buttonState.text,
         ),
-        // Disable/Enable toggle button
-        onToggleEnabled &&
-          React.createElement(
-            'button',
-            {
-              type: 'button',
-              onClick: handleToggleEnabled,
-              disabled: togglePending,
-              'aria-label': isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
-              className: `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                isDisabled
-                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-900/60'
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
-              }`,
-            },
-            React.createElement(isDisabled ? Power : PowerOff, { size: 14 }),
-            isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
-          ),
         // Edit button
         React.createElement(
           'button',
@@ -238,6 +220,24 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, onToggle
           },
           React.createElement(Pencil, { size: 16 }),
         ),
+        // Disable/Enable toggle button
+        onToggleEnabled &&
+          React.createElement(
+            'button',
+            {
+              type: 'button',
+              onClick: handleToggleEnabled,
+              disabled: togglePending,
+              title: isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
+              'aria-label': isDisabled ? t('providerCard.enableToggle') : t('providerCard.disable'),
+              className: `p-2 rounded-lg transition-colors ${
+                isDisabled
+                  ? 'text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/40'
+                  : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+              }`,
+            },
+            React.createElement(isDisabled ? Power : PowerOff, { size: 16 }),
+          ),
         // Delete button
         React.createElement(
           'button',

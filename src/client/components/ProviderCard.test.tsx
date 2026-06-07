@@ -436,7 +436,7 @@ describe('ProviderCard', () => {
     expect(rootElement.className).not.toContain('grayscale');
   });
 
-  // provider-01: Disable button shown for enabled providers
+  // provider-01: Disable button shown for enabled providers (icon only, uses aria-label)
   it('renders disable button when provider is enabled (not disabled)', () => {
     renderProviderCard({
       provider: { ...baseProvider, enabled: true },
@@ -446,7 +446,7 @@ describe('ProviderCard', () => {
       onDelete: vi.fn(),
       onToggleEnabled: vi.fn(),
     });
-    expect(screen.getByText('禁用')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '禁用' })).toBeInTheDocument();
   });
 
   // provider-01: Enable toggle button shown for disabled providers (using aria-label)
@@ -459,7 +459,7 @@ describe('ProviderCard', () => {
       onDelete: vi.fn(),
       onToggleEnabled: vi.fn(),
     });
-    const enableToggleButton = screen.getByRole('button', { name: '启用' });
+    const enableToggleButton = screen.getByRole('button', { name: '激活' });
     expect(enableToggleButton).toBeInTheDocument();
   });
 
@@ -504,7 +504,7 @@ describe('ProviderCard', () => {
       onEdit: vi.fn(),
       onDelete: vi.fn(),
     });
-    // The toggle button uses aria-label '启用' when provider is disabled — this should not exist
-    expect(screen.queryByRole('button', { name: '启用' })).not.toBeInTheDocument();
+    // The toggle button uses aria-label '激活' when provider is disabled — this should not exist
+    expect(screen.queryByRole('button', { name: '激活' })).not.toBeInTheDocument();
   });
 });
