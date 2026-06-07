@@ -216,6 +216,58 @@ function extractToolInput(rawInput) {
 }
 
 /**
+ * Extract tool_response from rawInput.
+ * Tries JSON.parse first, falls back to regex extraction.
+ * @param {string} rawInput - Raw stdin text
+ * @returns {object|undefined} The parsed tool_response object, or undefined
+ */
+export function extractToolResponse(rawInput) {
+  if (!rawInput || !rawInput.trim()) {
+    return undefined;
+  }
+
+  try {
+    const data = JSON.parse(rawInput);
+    return data.tool_response;
+  } catch {
+    // JSON.parse failed, fall back to regex
+    const match = rawInput.match(/"tool_response"\s*:\s*(\{[\s\S]*?\})\s*,\s*"tool_use_id"/);
+    if (match) {
+      try {
+        return JSON.parse(match[1]);
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+}
+
+/**
+ * Write toolResponse JSON to a file in the session directory.
+ * Creates directory if it does not exist. Silently skips if toolResponse or toolUseId is missing.
+ * @param {string} sessionId - The session ID
+ * @param {string} toolUseId - The tool use ID (used as filename)
+ * @param {object} toolResponse - The tool response object to write
+ */
+export function writeOutputFile(sessionId, toolUseId, toolResponse) {
+  if (!toolResponse || !toolUseId) {
+    return;
+  }
+
+  try {
+    const sessionDir = path.join(os.homedir(), '.openpowers', 'sessions', sessionId);
+    if (!fs.existsSync(sessionDir)) {
+      fs.mkdirSync(sessionDir, { recursive: true });
+    }
+    const filePath = path.join(sessionDir, `${toolUseId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(toolResponse, null, 2), 'utf-8');
+  } catch {
+    // Silently fail if writing output file is not available
+  }
+}
+
+/**
  * Write prompt content to a file in the session directory.
  * Creates directory if it does not exist. Silently logs on failure.
  * @param {string} sessionId - The session ID
@@ -290,10 +342,10 @@ export function runBeforeAgent(parsed, rawInput) {
   // Call change stage command
   const stageArgs = ['openpowers', 'change', 'stage', stagePurpose, '--session', parsed.sessionId, '--status', 'in_progress'];
   if (description) {
-    stageArgs.push('--title', description);
+    stageArgs.push('--title', `"${description.replace(/"/g, "'")}"`);
   }
   if (inputPath) {
-    stageArgs.push('--input', inputPath);
+    stageArgs.push('--input', `"${inputPath}"`);
   }
   const stageCommandStr = stageArgs.join(' ');
   writeLog(parsed.sessionId, `Running command: ${stageCommandStr} (cwd: ${parsed.cwd})`);
@@ -304,7 +356,9 @@ export function runBeforeAgent(parsed, rawInput) {
 }
 
 /**
- * Handle --after-agent mode: validate input, init session, and switch to workflow stage.
+ * Handle --after-agent mode: validate input, init session, switch to workflow stage,
+ * extract tool_input and tool_response, write toolResponse to output file,
+ * and call change stage to record completion status.
  * @param {{ sessionId?: string, cwd?: string }} parsed
  * @param {string} rawInput - Raw stdin text
  */
@@ -313,8 +367,8 @@ export function runAfterAgent(parsed, rawInput) {
   const purposeMatch = (rawInput || '').match(PURPOSE_PATTERN);
   const purpose = purposeMatch ? purposeMatch[1].toLowerCase() : undefined;
 
-  const error = validateBeforeAgent(parsed, purpose);
-  if (error) {
+  // Validate required fields (purpose is optional for after-agent)
+  if (!parsed.sessionId || !parsed.cwd || !fs.existsSync(parsed.cwd)) {
     return;
   }
 
@@ -337,6 +391,39 @@ export function runAfterAgent(parsed, rawInput) {
   const result = executeCommand(command, parsed.cwd);
   if (result !== null) {
     writeLog(parsed.sessionId, `Result of switch-agent hook: returncode=${result.status}, stdout='${result.stdout}', stderr='${result.stderr}'`);
+  }
+
+  // Extract prompt/description/tool_use_id from stdin
+  const { prompt, description, toolUseId } = extractToolInput(rawInput);
+
+  // Extract tool_response from stdin
+  const toolResponse = extractToolResponse(rawInput);
+
+  // Write toolResponse to file if both toolResponse and toolUseId are present
+  let outputPath;
+  if (toolResponse && toolUseId) {
+    writeOutputFile(parsed.sessionId, toolUseId, toolResponse);
+    outputPath = path.join(os.homedir(), '.openpowers', 'sessions', parsed.sessionId, `${toolUseId}.json`);
+  }
+
+  // Call change stage command with --status done
+  if (!purpose) {
+    return;
+  }
+  const stagePurpose = purpose;
+
+  const stageArgs = ['openpowers', 'change', 'stage', stagePurpose, '--session', parsed.sessionId, '--status', 'done'];
+  if (description) {
+    stageArgs.push('--title', `"${description.replace(/"/g, "'")}"`);
+  }
+  if (outputPath) {
+    stageArgs.push('--output', `"${outputPath}"`);
+  }
+  const stageCommandStr = stageArgs.join(' ');
+  writeLog(parsed.sessionId, `Running command: ${stageCommandStr} (cwd: ${parsed.cwd})`);
+  const stageResult = executeCommand(stageArgs, parsed.cwd);
+  if (stageResult !== null) {
+    writeLog(parsed.sessionId, `Result of change-stage hook: returncode=${stageResult.status}, stdout='${stageResult.stdout}', stderr='${stageResult.stderr}'`);
   }
 }
 

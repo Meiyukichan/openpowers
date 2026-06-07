@@ -16,20 +16,21 @@ import os from 'os';
 import path from 'path';
 import module from 'module';
 import { z } from 'zod';
+import { normalizePath } from './common.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
 
 /**
  * Flattens a cwd path into a safe directory name.
- * Step 1: replace all \ with /
+ * Step 1: normalize path (collapse doubled separators, unify backslashes)
  * Step 2: replace : with _ (Windows drive letter separator)
  * Step 3: replace / with _
  * @param cwd - The current working directory path
  * @returns Flattened path safe for use as a directory name
  */
 export function flattenCwdPath(cwd: string): string {
-  return cwd.replace(/\\/g, '/').replace(/:/g, '_').replace(/\//g, '_');
+  return normalizePath(cwd).replace(/:/g, '_').replace(/\//g, '_');
 }
 
 /** Schema for a single stage step with title metadata */
@@ -87,6 +88,8 @@ export interface StageUpdate {
   reviewArtifacts?: Partial<StageStep>;
   subAgentDev?: unknown[];
   finalize?: { integration?: Partial<StageStep>; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> };
+  review?: Partial<StageStep>;
+  coding?: unknown[];
 }
 
 /** Schema for a single change entry in changes.json */
@@ -173,9 +176,81 @@ export function readMemoryChangesJson(cwd: string): ChangesJson {
 }
 
 /**
+ * Scans the openpowers/archive/ directory for a directory matching the pattern
+ * YYYY-MM-DD-<changeName>. Returns the relative archive path if found, null otherwise.
+ * @param cwd - The working directory path
+ * @param changeName - The change name to look for
+ * @returns The relative archive path or null
+ */
+function tryFindArchiveDir(cwd: string, changeName: string): string | null {
+  const archiveDir = path.join(cwd, 'openpowers', 'archive');
+  if (!fs.existsSync(archiveDir)) {
+    return null;
+  }
+  try {
+    const entries = fs.readdirSync(archiveDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      // Archive dirs use YYYY-MM-DD-<name> format
+      const suffix = `-${changeName}`;
+      if (entry.name.endsWith(suffix)) {
+        return `openpowers/archive/${entry.name}`;
+      }
+    }
+  } catch {
+    // If readdir fails, treat as not found
+  }
+  return null;
+}
+
+/**
+ * Normalizes all StageStep status fields to 'done' for an archived entry.
+ * Covers: explore, brainstorm, propose, plan, reviewArtifacts, finalize (integration/codecheck/archive),
+ * and all subAgentDev[].progress[] items.
+ * Does NOT modify updatedAt field.
+ * @param entry - The change entry to normalize
+ */
+function normalizeStageStatuses(entry: ChangeEntry): void {
+  if (!entry.stage) return;
+
+  const stage = entry.stage;
+  const stageSteps: StageStep[] = [];
+
+  // Top-level StageStep fields
+  if (stage.explore) stageSteps.push(stage.explore);
+  if (stage.brainstorm) stageSteps.push(stage.brainstorm);
+  if (stage.propose) stageSteps.push(stage.propose);
+  if (stage.plan) stageSteps.push(stage.plan);
+  if (stage.reviewArtifacts) stageSteps.push(stage.reviewArtifacts);
+
+  // Finalize sub-steps
+  if (stage.finalize?.integration) stageSteps.push(stage.finalize.integration);
+  if (stage.finalize?.codecheck) stageSteps.push(stage.finalize.codecheck);
+  if (stage.finalize?.archive) stageSteps.push(stage.finalize.archive);
+
+  for (const step of stageSteps) {
+    step.status = 'done';
+  }
+
+  // subAgentDev progress items
+  if (Array.isArray(stage.subAgentDev)) {
+    for (const sad of stage.subAgentDev) {
+      if (Array.isArray(sad.progress)) {
+        for (const prog of sad.progress) {
+          prog.status = 'done';
+        }
+      }
+    }
+  }
+}
+
+/**
  * Ensures the global memory changes.json file exists and syncs path existence.
  * Seeds from project-local openpowers/changes.json if the file does not exist.
  * Validates each entry's path exists on disk; marks missing as 'removed' and writes back.
+ * Detects archived changes (moved from openpowers/changes/ to openpowers/archive/).
+ * For archived entries, normalizes stage statuses to 'done'.
+ * Does NOT modify updateAt field.
  * @param cwd - The working directory path
  * @returns The parsed and validated ChangesJson object
  */
@@ -188,6 +263,26 @@ export function ensureMemoryChangesJson(cwd: string): ChangesJson {
   try {
     const result = JSON.parse(raw) as ChangesJson;
     result.changes = checkPathsExist(result.changes, cwd);
+
+    // For entries marked as 'removed', check if they've been archived
+    for (const entry of result.changes) {
+      if (entry.status === 'removed') {
+        const archivePath = tryFindArchiveDir(cwd, entry.name);
+        if (archivePath) {
+          entry.status = 'archived';
+          entry.path = archivePath;
+          normalizeStageStatuses(entry);
+        }
+      }
+    }
+
+    // Sync features/todo from plan.json for all entries whose path exists
+    for (const entry of result.changes) {
+      if (entry.status !== 'removed') {
+        syncEntryFeatures(entry, cwd);
+      }
+    }
+
     writeMemoryChangesJson(cwd, result);
     return result;
   } catch {
@@ -317,6 +412,30 @@ function buildArtifactsForEntry(entryPath: string, changeName: string): Array<{ 
 }
 
 /**
+ * Syncs an entry's features and todo fields from plan.json located relative to the entry's path.
+ * Does NOT modify updateAt. Does NOT write to disk.
+ * @param entry - The change entry to update
+ * @param cwd - The working directory path
+ */
+function syncEntryFeatures(entry: ChangeEntry, cwd: string): void {
+  const entryPath = path.join(cwd, entry.path);
+  const planPath = path.join(entryPath, 'plan.json');
+
+  try {
+    if (fs.existsSync(planPath)) {
+      const raw = fs.readFileSync(planPath, 'utf-8');
+      const plan = JSON.parse(raw);
+      if (Array.isArray(plan)) {
+        entry.features = plan.length;
+        entry.todo = plan.filter((f: { status?: string }) => f.status !== 'done').length;
+      }
+    }
+  } catch {
+    // Keep existing values on parse failure
+  }
+}
+
+/**
  * Syncs an entry's progress fields (features, todo, artifacts) from the filesystem.
  * References loadOrCreateChangesJson logic: reads plan.json for features/todo counts,
  * scans the change directory for artifact files. Does NOT write to disk.
@@ -352,8 +471,8 @@ function syncEntryProgress(entry: ChangeEntry, cwd: string, changeName: string):
  * @param entry - The change entry to update
  * @param exploreData - The explore stage data to apply
  */
-function exploreStage(entry: ChangeEntry, exploreData: Partial<StageStep>): void {
-  if (!exploreData || exploreData.status === 'skipped') {
+function handleExploreStage(entry: ChangeEntry, exploreData: Partial<StageStep>): void {
+  if (!exploreData) {
     return;
   }
 
@@ -396,7 +515,7 @@ function exploreStage(entry: ChangeEntry, exploreData: Partial<StageStep>): void
  * @param _entry - The change entry (unused)
  * @param _data - The brainstorm stage data (unused)
  */
-function brainstormStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
+function handleBrainstormStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
   // No-op: not yet implemented
 }
 
@@ -405,7 +524,7 @@ function brainstormStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void 
  * @param _entry - The change entry (unused)
  * @param _data - The propose stage data (unused)
  */
-function proposeStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
+function handleProposeStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
   // No-op: not yet implemented
 }
 
@@ -414,7 +533,7 @@ function proposeStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
  * @param _entry - The change entry (unused)
  * @param _data - The plan stage data (unused)
  */
-function planStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
+function handlePlanStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
   // No-op: not yet implemented
 }
 
@@ -423,17 +542,97 @@ function planStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
  * @param _entry - The change entry (unused)
  * @param _data - The reviewArtifacts stage data (unused)
  */
-function reviewArtifactsStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
+function handleReviewArtifactsStage(_entry: ChangeEntry, _data?: Partial<StageStep>): void {
   // No-op: not yet implemented
 }
 
 /**
- * Placeholder for subAgentDev stage processing (not yet implemented).
- * @param _entry - The change entry (unused)
- * @param _data - The subAgentDev stage data (unused)
+ * Handles the coding stage update with featureId matching and progress merge.
+ *
+ * Each item in the codingData array is expected to be of the form:
+ *   { featureId: string, progress: [{ title, from, to, status, inputPath, outputPath }] }
+ *
+ * Merge logic:
+ * - Find matching SubAgentDevProgress by featureId
+ * - If found: iterate progress[], find title match and merge (new non-empty values win)
+ * - If no title match: append new progress item
+ * - If no featureId match: create new SubAgentDevProgress and append to subAgentDev array
+ *
+ * @param entry - The change entry to update
+ * @param codingData - Array of SubAgentDevProgress-like objects
  */
-function subAgentDevStage(_entry: ChangeEntry, _data?: unknown[]): void {
-  // No-op: not yet implemented
+function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
+  if (!codingData || !Array.isArray(codingData) || codingData.length === 0) {
+    return;
+  }
+
+  if (!entry.stage) {
+    entry.stage = {} as ChangeStage;
+  }
+
+  if (!Array.isArray(entry.stage.subAgentDev)) {
+    entry.stage.subAgentDev = [];
+  }
+
+  for (const item of codingData) {
+    const itemObj = item as Record<string, unknown>;
+    const featureId = typeof itemObj.featureId === 'string' ? itemObj.featureId : '';
+    const newProgress = Array.isArray(itemObj.progress) ? (itemObj.progress as Partial<StageStep>[]) : [];
+
+    if (newProgress.length === 0) continue;
+
+    // Find existing SubAgentDevProgress by featureId
+    const existingSAD = entry.stage.subAgentDev.find(
+      (sad) => (sad as SubAgentDevProgress).featureId === featureId,
+    ) as SubAgentDevProgress | undefined;
+
+    if (existingSAD) {
+      // Merge each new progress item into the existing progress array
+      for (const newItem of newProgress) {
+        const newTitle = newItem.title ?? '';
+        // Only try to match by title if title is provided (non-empty)
+        const matchIndex = newTitle
+          ? existingSAD.progress.findIndex((p) => p.title === newTitle)
+          : -1;
+
+        if (matchIndex >= 0) {
+          // Merge: new non-empty values override, empty/empty-string values skip
+          const existing = existingSAD.progress[matchIndex];
+          if (newItem.title && newItem.title !== '') existing.title = newItem.title;
+          if (newItem.from && newItem.from !== '') existing.from = newItem.from;
+          if (newItem.to && newItem.to !== '') existing.to = newItem.to;
+          if (newItem.status) existing.status = newItem.status;
+          if (newItem.inputPath && newItem.inputPath !== '') existing.inputPath = newItem.inputPath;
+          if (newItem.outputPath && newItem.outputPath !== '') existing.outputPath = newItem.outputPath;
+        } else {
+          // No title match — append as new progress entry
+          const newEntry: StageStep = {
+            title: newItem.title ?? '',
+            from: newItem.from ?? new Date().toISOString(),
+            to: newItem.to ?? new Date().toISOString(),
+            status: newItem.status ?? 'in_progress',
+            inputPath: newItem.inputPath ?? '',
+            outputPath: newItem.outputPath ?? '',
+          };
+          existingSAD.progress.push(newEntry);
+        }
+      }
+    } else {
+      // No matching featureId — create new SubAgentDevProgress
+      const newProgressEntries: StageStep[] = newProgress.map((np) => ({
+        title: np.title ?? '',
+        from: np.from ?? new Date().toISOString(),
+        to: np.to ?? new Date().toISOString(),
+        status: np.status ?? 'in_progress',
+        inputPath: np.inputPath ?? '',
+        outputPath: np.outputPath ?? '',
+      }));
+      entry.stage.subAgentDev.push({
+        featureId,
+        progress: newProgressEntries,
+      });
+    }
+  }
 }
 
 /**
@@ -441,7 +640,7 @@ function subAgentDevStage(_entry: ChangeEntry, _data?: unknown[]): void {
  * @param _entry - The change entry (unused)
  * @param _data - The finalize stage data (unused)
  */
-function finalizeStage(_entry: ChangeEntry, _data?: { integration?: Partial<StageStep>; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> }): void {
+function handleFinalizeStage(_entry: ChangeEntry, _data?: { integration?: Partial<StageStep>; codecheck?: Partial<StageStep>; archive?: Partial<StageStep> }): void {
   // No-op: not yet implemented
 }
 
@@ -454,25 +653,25 @@ function finalizeStage(_entry: ChangeEntry, _data?: { integration?: Partial<Stag
  */
 export function createOrUpdateStage(entry: ChangeEntry, changeStage: StageUpdate): void {
   if (changeStage.explore) {
-    exploreStage(entry, changeStage.explore);
+    handleExploreStage(entry, changeStage.explore);
   }
   if (changeStage.brainstorm) {
-    brainstormStage(entry, changeStage.brainstorm);
+    handleBrainstormStage(entry, changeStage.brainstorm);
   }
   if (changeStage.propose) {
-    proposeStage(entry, changeStage.propose);
+    handleProposeStage(entry, changeStage.propose);
   }
   if (changeStage.plan) {
-    planStage(entry, changeStage.plan);
+    handlePlanStage(entry, changeStage.plan);
   }
-  if (changeStage.reviewArtifacts) {
-    reviewArtifactsStage(entry, changeStage.reviewArtifacts);
+  if (changeStage.reviewArtifacts || changeStage.review) {
+    handleReviewArtifactsStage(entry, changeStage.reviewArtifacts ?? changeStage.review);
   }
-  if (changeStage.subAgentDev) {
-    subAgentDevStage(entry, changeStage.subAgentDev);
+  if (changeStage.subAgentDev || changeStage.coding) {
+    handleCodingStage(entry, changeStage.subAgentDev ?? changeStage.coding);
   }
   if (changeStage.finalize) {
-    finalizeStage(entry, changeStage.finalize);
+    handleFinalizeStage(entry, changeStage.finalize);
   }
 }
 

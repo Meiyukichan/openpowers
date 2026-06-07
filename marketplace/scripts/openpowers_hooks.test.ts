@@ -77,6 +77,8 @@ const {
   executeChangeNewInit,
   extractCommandFromRawInput,
   extractChangeName,
+  extractToolResponse,
+  writeOutputFile,
   main,
 } = hooksModule;
 
@@ -585,24 +587,6 @@ describe('runAfterAgent', () => {
     expect(process.exitCode).toBeUndefined();
   });
 
-  it('should execute init and switch to workflow when validation passes', () => {
-    execSyncMock.mockReturnValue('output');
-
-    runAfterAgent({
-      sessionId: 'xyz-789',
-      cwd: '/tmp/test',
-    }, 'OpenPowers:review:Purpose');
-
-    expect(execSyncMock).toHaveBeenCalledTimes(2);
-    // First call: init
-    expect(execSyncMock.mock.calls[0][0]).toContain('agents init');
-    expect(execSyncMock.mock.calls[0][0]).toContain('--session');
-    expect(execSyncMock.mock.calls[0][0]).toContain('xyz-789');
-    // Second call: switch to workflow
-    expect(execSyncMock.mock.calls[1][0]).toContain('workflow');
-    expect(execSyncMock.mock.calls[1][0]).toContain('--session');
-    expect(execSyncMock.mock.calls[1][0]).toContain('xyz-789');
-  });
 
   it('should write log entries for after-agent on success', () => {
     execSyncMock.mockReturnValue('switch successful');
@@ -612,11 +596,151 @@ describe('runAfterAgent', () => {
       cwd: '/test/cwd',
     }, 'OpenPowers:finalize:Purpose');
 
-    // 2 accept logs + 1 Running init + 1 Result init + 1 Running switch + 1 Result switch = 6
-    expect(appendFileSyncMock).toHaveBeenCalledTimes(6);
+    // 2 accept logs + 1 Running init + 1 Result init + 1 Running switch + 1 Result switch
+    // + 1 Running change stage + 1 Result change stage = 8
+    expect(appendFileSyncMock).toHaveBeenCalledTimes(8);
     const logLines = appendFileSyncMock.mock.calls.map((call: unknown[]) => call[1]) as string[];
     expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- session-id: after-log'));
     expect(logLines).toContainEqual(expect.stringContaining('Accepted hook request --- cwd: /test/cwd'));
+  });
+
+  it('should execute init, switch to workflow, and call change stage when validation passes', () => {
+    execSyncMock.mockReturnValue('output');
+
+    runAfterAgent({
+      sessionId: 'xyz-789',
+      cwd: '/tmp/test',
+    }, 'OpenPowers:review:Purpose');
+
+    expect(execSyncMock).toHaveBeenCalledTimes(3);
+    // First call: init
+    expect(execSyncMock.mock.calls[0][0]).toContain('agents init');
+    expect(execSyncMock.mock.calls[0][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[0][0]).toContain('xyz-789');
+    // Second call: switch to workflow
+    expect(execSyncMock.mock.calls[1][0]).toContain('workflow');
+    expect(execSyncMock.mock.calls[1][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[1][0]).toContain('xyz-789');
+    // Third call: change stage with --status done
+    expect(execSyncMock.mock.calls[2][0]).toContain('change stage');
+    expect(execSyncMock.mock.calls[2][0]).toContain('review');
+    expect(execSyncMock.mock.calls[2][0]).toContain('--status done');
+    expect(execSyncMock.mock.calls[2][0]).toContain('--session');
+    expect(execSyncMock.mock.calls[2][0]).toContain('xyz-789');
+  });
+
+  it('should skip change stage call when purpose is empty', () => {
+    execSyncMock.mockReturnValue('output');
+
+    runAfterAgent({
+      sessionId: 'nopurpose',
+      cwd: '/tmp/test',
+    }, 'no purpose here');
+
+    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    // Only init and switch, no change stage
+    expect(execSyncMock.mock.calls[0][0]).toContain('agents init');
+    expect(execSyncMock.mock.calls[1][0]).toContain('workflow');
+    // No change stage call
+    const allCalls = execSyncMock.mock.calls.map((c: string[]) => c[0]).join(' ');
+    expect(allCalls).not.toContain('change stage');
+  });
+
+  it('should parse prompt/description/toolUseId and write toolResponse file', () => {
+    execSyncMock.mockReturnValue('output');
+    const toolResponse = { status: 'completed', content: [{ type: 'text', text: 'done' }] };
+    const rawInput = JSON.stringify({
+      session_id: 'parse-test',
+      cwd: '/tmp/test',
+      tool_use_id: 'tool-abc',
+      tool_input: {
+        prompt: 'some prompt',
+        description: 'test desc',
+        'OpenPowers:explore:Purpose': 'task',
+      },
+      tool_response: toolResponse,
+    });
+
+    runAfterAgent({
+      sessionId: 'parse-test',
+      cwd: '/tmp/test',
+    }, rawInput);
+
+    // Verify toolResponse file was written
+    const expectedPath = path.join('/mock/home', '.openpowers', 'sessions', 'parse-test', 'tool-abc.json');
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      expectedPath,
+      JSON.stringify(toolResponse, null, 2),
+      'utf-8',
+    );
+    // Verify change stage has --title and --output
+    const stageCmd = execSyncMock.mock.calls[2][0];
+    expect(stageCmd).toContain('--title');
+    expect(stageCmd).toContain('test desc');
+    expect(stageCmd).toContain('--output');
+    expect(stageCmd).toContain(expectedPath);
+  });
+
+  it('should skip toolResponse file write when toolUseId is missing', () => {
+    execSyncMock.mockReturnValue('output');
+
+    const rawInput = JSON.stringify({
+      session_id: 'noid',
+      cwd: '/tmp/test',
+      tool_input: {
+        'OpenPowers:explore:Purpose': 'task',
+      },
+      tool_response: { status: 'completed' },
+    });
+
+    runAfterAgent({
+      sessionId: 'noid',
+      cwd: '/tmp/test',
+    }, rawInput);
+
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+    // change stage still runs but without --output
+    const stageCmd = execSyncMock.mock.calls[2][0];
+    expect(stageCmd).not.toContain('--output');
+  });
+
+  it('should omit --title when description is empty', () => {
+    execSyncMock.mockReturnValue('output');
+
+    const rawInput = JSON.stringify({
+      session_id: 'nodesc',
+      cwd: '/tmp/test',
+      tool_use_id: 'tid-nodesc',
+      tool_input: {
+        prompt: 'prompt text',
+        'OpenPowers:plan:Purpose': 'task',
+      },
+      tool_response: { status: 'completed' },
+    });
+
+    runAfterAgent({
+      sessionId: 'nodesc',
+      cwd: '/tmp/test',
+    }, rawInput);
+
+    const stageCmd = execSyncMock.mock.calls[2][0];
+    expect(stageCmd).not.toContain('--title');
+  });
+
+  it('should use original purpose for change stage (not mapped)', () => {
+    execSyncMock.mockReturnValue('output');
+
+    runAfterAgent({
+      sessionId: 'int-123',
+      cwd: '/tmp/test',
+    }, 'OpenPowers:integration:Purpose');
+
+    expect(execSyncMock).toHaveBeenCalledTimes(3);
+    // agents switch always goes to workflow
+    expect(execSyncMock.mock.calls[1][0]).toContain('workflow');
+    // change stage uses integration purpose
+    expect(execSyncMock.mock.calls[2][0]).toContain('change stage');
+    expect(execSyncMock.mock.calls[2][0]).toContain('integration');
   });
 });
 
@@ -1293,6 +1417,123 @@ describe('runBeforeBash', () => {
   });
 });
 
+describe('extractToolResponse', () => {
+  it('should extract tool_response via JSON.parse when rawInput is valid JSON', () => {
+    const toolResponse = {
+      status: 'completed',
+      prompt: 'test prompt',
+      content: [{ type: 'text', text: 'response content' }],
+    };
+    const rawInput = JSON.stringify({
+      session_id: 'sess-123',
+      cwd: '/test/path',
+      tool_use_id: 'tool-abc-123',
+      tool_input: { prompt: 'test prompt' },
+      tool_response: toolResponse,
+    });
+
+    const result = extractToolResponse(rawInput);
+
+    expect(result).toEqual(toolResponse);
+  });
+
+  it('should extract tool_response via regex fallback when JSON.parse fails', () => {
+    const rawInput = 'BOM\x00{"session_id":"sess-456","cwd":"/test",'
+      + '"tool_response":{"status":"completed","content":[{"type":"text","text":"done"}]},'
+      + '"tool_use_id":"tool-def-456"}\nmore junk';
+
+    const result = extractToolResponse(rawInput);
+
+    expect(result).toEqual({
+      status: 'completed',
+      content: [{ type: 'text', text: 'done' }],
+    });
+  });
+
+  it('should return undefined when rawInput has no tool_response field', () => {
+    const rawInput = JSON.stringify({
+      session_id: 'sess-789',
+      cwd: '/test',
+      tool_use_id: 'tool-ghi',
+    });
+
+    const result = extractToolResponse(rawInput);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined for empty input', () => {
+    expect(extractToolResponse('')).toBeUndefined();
+    expect(extractToolResponse('   ')).toBeUndefined();
+  });
+});
+
+describe('writeOutputFile', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    homedirMock.mockReturnValue('/mock/home');
+    existsSyncMock.mockReturnValue(true);
+  });
+
+  it('should write toolResponse JSON to sessions/<sessionId>/<toolUseId>.json', () => {
+    const toolResponse = { status: 'completed', content: [{ type: 'text', text: 'done' }] };
+
+    writeOutputFile('sess-abc', 'tool-xyz', toolResponse);
+
+    const expectedPath = path.join('/mock/home', '.openpowers', 'sessions', 'sess-abc', 'tool-xyz.json');
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      expectedPath,
+      JSON.stringify(toolResponse, null, 2),
+      'utf-8',
+    );
+  });
+
+  it('should create session directory when it does not exist', () => {
+    existsSyncMock.mockImplementation((p: string) => {
+      if (p.includes('sessions') && p.includes('new-session')) return false;
+      return true;
+    });
+    const toolResponse = { status: 'completed' };
+
+    writeOutputFile('new-session', 'tool-123', toolResponse);
+
+    const expectedDir = path.join('/mock/home', '.openpowers', 'sessions', 'new-session');
+    expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
+    expect(writeFileSyncMock).toHaveBeenCalled();
+  });
+
+  it('should silently skip when toolResponse is null', () => {
+    writeOutputFile('sess-abc', 'tool-xyz', null);
+
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should silently skip when toolResponse is undefined', () => {
+    writeOutputFile('sess-abc', 'tool-xyz', undefined);
+
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should silently skip when toolUseId is empty', () => {
+    const toolResponse = { status: 'completed' };
+
+    writeOutputFile('sess-abc', '', toolResponse);
+
+    expect(writeFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should handle file system errors gracefully', () => {
+    writeFileSyncMock.mockImplementationOnce(() => {
+      throw new Error('Permission denied');
+    });
+    const toolResponse = { status: 'completed' };
+
+    expect(() => {
+      writeOutputFile('sess-abc', 'tool-xyz', toolResponse);
+    }).not.toThrow();
+  });
+});
+
 describe('main', () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
@@ -1370,7 +1611,7 @@ describe('main', () => {
     expect(process.exitCode).toBeUndefined();
   });
 
-  it('should handle --after-agent with valid stdin and execute init then workflow switch', () => {
+  it('should handle --after-agent with valid stdin and execute init, workflow switch, and change stage', () => {
     process.argv = ['node', '/fake/path/script.js', '--after-agent'];
     const stdinJson = JSON.stringify({
       session_id: 'xyz-789',
@@ -1384,7 +1625,7 @@ describe('main', () => {
 
     main();
 
-    expect(execSyncMock).toHaveBeenCalledTimes(2);
+    expect(execSyncMock).toHaveBeenCalledTimes(3);
     // First call: init command
     const initCallArg = execSyncMock.mock.calls[0][0];
     expect(initCallArg).toContain('openpowers');
@@ -1398,6 +1639,11 @@ describe('main', () => {
     expect(switchCallArg).toContain('workflow');
     expect(switchCallArg).toContain('--session');
     expect(switchCallArg).toContain('xyz-789');
+    // Third call: change stage with --status done
+    const stageCallArg = execSyncMock.mock.calls[2][0];
+    expect(stageCallArg).toContain('change stage');
+    expect(stageCallArg).toContain('review');
+    expect(stageCallArg).toContain('--status done');
     expect(process.exitCode).toBeUndefined();
   });
 

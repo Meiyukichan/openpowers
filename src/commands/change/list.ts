@@ -7,6 +7,7 @@
 
 import { logger } from '../../utils/logger.js';
 import { syncChangesJson, formatRelativeTime } from './shared.js';
+import { ensureMemoryChangesJson } from '../../utils/memory.js';
 
 /**
  * Formats and prints the change list as a table to stdout.
@@ -52,4 +53,5 @@ export function runChangeList(): void {
     process.stdout.write(`${name}  ${progress}  ${description}  ${time}\n`);
   }
   logger.info(`Listed ${allEntries.length} changes`);
+  ensureMemoryChangesJson(process.cwd());
 }

@@ -10,6 +10,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 type DirEntry = { name: string; isDirectory: () => boolean; isFile: () => boolean };
 
 // Hoisted mocks
+const { mockEnsureMemoryChangesJson } = vi.hoisted(() => ({
+  mockEnsureMemoryChangesJson: vi.fn(),
+}));
+
 const { mockLogger } = vi.hoisted(() => ({
   mockLogger: {
     info: vi.fn(),
@@ -76,6 +80,10 @@ vi.mock('../../utils/logger.js', () => ({
   logger: mockLogger,
 }));
 
+vi.mock('../../utils/memory.js', () => ({
+  ensureMemoryChangesJson: mockEnsureMemoryChangesJson,
+}));
+
 describe('src/commands/change/list.ts', () => {
   const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
   const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
@@ -133,5 +141,24 @@ describe('src/commands/change/list.ts', () => {
     expect(stdoutCalls.some((s: unknown) => String(s).includes('Description'))).toBe(true);
     expect(stdoutCalls.some((s: unknown) => String(s).includes('my-feature'))).toBe(true);
     expect(stdoutCalls.some((s: unknown) => String(s).includes('1/2 features'))).toBe(true);
+  });
+
+  it('should call ensureMemoryChangesJson to sync global memory after listing', () => {
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(path.join(CHANGES_DIR, 'my-feature'));
+    mockFs.setFile(path.join(CHANGES_DIR, 'my-feature', 'plan.json'), JSON.stringify([
+      { id: 't1', status: 'done' },
+    ]));
+
+    mockFs.readdirSync.mockImplementation((_p: string, _options?: unknown) => {
+      return [
+        { name: 'my-feature', isDirectory: () => true, isFile: () => false },
+        { name: 'archive', isDirectory: () => true, isFile: () => false },
+      ] as DirEntry[];
+    });
+
+    runChangeList();
+
+    expect(mockEnsureMemoryChangesJson).toHaveBeenCalledWith(process.cwd());
   });
 });
