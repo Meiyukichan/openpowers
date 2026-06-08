@@ -1812,8 +1812,8 @@ describe('src/utils/memory.ts', () => {
 
         // title should be preserved (null -> keep old)
         expect((entry.stage as any).plan.title).toBe('规划阶段');
-        // from should be overridden (non-empty new value)
-        expect((entry.stage as any).plan.from).toBe('2026-06-08T00:00:00Z');
+        // from should be preserved (existing value already set)
+        expect((entry.stage as any).plan.from).toBe('2026-01-01T00:00:00Z');
       });
 
       it('should preserve existing propose.inputPath when data.inputPath is empty string', async () => {
@@ -1851,7 +1851,7 @@ describe('src/utils/memory.ts', () => {
         expect((entry.stage as any).propose.title).toBe('New Title');
       });
 
-      it('should override existing brainstorm.title with non-empty new value', async () => {
+      it('should preserve existing brainstorm.title when already set', async () => {
         const mod = await import('./memory.js');
         const { createOrUpdateStage } = mod;
 
@@ -1880,8 +1880,10 @@ describe('src/utils/memory.ts', () => {
           brainstorm: { title: '头脑风暴阶段', from: '2026-06-08T00:00:00Z', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const },
         });
 
-        // title should be overridden with non-empty new value
-        expect((entry.stage as any).brainstorm.title).toBe('头脑风暴阶段');
+        // title should be preserved (existing value already set)
+        expect((entry.stage as any).brainstorm.title).toBe('旧标题');
+        // from should also be preserved
+        expect((entry.stage as any).brainstorm.from).toBe('2026-01-01T00:00:00Z');
       });
 
       it('should use current ISO timestamp fallback when reviewArtifacts.from is null and no old value exists', async () => {

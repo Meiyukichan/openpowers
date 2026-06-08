@@ -541,11 +541,11 @@ function handleBrainstormStage(entry: ChangeEntry, data?: Partial<StageStep>): v
 
   const existing = entry.stage.brainstorm;
   entry.stage.brainstorm = {
-    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
-    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    title: (existing?.title && existing.title !== '') ? existing.title : ((data.title && data.title !== '') ? data.title : ''),
+    from: (existing?.from && existing.from !== '') ? existing.from : ((data.from && data.from !== '') ? data.from : new Date().toISOString()),
     to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
     status: data.status ?? (existing?.status ?? 'in_progress'),
-    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    inputPath: (existing?.inputPath && existing.inputPath !== '') ? existing.inputPath : ((data.inputPath && data.inputPath !== '') ? data.inputPath : ''),
     outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
@@ -564,11 +564,11 @@ function handleProposeStage(entry: ChangeEntry, data?: Partial<StageStep>): void
 
   const existing = entry.stage.propose;
   entry.stage.propose = {
-    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
-    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    title: (existing?.title && existing.title !== '') ? existing.title : ((data.title && data.title !== '') ? data.title : ''),
+    from: (existing?.from && existing.from !== '') ? existing.from : ((data.from && data.from !== '') ? data.from : new Date().toISOString()),
     to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
     status: data.status ?? (existing?.status ?? 'in_progress'),
-    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    inputPath: (existing?.inputPath && existing.inputPath !== '') ? existing.inputPath : ((data.inputPath && data.inputPath !== '') ? data.inputPath : ''),
     outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
@@ -587,11 +587,11 @@ function handlePlanStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
 
   const existing = entry.stage.plan;
   entry.stage.plan = {
-    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
-    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    title: (existing?.title && existing.title !== '') ? existing.title : ((data.title && data.title !== '') ? data.title : ''),
+    from: (existing?.from && existing.from !== '') ? existing.from : ((data.from && data.from !== '') ? data.from : new Date().toISOString()),
     to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
     status: data.status ?? (existing?.status ?? 'in_progress'),
-    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    inputPath: (existing?.inputPath && existing.inputPath !== '') ? existing.inputPath : ((data.inputPath && data.inputPath !== '') ? data.inputPath : ''),
     outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
@@ -610,11 +610,11 @@ function handleReviewArtifactsStage(entry: ChangeEntry, data?: Partial<StageStep
 
   const existing = entry.stage.reviewArtifacts;
   entry.stage.reviewArtifacts = {
-    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
-    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    title: (existing?.title && existing.title !== '') ? existing.title : ((data.title && data.title !== '') ? data.title : ''),
+    from: (existing?.from && existing.from !== '') ? existing.from : ((data.from && data.from !== '') ? data.from : new Date().toISOString()),
     to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
     status: data.status ?? (existing?.status ?? 'in_progress'),
-    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    inputPath: (existing?.inputPath && existing.inputPath !== '') ? existing.inputPath : ((data.inputPath && data.inputPath !== '') ? data.inputPath : ''),
     outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
