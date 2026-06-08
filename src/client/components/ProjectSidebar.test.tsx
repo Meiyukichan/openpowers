@@ -97,6 +97,7 @@ describe('ProjectSidebar', () => {
   });
 
   beforeEach(() => {
+    localStorage.clear();
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -260,8 +261,14 @@ describe('ProjectSidebar', () => {
       expect(skeletons.length).toBe(0);
     });
 
-    // Archived change should be shown
-    expect(screen.getByText('archived-feature')).toBeInTheDocument();
+    // Groups are collapsed by default; expand a group to see its cards
+    const groupHeaders = document.querySelectorAll('.cursor-pointer');
+    groupHeaders.forEach((header) => fireEvent.click(header));
+
+    // Archived change should be shown after expanding groups
+    await waitFor(() => {
+      expect(screen.getByText('archived-feature')).toBeInTheDocument();
+    });
 
     // Removed change should NOT be shown (client-side filtered)
     expect(screen.queryByText('removed-feature')).not.toBeInTheDocument();

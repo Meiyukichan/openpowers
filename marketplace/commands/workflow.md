@@ -97,6 +97,12 @@ When multiple active changes exist, ask the user to choose which one to resume.
 
 **RED LAW: After completing each phase, immediately start the next phase — do NOT pause and ask the user to confirm. Do not output prompts like "Phase complete, continue?"**.
 
+**Regardless of which phase you ultimately detect for recovery, you MUST first perform the following script to declare that the change <name> is being created or activated.**
+**NOTE AGAGIN! Regardless of which phase you ultimately detect for recovery, you MUST first perform the following script to declare that the change <name> is being created or activated:**
+```bash
+  openpowers change new <name> --desc <brief description of this change [15-30 words] in `language`>
+```
+
 ## Phase 1: Explore
 
 ### Purpose
@@ -105,10 +111,6 @@ Deeply explore ideas, understand context, investigate the codebase, clarify requ
 ### Execution Steps
 At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user). In this phase, you must strictly and accurately follow these steps:
 
-1. You **MUST** use following script to create an OpenPowers change (if this change already exists, following command will mark change invoked):
-  ```bash
-   openpowers change new <name> --desc <brief description of this change [15-30 words] in `language`>
-  ```
 1. Invoke Skill: openpowers-explore to explore the project code, with parameters:
   - Exploration type: project
   - Exploration content: $ARGUMENTS

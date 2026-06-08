@@ -1,5 +1,5 @@
 /**
- * ProjectSidebar component (260px) - displays changes with two views:
+ * ProjectSidebar component (360px) - displays changes with two views:
  * "变更中" (Active): status=active changes as cards
  * "项目" (Projects): all non-removed changes grouped by cwd
  * @author Meiyuki <meiyukichan@163.com>
@@ -14,6 +14,12 @@ import { ChangeCard } from './ChangeCard.js';
 import { ProjectGroup } from './ProjectGroup.js';
 
 type SidebarTab = 'active' | 'projects';
+
+interface TabCache {
+  data: ChangeEntryWithCwd[];
+  query: string;
+  fetched: boolean;
+}
 
 /**
  * Builds the API URL for fetching changes.
@@ -98,29 +104,50 @@ function changeKey(change: ChangeEntryWithCwd): string {
 
 /**
  * ProjectSidebar container component.
- * Manages tab switching, search state per tab, data fetching, and content rendering.
+ * Manages tab switching with per-tab data caching to avoid unnecessary re-fetches.
+ * Search triggers debounced fetches; tab switching shows cached data instantly when available.
  */
+const SIDEBAR_TAB_KEY = 'openpowers:sidebarTab';
+
 export function ProjectSidebar(): React.ReactElement {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<SidebarTab>('active');
+  const [activeTab, setActiveTab] = useState<SidebarTab>(() => {
+    const saved = localStorage.getItem(SIDEBAR_TAB_KEY);
+    return saved === 'projects' ? 'projects' : 'active';
+  });
 
   // Per-tab search state
   const [activeSearch, setActiveSearch] = useState('');
   const [projectsSearch, setProjectsSearch] = useState('');
 
-  // Data and loading state
-  const [changes, setChanges] = useState<ChangeEntryWithCwd[]>([]);
+  // Per-tab data cache
+  const [activeCache, setActiveCache] = useState<TabCache>({ data: [], query: '', fetched: false });
+  const [projectsCache, setProjectsCache] = useState<TabCache>({ data: [], query: '', fetched: false });
+
+  // Loading and error state
   const [loading, setLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Debounce timer ref
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Current search term based on active tab
+  // Current search term and cache based on active tab
   const searchTerm = activeTab === 'active' ? activeSearch : projectsSearch;
+  const currentCache = activeTab === 'active' ? activeCache : projectsCache;
 
-  // Debounced fetch on mount and when tab/search changes
+  // Set current tab's cache
+  const setCurrentCache = useCallback(
+    (updater: (prev: TabCache) => TabCache) => {
+      if (activeTab === 'active') {
+        setActiveCache(updater);
+      } else {
+        setProjectsCache(updater);
+      }
+    },
+    [activeTab],
+  );
+
+  // Fetch data for the current tab
   useEffect(() => {
     let cancelled = false;
     const params: Record<string, string> = {};
@@ -132,13 +159,20 @@ export function ProjectSidebar(): React.ReactElement {
     }
     const isProjectTab = activeTab === 'projects';
 
+    // If cache is fresh (already fetched with the same query), skip loading indicator
+    const isCacheFresh = currentCache.fetched && currentCache.query === searchTerm;
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    debounceRef.current = setTimeout(async () => {
+    // Only show loading skeleton on first fetch; cache hits show data instantly
+    if (!isCacheFresh) {
       setLoading(true);
-      setErrorKey(null);
+    }
+    setErrorKey(null);
+
+    debounceRef.current = setTimeout(async () => {
       try {
         const response = await fetch(getApiUrl(params));
         if (!response.ok) {
@@ -151,7 +185,7 @@ export function ProjectSidebar(): React.ReactElement {
           data = data.filter((c) => c.status !== 'removed');
         }
         if (!cancelled) {
-          setChanges(data);
+          setCurrentCache(() => ({ data, query: searchTerm, fetched: true }));
           setLoading(false);
         }
       } catch {
@@ -160,7 +194,7 @@ export function ProjectSidebar(): React.ReactElement {
           setLoading(false);
         }
       }
-    }, 300);
+    }, isCacheFresh ? 0 : 300);
 
     return () => {
       cancelled = true;
@@ -168,7 +202,7 @@ export function ProjectSidebar(): React.ReactElement {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [activeTab, searchTerm, refreshTrigger]);
+  }, [activeTab, searchTerm, currentCache.fetched, currentCache.query, setCurrentCache]);
 
   // Handle search input change
   const handleSearchChange = useCallback(
@@ -192,22 +226,27 @@ export function ProjectSidebar(): React.ReactElement {
     };
   }, []);
 
+  // Persist active tab to localStorage
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_TAB_KEY, activeTab);
+  }, [activeTab]);
+
   // Tab button styles
   const tabBtnBase =
     'flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200';
   const tabActive = 'text-blue-500 bg-blue-500/10 shadow-sm shadow-blue-500/15 hover:bg-blue-500/20';
   const tabInactive = 'text-muted-foreground hover:bg-muted hover:text-foreground hover:shadow-sm';
 
-  // Retry handler
+  // Retry handler: invalidates cache for current tab to force re-fetch
   const handleRetry = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
+    setCurrentCache((prev) => ({ ...prev, fetched: false }));
+  }, [setCurrentCache]);
 
   // Memoized project grouping: group by cwd, sort groups by latest updateAt
   const sortedGroups = useMemo(() => {
-    if (activeTab !== 'projects' || changes.length === 0) return [];
+    if (activeTab !== 'projects' || currentCache.data.length === 0) return [];
     const groups: Map<string, ChangeEntryWithCwd[]> = new Map();
-    for (const change of changes) {
+    for (const change of currentCache.data) {
       const existing = groups.get(change.cwd);
       if (existing) {
         existing.push(change);
@@ -216,16 +255,17 @@ export function ProjectSidebar(): React.ReactElement {
       }
     }
 
-    // Sort groups by latest updateAt within each group
     return Array.from(groups.entries()).sort(([, a], [, b]) => {
       const aLatest = Math.max(...a.map((c) => (c.updateAt ? new Date(c.updateAt).getTime() : 0)));
       const bLatest = Math.max(...b.map((c) => (c.updateAt ? new Date(c.updateAt).getTime() : 0)));
       return bLatest - aLatest;
     });
-  }, [changes, activeTab]);
+  }, [currentCache.data, activeTab]);
 
   // Render content based on state
   const renderContent = (): React.ReactElement => {
+    const data = currentCache.data;
+
     if (loading) {
       return React.createElement(LoadingSkeleton);
     }
@@ -237,17 +277,16 @@ export function ProjectSidebar(): React.ReactElement {
       });
     }
 
-    if (changes.length === 0) {
+    if (data.length === 0) {
       const emptyKey = activeTab === 'active' ? 'projectSidebar.emptyActive' : 'projectSidebar.emptyProject';
       return React.createElement(EmptyState, { message: t(emptyKey) });
     }
 
     if (activeTab === 'active') {
-      // Render flat list of change cards
       return React.createElement(
         'div',
         { className: 'flex-1 overflow-y-auto p-2 space-y-1.5' },
-        ...changes.map((change) =>
+        ...data.map((change) =>
           React.createElement(ChangeCard, {
             key: changeKey(change),
             change,
@@ -273,7 +312,7 @@ export function ProjectSidebar(): React.ReactElement {
     'div',
     {
       className:
-        'flex flex-col w-[260px] h-full border-r overflow-hidden',
+        'flex flex-col w-[360px] h-full border-r overflow-hidden',
       style: { background: 'linear-gradient(180deg, hsl(var(--muted)/0.4) 0%, hsl(var(--background)) 40px, hsl(var(--background)) 100%)' },
     },
     // Header — elevated with subtle shadow

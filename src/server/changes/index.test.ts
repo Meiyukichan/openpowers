@@ -114,7 +114,7 @@ describe('changesRouter', () => {
         { name: 'change-a', description: 'Change A', cwd: 'D:\\project_a', updateAt: '2026-06-09T10:00:00Z' },
         { name: 'change-b', description: 'Change B', cwd: 'D:\\project_b', updateAt: '2026-06-08T10:00:00Z' },
       ];
-      getAllChangesMock.mockReturnValue(mockChanges);
+      getAllChangesMock.mockResolvedValue(mockChanges);
 
       const app = await createTestApp();
 
@@ -134,7 +134,7 @@ describe('changesRouter', () => {
       const mockChanges = [
         { name: 'active-change', status: 'active', cwd: 'D:\\project', updateAt: '2026-06-09T10:00:00Z' },
       ];
-      getAllChangesMock.mockReturnValue(mockChanges);
+      getAllChangesMock.mockResolvedValue(mockChanges);
 
       const app = await createTestApp();
 
@@ -147,7 +147,7 @@ describe('changesRouter', () => {
     });
 
     it('should pass cwd query param to getAllChanges', async () => {
-      getAllChangesMock.mockReturnValue([]);
+      getAllChangesMock.mockResolvedValue([]);
 
       const app = await createTestApp();
 
@@ -162,7 +162,7 @@ describe('changesRouter', () => {
       const mockChanges = [
         { name: 'ui-change', description: 'UI feature', cwd: 'D:\\project', updateAt: '2026-06-09T10:00:00Z' },
       ];
-      getAllChangesMock.mockReturnValue(mockChanges);
+      getAllChangesMock.mockResolvedValue(mockChanges);
 
       const app = await createTestApp();
 
@@ -175,7 +175,7 @@ describe('changesRouter', () => {
     });
 
     it('should pass all query params combined (AND logic)', async () => {
-      getAllChangesMock.mockReturnValue([]);
+      getAllChangesMock.mockResolvedValue([]);
 
       const app = await createTestApp();
 
@@ -191,7 +191,7 @@ describe('changesRouter', () => {
     });
 
     it('should return 200 with empty array when no changes found', async () => {
-      getAllChangesMock.mockReturnValue([]);
+      getAllChangesMock.mockResolvedValue([]);
 
       const app = await createTestApp();
 
@@ -206,7 +206,7 @@ describe('changesRouter', () => {
     });
 
     it('should return 200 with empty array when empty query string passed', async () => {
-      getAllChangesMock.mockReturnValue([]);
+      getAllChangesMock.mockResolvedValue([]);
 
       const app = await createTestApp();
 
@@ -337,10 +337,8 @@ describe('changesRouter', () => {
       });
     });
 
-    it('should return 500 when getAllChanges throws on GET /all', async () => {
-      getAllChangesMock.mockImplementation(() => {
-        throw new Error('EACCES: permission denied');
-      });
+    it('should return 500 when getAllChanges rejects on GET /all', async () => {
+      getAllChangesMock.mockRejectedValue(new Error('EACCES: permission denied'));
 
       const app = await createTestApp();
 

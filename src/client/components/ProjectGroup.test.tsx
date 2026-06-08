@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import i18next from 'i18next';
@@ -69,6 +69,10 @@ const changes: ChangeEntryWithCwd[] = [
 ];
 
 describe('ProjectGroup', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   beforeAll(async () => {
     i18nInstance = i18next.createInstance();
     await i18nInstance.use(initReactI18next).init({
@@ -89,45 +93,47 @@ describe('ProjectGroup', () => {
     expect(cwdElements.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders change count in group header', () => {
+  it('renders active and archived counts in group header', () => {
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
-    // "(3)" appears in the group header
-    expect(screen.getByText('(3)')).toBeInTheDocument();
+    // 2 active + 1 archived = 3 total shown as individual badges
+    expect(screen.getByText('2')).toBeInTheDocument(); // active count
+    expect(screen.getByText('1')).toBeInTheDocument(); // archived count
   });
 
-  it('shows change cards by default (expanded)', () => {
+  it('is collapsed by default', () => {
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
-    expect(screen.getByText('ui-changes-page')).toBeInTheDocument();
-    expect(screen.getByText('brainstorm-mode')).toBeInTheDocument();
-    expect(screen.getByText('older-change')).toBeInTheDocument();
+    expect(screen.queryByText('ui-changes-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('brainstorm-mode')).not.toBeInTheDocument();
+    expect(screen.queryByText('older-change')).not.toBeInTheDocument();
   });
 
-  it('collapses group when header is clicked', () => {
+  it('expands group when header is clicked', () => {
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
     const header = document.querySelector('.cursor-pointer');
     expect(header).toBeInTheDocument();
 
     fireEvent.click(header!);
 
-    // Cards should be hidden
-    expect(screen.queryByText('ui-changes-page')).not.toBeInTheDocument();
+    // Cards should be visible after click
+    expect(screen.getByText('ui-changes-page')).toBeInTheDocument();
   });
 
-  it('expands group again when clicked after collapse', () => {
+  it('collapses group again when clicked after expand', () => {
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
     const header = document.querySelector('.cursor-pointer');
-
-    // Collapse
-    fireEvent.click(header!);
-    expect(screen.queryByText('ui-changes-page')).not.toBeInTheDocument();
 
     // Expand
     fireEvent.click(header!);
     expect(screen.getByText('ui-changes-page')).toBeInTheDocument();
+
+    // Collapse
+    fireEvent.click(header!);
+    expect(screen.queryByText('ui-changes-page')).not.toBeInTheDocument();
   });
 
   it('renders changes sorted by updateAt descending', () => {
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     const nameElements = document.querySelectorAll('.rounded-xl h3');
     const names = Array.from(nameElements).map((el) => el.textContent);
@@ -178,6 +184,7 @@ describe('ProjectGroup', () => {
     ];
 
     renderProjectGroup('D:\\project-code\\llm\\openpowers', changesWithMissingUpdateAt);
+    fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     const nameElements = document.querySelectorAll('.rounded-xl h3');
     const names = Array.from(nameElements).map((el) => el.textContent);

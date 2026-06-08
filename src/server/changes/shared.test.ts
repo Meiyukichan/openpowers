@@ -5,13 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import fs from 'fs';
 import os from 'os';
-import path from 'path';
+import fsPromises from 'fs/promises';
 
 // ---- mocks ----
 
-vi.mock('fs');
+vi.mock('fs/promises');
 vi.mock('os');
 
 // ---- helpers ----
@@ -49,7 +48,6 @@ beforeEach(() => {
 // ---- helper to import fresh (bypass ESM cache) ----
 
 async function importFresh() {
-  // Invalidate ESM cache for shared module to get fresh imports per test
   return await import('./shared.js?t=' + Date.now());
 }
 
@@ -64,34 +62,26 @@ describe('getAllChanges', () => {
 
   function setupMemoryDir(entries: Array<{ name: string; isDirectory: () => boolean }>) {
     vi.mocked(os.homedir).mockReturnValue('D:\\home');
-    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join('D:\\home', '.openpowers', 'memory')) return true;
-      // Check if this is a changes.json inside a memory subdir we set up
-      for (const entry of entries) {
-        if (pStr === path.join(memoryDir, entry.name, 'changes.json')) return true;
-      }
-      return false;
-    });
-    vi.mocked(fs.readdirSync).mockImplementation(((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join('D:\\home', '.openpowers', 'memory')) {
-        return entries as unknown as fs.Dirent[];
-      }
+    vi.mocked(fsPromises.readdir).mockImplementation(async (p: any) => {
+      if (p === memoryDir) return entries as any;
       return [];
-    }) as unknown as typeof fs.readdirSync);
+    });
+    vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+      for (const entry of entries) {
+        if (p === `${memoryDir}\\${entry.name}\\changes.json`) {
+          return '{}';
+        }
+      }
+      throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    });
   }
 
   it('should return empty array when no Memory_ directories exist', async () => {
     vi.mocked(os.homedir).mockReturnValue('D:\\home');
-    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
-      return String(p) === path.join('D:\\home', '.openpowers', 'memory');
-    });
-    vi.mocked(fs.readdirSync).mockReturnValue([]);
+    vi.mocked(fsPromises.readdir).mockResolvedValue([]);
 
     const { getAllChanges } = await importFresh();
-
-    const result = getAllChanges();
+    const result = await getAllChanges();
     expect(result).toEqual([]);
   });
 
@@ -103,21 +93,19 @@ describe('getAllChanges', () => {
     const jsonA = createChangesJson({ cwd: 'D:\\project_a', changes: [changeA] });
     const jsonB = createChangesJson({ cwd: 'D:\\project_b', changes: [changeB, changeC] });
 
-    setupMemoryDir([
+    vi.mocked(os.homedir).mockReturnValue('D:\\home');
+    vi.mocked(fsPromises.readdir).mockResolvedValue([
       { name: 'Memory_D__project_a', isDirectory: () => true },
       { name: 'Memory_D__project_b', isDirectory: () => true },
-    ]);
-
-    vi.mocked(fs.readFileSync).mockImplementation(((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join(memoryDirA, 'changes.json')) return JSON.stringify(jsonA, null, 2);
-      if (pStr === path.join(memoryDirB, 'changes.json')) return JSON.stringify(jsonB, null, 2);
-      return '';
-    }) as unknown as typeof fs.readFileSync);
+    ] as any);
+    vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+      if (p === `${memoryDirA}\\changes.json`) return JSON.stringify(jsonA, null, 2);
+      if (p === `${memoryDirB}\\changes.json`) return JSON.stringify(jsonB, null, 2);
+      throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    });
 
     const { getAllChanges } = await importFresh();
-
-    const result = getAllChanges();
+    const result = await getAllChanges();
     expect(result).toHaveLength(3);
     expect(result[0].name).toBe('change-a');
     expect(result[1].name).toBe('change-b');
@@ -128,19 +116,17 @@ describe('getAllChanges', () => {
     const changeA = createChangeEntry({ name: 'change-a', updateAt: '2026-06-09T10:00:00Z' });
     const jsonA = createChangesJson({ cwd: 'D:\\project_a', changes: [changeA] });
 
-    setupMemoryDir([
+    vi.mocked(os.homedir).mockReturnValue('D:\\home');
+    vi.mocked(fsPromises.readdir).mockResolvedValue([
       { name: 'Memory_D__project_a', isDirectory: () => true },
-    ]);
-
-    vi.mocked(fs.readFileSync).mockImplementation(((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join(memoryDirA, 'changes.json')) return JSON.stringify(jsonA, null, 2);
-      return '';
-    }) as unknown as typeof fs.readFileSync);
+    ] as any);
+    vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+      if (p === `${memoryDirA}\\changes.json`) return JSON.stringify(jsonA, null, 2);
+      throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    });
 
     const { getAllChanges } = await importFresh();
-
-    const result = getAllChanges();
+    const result = await getAllChanges();
     expect(result[0].cwd).toBe('D:\\project_a');
   });
 
@@ -148,32 +134,18 @@ describe('getAllChanges', () => {
     const changeA = createChangeEntry({ name: 'change-a', updateAt: '2026-06-09T10:00:00Z' });
     const jsonA = createChangesJson({ cwd: 'D:\\project_a', changes: [changeA] });
 
-    const entries = [
+    vi.mocked(os.homedir).mockReturnValue('D:\\home');
+    vi.mocked(fsPromises.readdir).mockResolvedValue([
       { name: 'Memory_D__project_a', isDirectory: () => true },
       { name: 'Memory_D__project_b', isDirectory: () => true },
-    ];
-
-    vi.mocked(os.homedir).mockReturnValue('D:\\home');
-    vi.mocked(fs.readdirSync).mockImplementation(((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join('D:\\home', '.openpowers', 'memory')) {
-        return entries as unknown as fs.Dirent[];
-      }
-      return [];
-    }) as unknown as typeof fs.readdirSync);
-    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
-      const pStr = String(p);
-      if (pStr === path.join('D:\\home', '.openpowers', 'memory')) return true;
-      // Only project_a has changes.json
-      if (pStr === path.join(memoryDirA, 'changes.json')) return true;
-      return false;
+    ] as any);
+    vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+      if (p === `${memoryDirA}\\changes.json`) return JSON.stringify(jsonA, null, 2);
+      throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
     });
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(jsonA, null, 2));
 
     const { getAllChanges } = await importFresh();
-
-    const result = getAllChanges();
-    // Should still get changes from project_a, skipping project_b
+    const result = await getAllChanges();
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('change-a');
   });
@@ -189,31 +161,28 @@ describe('getAllChanges', () => {
     });
 
     beforeEach(() => {
-      setupMemoryDir([
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
         { name: 'Memory_D__project_a', isDirectory: () => true },
-      ]);
-
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(jsonA, null, 2));
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify(jsonA, null, 2));
     });
 
     it('should filter by status=active', async () => {
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges({ status: 'active' });
+      const result = await getAllChanges({ status: 'active' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('active-change');
     });
 
     it('should filter by status=archived', async () => {
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges({ status: 'archived' });
+      const result = await getAllChanges({ status: 'archived' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('archived-change');
     });
 
     it('should filter by cwd parameter', async () => {
-      // Setup two memory dirs with different cwds
       vi.clearAllMocks();
 
       const changeA = createChangeEntry({ name: 'change-a', updateAt: '2026-06-09T10:00:00Z' });
@@ -222,46 +191,43 @@ describe('getAllChanges', () => {
       const jsonA = createChangesJson({ cwd: 'D:\\target-project', changes: [changeA] });
       const jsonB = createChangesJson({ cwd: 'D:\\other-project', changes: [changeB] });
 
-      // flattenCwdPath('D:\\target-project') => 'Memory_D__target-project'
       const targetDirName = 'Memory_D__target-project';
       const otherDirName = 'Memory_D__other-project';
 
-      setupMemoryDir([
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
         { name: targetDirName, isDirectory: () => true },
         { name: otherDirName, isDirectory: () => true },
-      ]);
-
-      vi.mocked(fs.readFileSync).mockImplementation(((p: fs.PathLike) => {
-        const pStr = String(p);
-        if (pStr === path.join(memoryDir, targetDirName, 'changes.json')) return JSON.stringify(jsonA, null, 2);
-        if (pStr === path.join(memoryDir, otherDirName, 'changes.json')) return JSON.stringify(jsonB, null, 2);
-        return '';
-      }) as unknown as typeof fs.readFileSync);
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+        if (p === `${memoryDir}\\${targetDirName}\\changes.json`) return JSON.stringify(jsonA, null, 2);
+        if (p === `${memoryDir}\\${otherDirName}\\changes.json`) return JSON.stringify(jsonB, null, 2);
+        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      });
 
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges({ cwd: 'D:\\target-project' });
+      const result = await getAllChanges({ cwd: 'D:\\target-project' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('change-a');
     });
 
     it('should filter by cwd with no matching directory returns empty', async () => {
-      const { getAllChanges } = await importFresh();
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([]);
 
-      const result = getAllChanges({ cwd: 'D:\\nonexistent' });
+      const { getAllChanges } = await importFresh();
+      const result = await getAllChanges({ cwd: 'D:\\nonexistent' });
       expect(result).toEqual([]);
     });
 
     it('should filter by query matching name (case-insensitive)', async () => {
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges({ query: 'ACTIVE' });
+      const result = await getAllChanges({ query: 'ACTIVE' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('active-change');
     });
 
     it('should filter by query matching description (case-insensitive)', async () => {
-      // Add a change with matching description
       vi.clearAllMocks();
 
       const changeWithDesc = createChangeEntry({ name: 'ui-change', description: '实现UI前端页面', updateAt: '2026-06-09T10:00:00Z' });
@@ -269,26 +235,25 @@ describe('getAllChanges', () => {
 
       const json = createChangesJson({ cwd: 'D:\\project_a', changes: [changeWithDesc, otherChange] });
 
-      setupMemoryDir([{ name: 'Memory_D__project_a', isDirectory: () => true }]);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(json, null, 2));
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
+        { name: 'Memory_D__project_a', isDirectory: () => true },
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify(json, null, 2));
 
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges({ query: 'UI' });
+      const result = await getAllChanges({ query: 'UI' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('ui-change');
     });
 
     it('should filter by query matching cwd (case-insensitive)', async () => {
       const { getAllChanges } = await importFresh();
-
-      // cwd is 'D:\project_a', query 'PROJECT' should match
-      const result = getAllChanges({ query: 'PROJECT' });
-      expect(result).toHaveLength(3); // all 3 changes from jsonA have cwd matching
+      const result = await getAllChanges({ query: 'PROJECT' });
+      expect(result).toHaveLength(3);
     });
 
     it('should combine multiple filters with AND logic', async () => {
-      // Setup complex test data
       vi.clearAllMocks();
 
       const activeUiChange = createChangeEntry({ name: 'ui-change', status: 'active', description: 'UI相关', updateAt: '2026-06-09T10:00:00Z' });
@@ -301,22 +266,19 @@ describe('getAllChanges', () => {
       const targetDirA = 'Memory_D__project_a';
       const targetDirB = 'Memory_D__project_b';
 
-      setupMemoryDir([
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
         { name: targetDirA, isDirectory: () => true },
         { name: targetDirB, isDirectory: () => true },
-      ]);
-
-      vi.mocked(fs.readFileSync).mockImplementation(((p: fs.PathLike) => {
-        const pStr = String(p);
-        if (pStr === path.join(memoryDir, targetDirA, 'changes.json')) return JSON.stringify(jsonA, null, 2);
-        if (pStr === path.join(memoryDir, targetDirB, 'changes.json')) return JSON.stringify(jsonB, null, 2);
-        return '';
-      }) as unknown as typeof fs.readFileSync);
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockImplementation(async (p: any) => {
+        if (p === `${memoryDir}\\${targetDirA}\\changes.json`) return JSON.stringify(jsonA, null, 2);
+        if (p === `${memoryDir}\\${targetDirB}\\changes.json`) return JSON.stringify(jsonB, null, 2);
+        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      });
 
       const { getAllChanges } = await importFresh();
-
-      // status=active AND query=ui should only return activeUiChange
-      const result = getAllChanges({ status: 'active', query: 'ui' });
+      const result = await getAllChanges({ status: 'active', query: 'ui' });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('ui-change');
     });
@@ -330,15 +292,17 @@ describe('getAllChanges', () => {
     it('should sort by updateAt descending', async () => {
       const json = createChangesJson({
         cwd: 'D:\\project_a',
-        changes: [middle, oldest, newest], // unsorted input
+        changes: [middle, oldest, newest],
       });
 
-      setupMemoryDir([{ name: 'Memory_D__project_a', isDirectory: () => true }]);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(json, null, 2));
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
+        { name: 'Memory_D__project_a', isDirectory: () => true },
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify(json, null, 2));
 
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges();
+      const result = await getAllChanges();
       expect(result[0].name).toBe('newest');
       expect(result[1].name).toBe('middle');
       expect(result[2].name).toBe('oldest');
@@ -354,12 +318,14 @@ describe('getAllChanges', () => {
         changes: [withoutUpdate, withUpdate],
       });
 
-      setupMemoryDir([{ name: 'Memory_D__project_a', isDirectory: () => true }]);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(json, null, 2));
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
+        { name: 'Memory_D__project_a', isDirectory: () => true },
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify(json, null, 2));
 
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges();
+      const result = await getAllChanges();
       expect(result[0].name).toBe('with-update');
       expect(result[1].name).toBe('without-update');
     });
@@ -375,14 +341,15 @@ describe('getAllChanges', () => {
         changes: [a, b],
       });
 
-      setupMemoryDir([{ name: 'Memory_D__project_a', isDirectory: () => true }]);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(json, null, 2));
+      vi.mocked(os.homedir).mockReturnValue('D:\\home');
+      vi.mocked(fsPromises.readdir).mockResolvedValue([
+        { name: 'Memory_D__project_a', isDirectory: () => true },
+      ] as any);
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify(json, null, 2));
 
       const { getAllChanges } = await importFresh();
-
-      const result = getAllChanges();
+      const result = await getAllChanges();
       expect(result).toHaveLength(2);
-      // Both end up after any with updateAt; relative order is stable
       expect(result[0].name).toBe('no-update-a');
       expect(result[1].name).toBe('no-update-b');
     });

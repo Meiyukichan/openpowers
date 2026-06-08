@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import fs from 'fs';
+import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { flattenCwdPath } from '../../utils/memory.js';
@@ -41,73 +41,58 @@ const MEMORY_DIR = path.join(os.homedir(), '.openpowers', 'memory');
 
 /**
  * Scans all Memory_ prefixed directories under ~/.openpowers/memory/,
- * reads each changes.json, extracts the changes array, injects the parent
- * cwd field into each entry, applies optional filters (status/cwd/query),
- * and returns the results sorted by updateAt descending (entries without
- * updateAt go last).
+ * reads each changes.json asynchronously, extracts the changes array,
+ * injects the parent cwd field into each entry, applies optional filters
+ * (status/cwd/query), and returns the results sorted by updateAt descending
+ * (entries without updateAt go last).
  *
  * @param options - Optional filtering and querying parameters
  * @returns Aggregated and filtered ChangeEntryWithCwd array
  */
-export function getAllChanges(options: GetAllChangesOptions = {}): ChangeEntryWithCwd[] {
+export async function getAllChanges(options: GetAllChangesOptions = {}): Promise<ChangeEntryWithCwd[]> {
   const allChanges: ChangeEntryWithCwd[] = [];
 
-  if (!fs.existsSync(MEMORY_DIR)) {
-    return allChanges;
-  }
-
-  let dirEntries: fs.Dirent[];
+  let dirEntries: string[];
   try {
-    dirEntries = fs.readdirSync(MEMORY_DIR, { withFileTypes: true });
+    const entries = await fs.readdir(MEMORY_DIR, { withFileTypes: true });
+    // Determine which directories to scan
+    dirEntries = [];
+    if (options.cwd) {
+      const targetDirName = flattenCwdPath(options.cwd);
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name === targetDirName) {
+          dirEntries.push(path.join(MEMORY_DIR, entry.name));
+          break;
+        }
+      }
+    } else {
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name.startsWith('Memory_')) {
+          dirEntries.push(path.join(MEMORY_DIR, entry.name));
+        }
+      }
+    }
   } catch {
     return allChanges;
   }
 
-  // Determine which directories to scan
-  const targetDirs: string[] = [];
-  if (options.cwd) {
-    const targetDirName = flattenCwdPath(options.cwd);
-    for (const entry of dirEntries) {
-      if (entry.isDirectory() && entry.name === targetDirName) {
-        targetDirs.push(path.join(MEMORY_DIR, entry.name));
-        break;
-      }
-    }
-  } else {
-    for (const entry of dirEntries) {
-      if (entry.isDirectory() && entry.name.startsWith('Memory_')) {
-        targetDirs.push(path.join(MEMORY_DIR, entry.name));
-      }
-    }
-  }
+  // Read changes.json from each target directory concurrently
+  const results = await Promise.allSettled(
+    dirEntries.map(async (dir) => {
+      const changesJsonPath = path.join(dir, 'changes.json');
+      const raw = await fs.readFile(changesJsonPath, 'utf-8');
+      const data: { cwd?: string; changes?: ChangeEntry[] } = JSON.parse(raw);
+      const cwd = data.cwd ?? '';
+      const changes = Array.isArray(data.changes) ? data.changes : [];
+      return changes.map((entry) => ({ ...entry, cwd }));
+    }),
+  );
 
-  // Read changes.json from each target directory
-  for (const dir of targetDirs) {
-    const changesJsonPath = path.join(dir, 'changes.json');
-    if (!fs.existsSync(changesJsonPath)) {
-      continue;
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allChanges.push(...result.value);
     }
-
-    let raw: string;
-    try {
-      raw = fs.readFileSync(changesJsonPath, 'utf-8');
-    } catch {
-      continue;
-    }
-
-    let data: { cwd?: string; changes?: ChangeEntry[] };
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      continue;
-    }
-
-    const cwd = data.cwd ?? '';
-    const changes = Array.isArray(data.changes) ? data.changes : [];
-
-    for (const entry of changes) {
-      allChanges.push({ ...entry, cwd });
-    }
+    // rejected results (missing files, parse errors) are silently skipped
   }
 
   // Apply status filter

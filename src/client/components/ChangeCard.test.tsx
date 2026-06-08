@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import i18next from 'i18next';
 import { initReactI18next, I18nextProvider } from 'react-i18next';
@@ -111,6 +111,26 @@ describe('ChangeCard', () => {
     expect(card).toBeInTheDocument();
     // The status icon should have a specific color class for archived
     expect(card?.querySelector('.text-amber-500')).toBeInTheDocument();
+  });
+
+  it('shows green left border on hover for active change', () => {
+    renderChangeCard(activeChange);
+    const card = document.querySelector('.rounded-xl') as HTMLElement;
+    expect(card.style.borderLeftColor).not.toBe('rgb(34, 197, 94)');
+    fireEvent.mouseEnter(card);
+    expect(card.style.borderLeftColor).toBe('rgb(34, 197, 94)');
+    fireEvent.mouseLeave(card);
+    expect(card.style.borderLeftColor).not.toBe('rgb(34, 197, 94)');
+  });
+
+  it('shows amber left border on hover for archived change', () => {
+    renderChangeCard(archivedChange);
+    const card = document.querySelector('.rounded-xl') as HTMLElement;
+    expect(card.style.borderLeftColor).not.toBe('rgb(245, 158, 11)');
+    fireEvent.mouseEnter(card);
+    expect(card.style.borderLeftColor).toBe('rgb(245, 158, 11)');
+    fireEvent.mouseLeave(card);
+    expect(card.style.borderLeftColor).not.toBe('rgb(245, 158, 11)');
   });
 
   it('renders without error when description is missing', () => {

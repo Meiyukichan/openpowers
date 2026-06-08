@@ -73,7 +73,7 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
         },
         React.createElement(
           'div',
-          { className: 'flex items-center justify-between h-16 px-6 mx-auto max-w-5xl' },
+          { className: 'flex items-center justify-between h-16 pl-[48px] pr-6' },
           // Left: brand
           React.createElement(
             'div',
