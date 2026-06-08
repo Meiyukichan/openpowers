@@ -673,13 +673,14 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
           : -1;
 
         if (matchIndex >= 0) {
-          // Merge: new non-empty values override, empty/empty-string values skip
+          // Merge: existing values for title/from/inputPath take priority (preserve on update)
+          // to/status/outputPath: new non-empty values override
           const existing = existingSAD.progress[matchIndex];
-          if (newItem.title && newItem.title !== '') existing.title = newItem.title;
-          if (newItem.from && newItem.from !== '') existing.from = newItem.from;
+          existing.title = (existing.title && existing.title !== '') ? existing.title : (newItem.title ?? '');
+          existing.from = (existing.from && existing.from !== '') ? existing.from : ((newItem.from && newItem.from !== '') ? newItem.from : new Date().toISOString());
           if (newItem.to && newItem.to !== '') existing.to = newItem.to;
           if (newItem.status) existing.status = newItem.status;
-          if (newItem.inputPath && newItem.inputPath !== '') existing.inputPath = newItem.inputPath;
+          existing.inputPath = (existing.inputPath && existing.inputPath !== '') ? existing.inputPath : ((newItem.inputPath && newItem.inputPath !== '') ? newItem.inputPath : '');
           if (newItem.outputPath && newItem.outputPath !== '') existing.outputPath = newItem.outputPath;
         } else {
           // No title match — append as new progress entry
