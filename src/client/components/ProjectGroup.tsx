@@ -17,6 +17,8 @@ const EXPANDED_KEY = 'openpowers:expandedGroups';
 export interface ProjectGroupProps {
   cwd: string;
   changes: ChangeEntryWithCwd[];
+  onChangeClick?: (change: ChangeEntryWithCwd) => void;
+  selectedChange?: ChangeEntryWithCwd | null;
 }
 
 /** Reads the set of expanded cwds from localStorage. */
@@ -63,7 +65,7 @@ function projectName(cwd: string): string {
  * Header shows folder icon, cwd path, change count, and collapse chevron.
  * Body shows sorted ChangeCard list.
  */
-export function ProjectGroup({ cwd, changes }: ProjectGroupProps): React.ReactElement {
+export function ProjectGroup({ cwd, changes, onChangeClick, selectedChange }: ProjectGroupProps): React.ReactElement {
   const [expanded, setExpanded] = useState(() => loadExpandedSet().has(cwd));
   const sorted = sortByUpdateAtDesc(changes);
 
@@ -149,6 +151,10 @@ export function ProjectGroup({ cwd, changes }: ProjectGroupProps): React.ReactEl
             key: `${change.cwd}::${change.path}`,
             change,
             showCwd: false,
+            onClick: onChangeClick,
+            isSelected: selectedChange
+              ? `${selectedChange.cwd}::${selectedChange.path}` === `${change.cwd}::${change.path}`
+              : false,
           }),
         ),
       ),

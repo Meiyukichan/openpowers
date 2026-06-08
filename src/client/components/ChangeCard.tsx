@@ -14,9 +14,13 @@ export interface ChangeCardProps {
   change: ChangeEntryWithCwd;
   /** Whether to show the cwd path tag. Defaults to true. */
   showCwd?: boolean;
+  /** Called when the card is clicked, with the change data. */
+  onClick?: (change: ChangeEntryWithCwd) => void;
+  /** Whether this card is the currently selected one. */
+  isSelected?: boolean;
 }
 
-/** Default (non-hovered) left border color */
+/** Default (non-hovered, non-selected) left border color */
 const DEFAULT_BORDER_COLOR = 'hsl(240 3.8% 46.1% / 0.25)'; // muted-foreground/25
 
 /** Hovered left border color by status */
@@ -25,28 +29,39 @@ const HOVER_BORDER_COLORS: Record<string, string> = {
   archived: '#f59e0b', // amber-500
 };
 
+/** Selected left border color */
+const SELECTED_BORDER_COLOR = '#3b82f6'; // blue-500
+
 /**
  * Renders a card for a single change entry.
  * Shows status icon (active=green Zap, archived=amber Archive),
  * name, description, and cwd path.
  */
-export function ChangeCard({ change, showCwd = true }: ChangeCardProps): React.ReactElement {
+export function ChangeCard({ change, showCwd = true, onClick, isSelected = false }: ChangeCardProps): React.ReactElement {
   const isActive = change.status === 'active';
   const iconBg = isActive ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500';
   const [hovered, setHovered] = useState(false);
 
-  const borderLeftColor = hovered
-    ? (HOVER_BORDER_COLORS[change.status] ?? DEFAULT_BORDER_COLOR)
-    : DEFAULT_BORDER_COLOR;
+  let borderLeftColor = DEFAULT_BORDER_COLOR;
+  if (isSelected) {
+    borderLeftColor = SELECTED_BORDER_COLOR;
+  } else if (hovered) {
+    borderLeftColor = HOVER_BORDER_COLORS[change.status] ?? DEFAULT_BORDER_COLOR;
+  }
+
+  const handleClick = () => {
+    onClick?.(change);
+  };
 
   return React.createElement(
     'div',
     {
       className:
-        'relative overflow-hidden rounded-xl border border-l-[3px] bg-card text-card-foreground px-3.5 py-3 transition-all duration-200 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)]',
-      style: { borderLeftColor },
+        'relative overflow-hidden rounded-xl border border-l-[3px] bg-card text-card-foreground px-3.5 py-3 transition-all duration-200 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.1)] cursor-pointer active:scale-[0.98]',
+      style: { borderLeftColor, ...(isSelected ? { backgroundColor: 'hsla(217, 91%, 60%, 0.06)' } : {}) },
       onMouseEnter: () => setHovered(true),
       onMouseLeave: () => setHovered(false),
+      onClick: handleClick,
     },
     // Top row: status icon + name
     React.createElement(

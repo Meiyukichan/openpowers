@@ -156,5 +156,32 @@
   "confirmDialog": {
     "confirm": "Confirm",
     "cancel": "Cancel"
+  },
+  "progressAxis": {
+    "emptyStage": "No stage data",
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right",
+    "stageName": {
+      "explore": "Explore",
+      "brainstorm": "Brainstorm",
+      "propose": "Propose",
+      "plan": "Plan",
+      "review": "Review",
+      "develop": "Develop",
+      "finalize": "Finalize"
+    }
+  },
+  "detailPanel": {
+    "guideText": "Click a change card on the left to view stage progress details",
+    "noData": "No data available",
+    "noFeatureData": "No feature data",
+    "statusLabel": "Status",
+    "timeRange": "Time Range",
+    "fromTo": "{{from}} → {{to}}",
+    "subStage": {
+      "integration": "Integration",
+      "codecheck": "Code Check",
+      "archive": "Archive"
+    }
   }
 }

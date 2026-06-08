@@ -12,11 +12,13 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { Layout } from './components/Layout.js';
 import { ProviderList } from './components/ProviderList.js';
 import { ProjectSidebar } from './components/ProjectSidebar.js';
+import { DetailPanel } from './components/DetailPanel.js';
 import { AddProviderDialog } from './components/AddProviderDialog.js';
 import { EditProviderDialog } from './components/EditProviderDialog.js';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog.js';
 import type { ActivityBarView } from './components/ActivityBar.js';
 import type { Provider } from '../server/providers-store.js';
+import type { ChangeEntryWithCwd } from '../server/changes/shared.js';
 import { logger } from './utils/logger.js';
 import { localeToHtmlLang } from './i18n/index.js';
 
@@ -34,6 +36,7 @@ export function App(): React.ReactElement {
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
   const [enableOpenpowersProxy, setEnableOpenpowersProxy] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: ToastType } | null>(null);
+  const [selectedChange, setSelectedChange] = useState<ChangeEntryWithCwd | null>(null);
   const [activeView, setActiveView] = useState<ActivityBarView>(() => {
     try {
       const stored = localStorage.getItem('openpowers:activeView');
@@ -54,7 +57,15 @@ export function App(): React.ReactElement {
       // silent fallback - localStorage unavailable
     }
     setActiveView(view);
+    // Clear selectedChange when switching away from projects view
+    if (view !== 'projects') {
+      setSelectedChange(null);
+    }
   };
+
+  const handleChangeClick = useCallback((change: ChangeEntryWithCwd) => {
+    setSelectedChange(change);
+  }, []);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -260,7 +271,10 @@ export function App(): React.ReactElement {
         onViewChange: persistActiveView,
         sidebar:
           activeView === 'projects'
-            ? React.createElement(ProjectSidebar)
+            ? React.createElement(ProjectSidebar, {
+                onChangeClick: handleChangeClick,
+                selectedChange,
+              })
             : null,
       },
       activeView === 'providers'
@@ -273,7 +287,10 @@ export function App(): React.ReactElement {
             activeProviderId,
             refreshTrigger,
           })
-        : null,
+        : React.createElement(DetailPanel, {
+            selectedChange,
+            key: selectedChange?.path ?? 'empty',
+          }),
     ),
     // Add provider dialog
     React.createElement(AddProviderDialog, {

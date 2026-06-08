@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import i18next from 'i18next';
@@ -19,12 +19,12 @@ import type { ChangeEntryWithCwd } from '../../server/changes/shared.js';
 let i18nInstance: i18next.i18n;
 
 /** Helper to render ChangeCard wrapped in I18nextProvider */
-function renderChangeCard(change: ChangeEntryWithCwd) {
+function renderChangeCard(change: ChangeEntryWithCwd, props?: { onClick?: () => void; isSelected?: boolean }) {
   return render(
     React.createElement(
       I18nextProvider,
       { i18n: i18nInstance },
-      React.createElement(ChangeCard, { change }),
+      React.createElement(ChangeCard, { change, ...props }),
     ),
   );
 }
@@ -137,5 +137,27 @@ describe('ChangeCard', () => {
     renderChangeCard(changeMissingDescription);
     expect(screen.getByText('minimal-change')).toBeInTheDocument();
     expect(screen.getByText('D:\\project-code\\llm\\openpowers')).toBeInTheDocument();
+  });
+
+  it('calls onClick when card is clicked', () => {
+    const onClick = vi.fn();
+    renderChangeCard(activeChange, { onClick });
+    const card = document.querySelector('.rounded-xl') as HTMLElement;
+    fireEvent.click(card);
+    expect(onClick).toHaveBeenCalledWith(activeChange);
+  });
+
+  it('applies selected highlight style when isSelected is true', () => {
+    renderChangeCard(activeChange, { isSelected: true });
+    const card = document.querySelector('.rounded-xl') as HTMLElement;
+    // Selected card should have blue-500 border color
+    expect(card.style.borderLeftColor).toBe('rgb(59, 130, 246)');
+  });
+
+  it('does not apply selected highlight when isSelected is false', () => {
+    renderChangeCard(activeChange, { isSelected: false });
+    const card = document.querySelector('.rounded-xl') as HTMLElement;
+    // Not selected - should have default muted border
+    expect(card.style.borderLeftColor).not.toBe('rgb(59, 130, 246)');
   });
 });

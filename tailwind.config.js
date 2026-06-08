@@ -10,6 +10,20 @@ export default {
   content: ['./src/client/**/*.{html,tsx,ts}'],
   theme: {
     extend: {
+      keyframes: {
+        'stage-pulse': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.15)' },
+        },
+        'stage-ring-glow': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.4)' },
+          '50%': { boxShadow: '0 0 0 6px rgba(59, 130, 246, 0)' },
+        },
+      },
+      animation: {
+        'stage-pulse': 'stage-pulse 1.5s ease-in-out infinite',
+        'stage-ring-glow': 'stage-ring-glow 1.5s ease-in-out infinite',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

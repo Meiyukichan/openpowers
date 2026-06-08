@@ -5,7 +5,7 @@
  * @copyright 2026 Meiyuki
  */
 
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import i18next from 'i18next';
@@ -19,12 +19,12 @@ import type { ChangeEntryWithCwd } from '../../server/changes/shared.js';
 let i18nInstance: i18next.i18n;
 
 /** Helper to render ProjectGroup wrapped in I18nextProvider */
-function renderProjectGroup(cwd: string, changes: ChangeEntryWithCwd[]) {
+function renderProjectGroup(cwd: string, changes: ChangeEntryWithCwd[], props?: { onChangeClick?: (change: ChangeEntryWithCwd) => void; selectedChange?: ChangeEntryWithCwd | null }) {
   return render(
     React.createElement(
       I18nextProvider,
       { i18n: i18nInstance },
-      React.createElement(ProjectGroup, { cwd, changes }),
+      React.createElement(ProjectGroup, { cwd, changes, ...props }),
     ),
   );
 }
@@ -194,5 +194,30 @@ describe('ProjectGroup', () => {
     // Changes without updateAt should be last (order preserved between them)
     expect(names[1]).toBe('no-update-at');
     expect(names[2]).toBe('also-no-update');
+  });
+
+  it('passes onClick handler to internal ChangeCards', () => {
+    const onClick = vi.fn();
+    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes, { onChangeClick: onClick });
+    fireEvent.click(document.querySelector('.cursor-pointer')!);
+
+    // Click a change card
+    fireEvent.click(screen.getByText('ui-changes-page'));
+    expect(onClick).toHaveBeenCalled();
+  });
+
+  it('passes isSelected to ChangeCard when selectedChange matches', () => {
+    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes, { selectedChange: changes[0] });
+    fireEvent.click(document.querySelector('.cursor-pointer')!);
+
+    // ui-changes-page is the first change, it should be selected
+    const cards = document.querySelectorAll('.rounded-xl');
+    let found = false;
+    cards.forEach((card) => {
+      if ((card as HTMLElement).style.borderLeftColor === 'rgb(59, 130, 246)') {
+        found = true;
+      }
+    });
+    expect(found).toBe(true);
   });
 });

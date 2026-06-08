@@ -156,5 +156,32 @@
   "confirmDialog": {
     "confirm": "确定",
     "cancel": "取消"
+  },
+  "progressAxis": {
+    "emptyStage": "暂无阶段数据",
+    "scrollLeft": "向左滚动",
+    "scrollRight": "向右滚动",
+    "stageName": {
+      "explore": "Explore",
+      "brainstorm": "Brainstorm",
+      "propose": "Propose",
+      "plan": "Plan",
+      "review": "Review",
+      "develop": "Develop",
+      "finalize": "Finalize"
+    }
+  },
+  "detailPanel": {
+    "guideText": "点击左侧变更卡片查看阶段进度详情",
+    "noData": "暂无数据",
+    "noFeatureData": "暂无 feature 数据",
+    "statusLabel": "状态",
+    "timeRange": "时间范围",
+    "fromTo": "{{from}} → {{to}}",
+    "subStage": {
+      "integration": "集成测试",
+      "codecheck": "代码检查",
+      "archive": "归档"
+    }
   }
 }

@@ -13,17 +13,18 @@ import { initReactI18next, I18nextProvider } from 'react-i18next';
 import { ProjectSidebar } from './ProjectSidebar.js';
 import zhCN from '../i18n/locales/zh-CN.json';
 import enUS from '../i18n/locales/en-US.json';
+import type { ChangeEntryWithCwd } from '../../server/changes/shared.js';
 
 /** Dedicated i18next instance for test isolation */
 let i18nInstance: i18next.i18n;
 
 /** Helper to render ProjectSidebar wrapped in I18nextProvider */
-function renderProjectSidebar() {
+function renderProjectSidebar(props?: { onChangeClick?: (change: ChangeEntryWithCwd) => void; selectedChange?: ChangeEntryWithCwd | null }) {
   return render(
     React.createElement(
       I18nextProvider,
       { i18n: i18nInstance },
-      React.createElement(ProjectSidebar),
+      React.createElement(ProjectSidebar, props || {}),
     ),
   );
 }
@@ -429,5 +430,46 @@ describe('ProjectSidebar', () => {
       },
       { timeout: 2000 },
     );
+  });
+
+  it('passes onChangeClick to ChangeCard in active tab', async () => {
+    const onChangeClick = vi.fn();
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ok: true, data: mockActiveChanges }),
+    } as Response);
+
+    renderProjectSidebar({ onChangeClick });
+
+    await waitFor(() => {
+      expect(screen.getByText('ui-changes-page')).toBeInTheDocument();
+    });
+
+    // Click a change card
+    fireEvent.click(screen.getByText('ui-changes-page'));
+    expect(onChangeClick).toHaveBeenCalled();
+  });
+
+  it('passes isSelected to ChangeCard when selectedChange matches', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ok: true, data: mockActiveChanges }),
+    } as Response);
+
+    renderProjectSidebar({ selectedChange: mockActiveChanges[0] });
+
+    await waitFor(() => {
+      expect(screen.getByText('ui-changes-page')).toBeInTheDocument();
+    });
+
+    // The selected card should have blue-500 border color
+    const cards = document.querySelectorAll('.rounded-xl');
+    let found = false;
+    cards.forEach((card) => {
+      if ((card as HTMLElement).style.borderLeftColor === 'rgb(59, 130, 246)') {
+        found = true;
+      }
+    });
+    expect(found).toBe(true);
   });
 });

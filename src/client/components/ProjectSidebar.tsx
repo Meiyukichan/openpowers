@@ -107,9 +107,14 @@ function changeKey(change: ChangeEntryWithCwd): string {
  * Manages tab switching with per-tab data caching to avoid unnecessary re-fetches.
  * Search triggers debounced fetches; tab switching shows cached data instantly when available.
  */
+export interface ProjectSidebarProps {
+  onChangeClick?: (change: ChangeEntryWithCwd) => void;
+  selectedChange?: ChangeEntryWithCwd | null;
+}
+
 const SIDEBAR_TAB_KEY = 'openpowers:sidebarTab';
 
-export function ProjectSidebar(): React.ReactElement {
+export function ProjectSidebar({ onChangeClick, selectedChange }: ProjectSidebarProps = {}): React.ReactElement {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SidebarTab>(() => {
     const saved = localStorage.getItem(SIDEBAR_TAB_KEY);
@@ -228,7 +233,11 @@ export function ProjectSidebar(): React.ReactElement {
 
   // Persist active tab to localStorage
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_TAB_KEY, activeTab);
+    try {
+      localStorage.setItem(SIDEBAR_TAB_KEY, activeTab);
+    } catch {
+      // localStorage may be full or unavailable
+    }
   }, [activeTab]);
 
   // Tab button styles
@@ -290,6 +299,10 @@ export function ProjectSidebar(): React.ReactElement {
           React.createElement(ChangeCard, {
             key: changeKey(change),
             change,
+            onClick: onChangeClick,
+            isSelected: selectedChange
+              ? changeKey(selectedChange) === changeKey(change)
+              : false,
           }),
         ),
       );
@@ -303,6 +316,8 @@ export function ProjectSidebar(): React.ReactElement {
           key: cwd,
           cwd,
           changes: groupChanges,
+          onChangeClick,
+          selectedChange,
         }),
       ),
     );
