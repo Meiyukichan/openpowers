@@ -258,18 +258,18 @@ describe('cron callback: directory scanning', () => {
 
     // Set up memory directory with a subdirectory that has non-empty designs/
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
       makeDirent('not-a-dir.txt', false),
-      makeDirent('project2', true),
+      makeDirent('Memory_project2', true),
     ];
     // project1 has designs/ with md files
-    const project1DesignsDir = path.join(MEMORY_DIR, 'project1', 'designs');
+    const project1DesignsDir = path.join(MEMORY_DIR, 'Memory_project1', 'designs');
     mockDirListing[project1DesignsDir] = [
       makeDirent('change-a.md', false),
       makeDirent('change-b.md', false),
     ];
     // project2 has designs/ but it's empty
-    const project2DesignsDir = path.join(MEMORY_DIR, 'project2', 'designs');
+    const project2DesignsDir = path.join(MEMORY_DIR, 'Memory_project2', 'designs');
     mockDirListing[project2DesignsDir] = [];
 
     await capturedCronCallback!();
@@ -282,11 +282,11 @@ describe('cron callback: directory scanning', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -303,11 +303,11 @@ describe('cron callback: directory scanning', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [];
 
@@ -322,7 +322,7 @@ describe('cron callback: directory scanning', () => {
     startScheduler();
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
 
     await capturedCronCallback!();
@@ -343,6 +343,60 @@ describe('cron callback: directory scanning', () => {
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task started');
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
   });
+
+  it('should skip directories not starting with Memory_ prefix even with non-empty designs', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),        // No Memory_ prefix
+      makeDirent('Memory_project2', true),  // Has Memory_ prefix
+    ];
+    // Both have non-empty designs/
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+    mockDirListing[path.join(MEMORY_DIR, 'Memory_project2', 'designs')] = [
+      makeDirent('change-b.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // Only Memory_ prefixed directory should be processed
+    // project1 (no prefix) should be skipped entirely
+    expect(cpSyncMock).toHaveBeenCalledTimes(2); // 2 cpSync calls for agents + skills for Memory_project2 only
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringMatching(/Processing/));
+    const procCalls = appendLogMock.mock.calls.filter((c: unknown[]) => String(c[0]).includes('Processing'));
+    expect(procCalls.length).toBe(1);
+  });
+
+  it('should skip all directories when none have Memory_ prefix', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('project1', true),
+      makeDirent('another-project', true),
+    ];
+    mockDirListing[designsDir] = [
+      makeDirent('change-a.md', false),
+    ];
+    mockDirListing[path.join(MEMORY_DIR, 'another-project', 'designs')] = [
+      makeDirent('change-b.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // No processing should occur
+    expect(cpSyncMock).not.toHaveBeenCalled();
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler: no directories with pending designs found');
+  });
 });
 
 describe('cron callback: copy agents and skills', () => {
@@ -350,12 +404,12 @@ describe('cron callback: copy agents and skills', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
     const claudeDir = path.join(projectDir, '.claude');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -383,11 +437,11 @@ describe('cron callback: claude CLI execution', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -413,11 +467,11 @@ describe('cron callback: claude CLI execution', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -445,11 +499,11 @@ describe('cron callback: claude CLI execution', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -479,11 +533,11 @@ describe('cron callback: cleanup', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -508,11 +562,11 @@ describe('cron callback: cleanup', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -538,11 +592,11 @@ describe('cron callback: cleanup', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),
@@ -570,14 +624,14 @@ describe('cron callback: cleanup', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const project1Dir = path.join(MEMORY_DIR, 'project1');
-    const project2Dir = path.join(MEMORY_DIR, 'project2');
+    const project1Dir = path.join(MEMORY_DIR, 'Memory_project1');
+    const project2Dir = path.join(MEMORY_DIR, 'Memory_project2');
     const designs1Dir = path.join(project1Dir, 'designs');
     const designs2Dir = path.join(project2Dir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
-      makeDirent('project2', true),
+      makeDirent('Memory_project1', true),
+      makeDirent('Memory_project2', true),
     ];
     mockDirListing[designs1Dir] = [makeDirent('a.md', false)];
     mockDirListing[designs2Dir] = [makeDirent('b.md', false)];
@@ -608,11 +662,11 @@ describe('cron callback: does not interact with dreamwork.json', () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
-    const projectDir = path.join(MEMORY_DIR, 'project1');
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
     const designsDir = path.join(projectDir, 'designs');
 
     mockDirListing[MEMORY_DIR] = [
-      makeDirent('project1', true),
+      makeDirent('Memory_project1', true),
     ];
     mockDirListing[designsDir] = [
       makeDirent('change-a.md', false),

@@ -118,6 +118,12 @@ vi.mock('../../utils/logger.js', () => ({
   logger: mockLogger,
 }));
 
+vi.mock('os', () => ({
+  default: {
+    homedir: vi.fn(() => '/home/test-user'),
+  },
+}));
+
 describe('src/commands/change/archive.ts', () => {
   const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
   const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
@@ -319,6 +325,229 @@ describe('src/commands/change/archive.ts', () => {
     const errorOutput = stderrCalls.join('');
     expect(errorOutput).toContain('not all artifacts are done');
     expect(errorOutput).toContain('plan');
+  });
+
+  // =========================================================
+  // Global memory sync tests (archive-global-sync)
+  // =========================================================
+
+  it('should sync global memory changes.json when archiving: update status, stage.finalize.archive.status, and stage.finalize.archive.to', () => {
+    // Arrange: complete change ready to archive
+    setupCompleteChange('global-sync-change');
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(ARCHIVE_DIR);
+    setupReadDirMocks(['global-sync-change']);
+
+    // Set up global memory changes.json with the change having an archive stage
+    const homeDir = '/home/test-user';
+    const flatCwd = 'Memory_D__project-code_llm_openpowers';
+    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const memoryFile = `${memoryDir}/changes.json`;
+
+    const memoryData = {
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [
+        {
+          name: 'global-sync-change',
+          path: 'openpowers/changes/global-sync-change',
+          description: 'A change to sync',
+          createdAt: '2026-05-20T00:00:00.000Z',
+          updateAt: '2026-05-20T00:00:00.000Z',
+          status: 'active',
+          features: 2,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            explore: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            brainstorm: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            propose: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            plan: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            reviewArtifacts: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+            subAgentDev: [],
+            finalize: {
+              integration: [],
+              codecheck: { title: '', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },
+              archive: { title: '', from: '', to: '', status: 'in_progress', inputPath: '', outputPath: '' },
+            },
+          },
+        },
+      ],
+    };
+
+    mockFs.setDir(memoryDir);
+    mockFs.setFile(memoryFile, JSON.stringify(memoryData));
+
+    vi.setSystemTime(new Date('2026-05-22T12:00:00Z'));
+
+    // Act
+    runChangeArchive('global-sync-change');
+
+    // Assert: check that writeFileSync was called for the global memory file
+    const writeCalls = mockFs.writeFileSync.mock.calls.map((c: unknown[]) => ({
+      path: String(c[0]).replace(/\\/g, '/'),
+      content: String(c[1]),
+    }));
+
+    // Find the write call for the global memory changes.json
+    const memoryWrite = writeCalls.find((c: { path: string }) => c.path === memoryFile);
+    expect(memoryWrite).toBeDefined();
+    const writtenContent = JSON.parse(memoryWrite!.content);
+
+    // Find the archived change entry
+    const archivedChange = writtenContent.changes.find(
+      (c: { name: string }) => c.name === 'global-sync-change',
+    );
+    expect(archivedChange).toBeDefined();
+
+    // Verify status is 'archived'
+    expect(archivedChange.status).toBe('archived');
+
+    // Verify stage.finalize.archive.status is 'done'
+    expect(archivedChange.stage?.finalize?.archive?.status).toBe('done');
+
+    // Verify stage.finalize.archive.to is the current ISO timestamp
+    expect(archivedChange.stage?.finalize?.archive?.to).toBe('2026-05-22T12:00:00.000Z');
+
+    // Verify the archive still completed successfully (project-level write happened)
+    const projectWrites = writeCalls.filter((c: { path: string }) =>
+      c.path.endsWith('openpowers/changes.json') && !c.path.includes('/memory/'),
+    );
+    expect(projectWrites.length).toBeGreaterThan(0);
+    const lastProjectWrite = projectWrites[projectWrites.length - 1];
+    expect(lastProjectWrite.content).toContain('2026-05-22-global-sync-change');
+  });
+
+  it('should warn and continue when global memory changes.json does not exist', () => {
+    // Arrange
+    setupCompleteChange('no-global-file-change');
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(ARCHIVE_DIR);
+    setupReadDirMocks(['no-global-file-change']);
+
+    // Do NOT create global memory changes.json
+
+    vi.setSystemTime(new Date('2026-05-22T12:00:00Z'));
+
+    // Act
+    runChangeArchive('no-global-file-change');
+
+    // Assert: archive completed successfully
+    const writeCalls = mockFs.writeFileSync.mock.calls.map((c: unknown[]) => ({
+      path: String(c[0]).replace(/\\/g, '/'),
+      content: String(c[1]),
+    }));
+    const projectWrites = writeCalls.filter((c: { path: string }) =>
+      c.path.endsWith('openpowers/changes.json') && !c.path.includes('/memory/'),
+    );
+    expect(projectWrites.length).toBeGreaterThan(0);
+    const lastProjectWrite = projectWrites[projectWrites.length - 1];
+    expect(lastProjectWrite.content).toContain('2026-05-22-no-global-file-change');
+
+    // Assert: warning was logged about missing global memory file
+    const warnCalls = mockLogger.warn.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(warnCalls.some((s: string) =>
+      s.includes('Global memory changes.json not found'),
+    )).toBe(true);
+  });
+
+  it('should warn and continue when change is not found in global memory changes.json', () => {
+    // Arrange
+    setupCompleteChange('not-in-global-change');
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(ARCHIVE_DIR);
+    setupReadDirMocks(['not-in-global-change']);
+
+    // Set up global memory changes.json WITHOUT the change being archived
+    const homeDir = '/home/test-user';
+    const flatCwd = 'Memory_D__project-code_llm_openpowers';
+    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const memoryFile = `${memoryDir}/changes.json`;
+
+    const memoryData = {
+      framework: 'openpowers',
+      version: '1.0.0',
+      cwd: '/test/project',
+      changes: [
+        {
+          name: 'some-other-change',
+          path: 'openpowers/changes/some-other-change',
+          description: 'Another change',
+          createdAt: '2026-05-20T00:00:00.000Z',
+          status: 'active',
+          features: 1,
+          todo: 0,
+          artifacts: [],
+        },
+      ],
+    };
+
+    mockFs.setDir(memoryDir);
+    mockFs.setFile(memoryFile, JSON.stringify(memoryData));
+
+    vi.setSystemTime(new Date('2026-05-22T12:00:00Z'));
+
+    // Act
+    runChangeArchive('not-in-global-change');
+
+    // Assert: archive completed successfully
+    const writeCalls2 = mockFs.writeFileSync.mock.calls.map((c: unknown[]) => ({
+      path: String(c[0]).replace(/\\/g, '/'),
+      content: String(c[1]),
+    }));
+    const projectWrites2 = writeCalls2.filter((c: { path: string }) =>
+      c.path.endsWith('openpowers/changes.json'),
+    );
+    expect(projectWrites2.length).toBeGreaterThan(0);
+    const lastProjectWrite2 = projectWrites2[projectWrites2.length - 1];
+    expect(lastProjectWrite2.content).toContain('2026-05-22-not-in-global-change');
+
+    // Assert: warning was logged about change not found in global memory
+    const warnCalls2 = mockLogger.warn.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(warnCalls2.some((s: string) =>
+      s.includes('not found in global memory changes.json'),
+    )).toBe(true);
+  });
+
+  it('should log error and continue when global memory changes.json fails to parse', () => {
+    // Arrange
+    setupCompleteChange('bad-json-change');
+    mockFs.setDir(CHANGES_DIR);
+    mockFs.setDir(ARCHIVE_DIR);
+    setupReadDirMocks(['bad-json-change']);
+
+    // Set up global memory changes.json with malformed content
+    const homeDir = '/home/test-user';
+    const flatCwd = 'Memory_D__project-code_llm_openpowers';
+    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const memoryFile = `${memoryDir}/changes.json`;
+
+    mockFs.setDir(memoryDir);
+    mockFs.setFile(memoryFile, '{ invalid json content [}');
+
+    vi.setSystemTime(new Date('2026-05-22T12:00:00Z'));
+
+    // Act
+    runChangeArchive('bad-json-change');
+
+    // Assert: archive completed successfully
+    const writeCalls3 = mockFs.writeFileSync.mock.calls.map((c: unknown[]) => ({
+      path: String(c[0]).replace(/\\/g, '/'),
+      content: String(c[1]),
+    }));
+    const projectWrites3 = writeCalls3.filter((c: { path: string }) =>
+      c.path.endsWith('openpowers/changes.json'),
+    );
+    expect(projectWrites3.length).toBeGreaterThan(0);
+    const lastProjectWrite3 = projectWrites3[projectWrites3.length - 1];
+    expect(lastProjectWrite3.content).toContain('2026-05-22-bad-json-change');
+
+    // Assert: error was logged about parse failure
+    const errorCalls = mockLogger.error.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(errorCalls.some((s: string) =>
+      s.includes('Failed to parse global memory changes.json'),
+    )).toBe(true);
   });
 
   it('should create archive directory if it does not exist', () => {

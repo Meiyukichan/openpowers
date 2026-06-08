@@ -340,25 +340,25 @@ describe('src/utils/memory.ts', () => {
     it('should flatten Windows path with backslashes and colon', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('D:\\project-code\\llm\\openpowers')).toBe('D__project-code_llm_openpowers');
+      expect(flattenCwdPath('D:\\project-code\\llm\\openpowers')).toBe('Memory_D__project-code_llm_openpowers');
     });
 
     it('should flatten Unix path with forward slashes', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('/home/user/project')).toBe('_home_user_project');
+      expect(flattenCwdPath('/home/user/project')).toBe('Memory__home_user_project');
     });
 
     it('should flatten mixed path separators', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('C:\\Users/test')).toBe('C__Users_test');
+      expect(flattenCwdPath('C:\\Users/test')).toBe('Memory_C__Users_test');
     });
 
     it('should flatten doubled backslashes from JSON-encoded paths', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('D:\\\\project-code\\\\llm\\\\openpowers')).toBe('D__project-code_llm_openpowers');
+      expect(flattenCwdPath('D:\\\\project-code\\\\llm\\\\openpowers')).toBe('Memory_D__project-code_llm_openpowers');
     });
   });
 
@@ -436,7 +436,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should return parsed JSON when file exists', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -464,7 +464,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should return default structure and warn when file contains malformed JSON', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       mockFs.setFile(filePath, '{ invalid json content !!!');
 
@@ -526,7 +526,7 @@ describe('src/utils/memory.ts', () => {
 
       writeMemoryChangesJson('/test/project', data);
 
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('new-change');
@@ -606,7 +606,7 @@ describe('src/utils/memory.ts', () => {
 
       writeMemoryChangesJson('/test/project', data);
 
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('alpha-change');
@@ -647,7 +647,7 @@ describe('src/utils/memory.ts', () => {
 
       writeMemoryChangesJson('/test/project', data);
 
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('with-update');
@@ -760,7 +760,7 @@ describe('src/utils/memory.ts', () => {
 
     it('should fallback on malformed JSON parse failure in ensureMemoryChangesJson catch branch', async () => {
       // Arrange: memory file exists with invalid JSON content
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       mockFs.setFile(memoryPath, '{ broken json !!!');
 
@@ -789,7 +789,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should mark entry as archived and update path when change exists in archive directory', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       // Memory has entry pointing to active changes dir
@@ -840,7 +840,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should normalize stage statuses to done for archived entry', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -905,7 +905,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should normalize subAgentDev progress statuses to done for archived entry', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -980,7 +980,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should not modify updateAt when normalizing archived entry', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const originalUpdateAt = '2026-03-01T00:00:00Z';
@@ -1036,7 +1036,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should keep entry as removed when directory does not exist and no archive found', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -1069,7 +1069,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should not normalize stage when entry remains active (path exists)', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -1121,7 +1121,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should sync features and todo from plan.json for entries with existing path', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -1161,7 +1161,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should sync features and todo from plan.json for archived entries', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -1211,7 +1211,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should not modify updateAt when syncing features/todo', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const originalUpdateAt = '2026-03-01T00:00:00Z';
@@ -1248,7 +1248,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should handle archived entry without stage gracefully', async () => {
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
@@ -1304,7 +1304,7 @@ describe('src/utils/memory.ts', () => {
       const { createOrUpdateChange } = mod;
       createOrUpdateChange('/test/project', 'my-change', 'test description');
 
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
@@ -1317,7 +1317,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should append new entry when file exists but change does not exist', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -1350,7 +1350,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should update existing entry when change already exists', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -1382,7 +1382,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should write stage field when changeStage parameter is provided', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -1418,7 +1418,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should not affect stage field when changeStage is not provided', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingStage = {
         explore: { title: 'Explore', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: '/in', outputPath: '/out' },
@@ -1455,7 +1455,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should preserve existing description when desc parameter is undefined', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -1495,7 +1495,7 @@ describe('src/utils/memory.ts', () => {
 
       createOrUpdateChange('/test/project', 'my-change', 'test description');
 
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
@@ -1518,7 +1518,7 @@ describe('src/utils/memory.ts', () => {
 
       createOrUpdateChange('/test/project', 'my-change', 'all artifacts');
 
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
@@ -1553,7 +1553,7 @@ describe('src/utils/memory.ts', () => {
       // Now update the change without changeStage - stage should be preserved
       createOrUpdateChange('/test/project', 'my-change', 'updated description');
 
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].stage).toBeDefined();
@@ -1582,7 +1582,7 @@ describe('src/utils/memory.ts', () => {
       };
       createOrUpdateChange('/test/project', 'my-change', 'with progress', stageData);
 
-      const flatCwd = '_test_project';
+      const flatCwd = 'Memory__test_project';
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].stage).toBeDefined();
@@ -1593,7 +1593,7 @@ describe('src/utils/memory.ts', () => {
     });
 
     it('should keep existing features and todo counts when plan.json contains non-array content', async () => {
-      const flatCwd = '_test_project'; // flattenCwdPath('/test/project') = '_test_project'
+      const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
       const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
       const existingData = {
         framework: 'openpowers',
@@ -1777,6 +1777,360 @@ describe('src/utils/memory.ts', () => {
       expect((entry.stage as any)?.reviewArtifacts).toBeDefined();
       expect((entry.stage as any)?.reviewArtifacts.title).toBe('Test');
       expect((entry.stage as any)?.reviewArtifacts.status).toBe('in_progress');
+    });
+
+    // --- stage field merge protection tests ---
+    describe('stage field merge protection (title/from/inputPath non-empty guard)', () => {
+      it('should preserve existing plan.title when data.title is null', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            plan: {
+              title: '规划阶段',
+              from: '2026-01-01T00:00:00Z',
+              to: '2026-01-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          plan: { title: null as unknown as string, from: '2026-06-08T00:00:00Z', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const },
+        });
+
+        // title should be preserved (null -> keep old)
+        expect((entry.stage as any).plan.title).toBe('规划阶段');
+        // from should be overridden (non-empty new value)
+        expect((entry.stage as any).plan.from).toBe('2026-06-08T00:00:00Z');
+      });
+
+      it('should preserve existing propose.inputPath when data.inputPath is empty string', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            propose: {
+              title: '',
+              from: '2026-01-01T00:00:00Z',
+              to: '2026-01-01T00:00:00Z',
+              status: 'done',
+              inputPath: 'openpowers/changes/x/specs/',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          propose: { title: 'New Title', from: '2026-06-08T00:00:00Z', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const, inputPath: '' },
+        });
+
+        // inputPath should be preserved (empty string -> keep old)
+        expect((entry.stage as any).propose.inputPath).toBe('openpowers/changes/x/specs/');
+        // title should be overridden (non-empty new value)
+        expect((entry.stage as any).propose.title).toBe('New Title');
+      });
+
+      it('should override existing brainstorm.title with non-empty new value', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            brainstorm: {
+              title: '旧标题',
+              from: '2026-01-01T00:00:00Z',
+              to: '2026-01-01T00:00:00Z',
+              status: 'done',
+              inputPath: '',
+              outputPath: '',
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          brainstorm: { title: '头脑风暴阶段', from: '2026-06-08T00:00:00Z', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const },
+        });
+
+        // title should be overridden with non-empty new value
+        expect((entry.stage as any).brainstorm.title).toBe('头脑风暴阶段');
+      });
+
+      it('should use current ISO timestamp fallback when reviewArtifacts.from is null and no old value exists', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          // No stage field — reviewArtifacts does not exist
+        };
+
+        const beforeCall = new Date().toISOString();
+        createOrUpdateStage(entry as any, {
+          reviewArtifacts: { title: 'Review', from: null as unknown as string, to: '2026-06-08T00:00:00Z', status: 'in_progress' as const },
+        });
+
+        expect((entry.stage as any).reviewArtifacts).toBeDefined();
+        // from should be a current ISO timestamp (fallback), not null or empty
+        expect(typeof (entry.stage as any).reviewArtifacts.from).toBe('string');
+        expect((entry.stage as any).reviewArtifacts.from).not.toBe('');
+        expect((entry.stage as any).reviewArtifacts.from >= beforeCall).toBe(true);
+      });
+    });
+
+    // --- integration array title-based merge tests ---
+    describe('integration array title-based merge', () => {
+      it('should match by title and preserve old values when new values are empty/null', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              integration: [
+                { title: '集成测试', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: 'spec1', outputPath: '' },
+              ],
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            integration: [{ title: '集成测试', from: '', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const, inputPath: null as unknown as string }],
+          },
+        });
+
+        const integration = (entry.stage as any).finalize.integration;
+        expect(integration).toHaveLength(1);
+        expect(integration[0].title).toBe('集成测试');
+        // from preserved (new value is empty string)
+        expect(integration[0].from).toBe('2026-01-01T00:00:00Z');
+        // inputPath preserved (new value is null)
+        expect(integration[0].inputPath).toBe('spec1');
+        // to overridden (non-empty new value)
+        expect(integration[0].to).toBe('2026-06-08T00:00:00Z');
+        // status overridden
+        expect(integration[0].status).toBe('in_progress');
+      });
+
+      it('should append new item when title does not match any existing', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              integration: [],
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            integration: [{ title: '代码审查', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'in_progress' as const }],
+          },
+        });
+
+        const integration = (entry.stage as any).finalize.integration;
+        expect(integration).toHaveLength(1);
+        expect(integration[0].title).toBe('代码审查');
+        expect(integration[0].from).toBe('2026-06-01T00:00:00Z');
+      });
+
+      it('should override old values when new values are non-empty on matched title', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            finalize: {
+              integration: [
+                { title: '集成测试', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+              ],
+            },
+          },
+        };
+
+        createOrUpdateStage(entry as any, {
+          finalize: {
+            integration: [{ title: '集成测试', from: '2026-06-08T12:00:00Z', to: '2026-06-08T12:00:00Z', status: 'in_progress' as const }],
+          },
+        });
+
+        const integration = (entry.stage as any).finalize.integration;
+        expect(integration).toHaveLength(1);
+        expect(integration[0].title).toBe('集成测试');
+        // from overridden with non-empty new value
+        expect(integration[0].from).toBe('2026-06-08T12:00:00Z');
+      });
+    });
+
+    // --- subAgentDev new entry fallback tests ---
+    describe('subAgentDev new entry fallback for title/from/inputPath', () => {
+      it('should use ISO timestamp fallback when new progress from is null (no title match)', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        const beforeCall = new Date().toISOString();
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Green', from: null as unknown as string, to: '2026-06-08T00:00:00Z', status: 'in_progress' as const }] }],
+        });
+
+        const progress = (entry.stage as any).subAgentDev[0].progress;
+        expect(progress).toHaveLength(2);
+        expect(progress[1].title).toBe('TDD-Green');
+        // from should be a current ISO timestamp (fallback), not null or empty
+        expect(typeof progress[1].from).toBe('string');
+        expect(progress[1].from).not.toBe('');
+        expect(progress[1].from >= beforeCall).toBe(true);
+      });
+
+      it('should use ISO timestamp fallback when new progress from is empty string (no title match)', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+          stage: {
+            subAgentDev: [
+              {
+                featureId: 'feat-1',
+                progress: [
+                  { title: 'TDD-Red', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: '', outputPath: '' },
+                ],
+              },
+            ],
+          },
+        };
+
+        const beforeCall = new Date().toISOString();
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-1', progress: [{ title: 'TDD-Green', from: '', to: '2026-06-08T00:00:00Z', status: 'in_progress' as const }] }],
+        });
+
+        const progress = (entry.stage as any).subAgentDev[0].progress;
+        expect(progress).toHaveLength(2);
+        // from should use fallback (new value is empty string)
+        expect(typeof progress[1].from).toBe('string');
+        expect(progress[1].from).not.toBe('');
+        expect(progress[1].from >= beforeCall).toBe(true);
+      });
+
+      it('should use ISO timestamp fallback when new featureId progress from is null', async () => {
+        const mod = await import('./memory.js');
+        const { createOrUpdateStage } = mod;
+
+        const entry: Record<string, unknown> = {
+          name: 'test-change',
+          path: 'openpowers/changes/test-change',
+          description: 'test',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'active',
+          features: 0,
+          todo: 0,
+          artifacts: [],
+        };
+
+        const beforeCall = new Date().toISOString();
+        createOrUpdateStage(entry as any, {
+          subAgentDev: [{ featureId: 'feat-new', progress: [{ title: 'Implement', from: null as unknown as string, to: '', status: 'in_progress' as const }] }],
+        });
+
+        const subAgentDev = (entry.stage as any).subAgentDev;
+        expect(subAgentDev).toHaveLength(1);
+        const newProgress = subAgentDev[0].progress[0];
+        // from should use ISO timestamp fallback
+        expect(typeof newProgress.from).toBe('string');
+        expect(newProgress.from).not.toBe('');
+        expect(newProgress.from >= beforeCall).toBe(true);
+      });
     });
 
     it('should dispatch to handleCodingStage without throwing and create stage.subAgentDev', async () => {

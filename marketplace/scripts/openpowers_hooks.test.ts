@@ -436,7 +436,7 @@ describe('buildInitCommand', () => {
       'openpowers', 'agents', 'init',
       '--session', 'session-003',
       '--cwd', '/test/cwd',
-      '--prompt', '/openpowers:workflow explore',
+      '--prompt', '"/openpowers:workflow explore"',
     ]);
   });
 
@@ -1150,7 +1150,7 @@ describe('runInitAgent', () => {
     expect(initCallArg).toContain('--prompt');
     expect(initCallArg).toContain('/openpowers:workflow explore the codebase');
     // Verify exact command order
-    expect(initCallArg).toMatch(/openpowers agents init --session session-prompt --cwd \/valid\/project\/path --prompt \/openpowers:workflow explore the codebase/);
+    expect(initCallArg).toMatch(/openpowers agents init --session session-prompt --cwd \/valid\/project\/path --prompt "\/openpowers:workflow explore the codebase"/);
   });
 
   it('should NOT include --prompt when prompt is not a workflow prompt', () => {

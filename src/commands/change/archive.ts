@@ -7,6 +7,7 @@
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { logger } from '../../utils/logger.js';
 import {
@@ -16,6 +17,8 @@ import {
   syncChangesJson,
 } from './shared.js';
 import { computeArtifactStatus } from './status.js';
+import { flattenCwdPath, writeMemoryChangesJson } from '../../utils/memory.js';
+import type { ChangesJson } from '../../utils/memory.js';
 
 /**
  * Archives a completed change by moving its directory from openpowers/changes/ to
@@ -97,6 +100,50 @@ export function runChangeArchive(name: string): void {
     fs.mkdirSync(jsonDir, { recursive: true });
   }
   fs.writeFileSync(CHANGES_JSON_PATH, JSON.stringify(newData, null, 2), 'utf-8');
+
+  // Sync global memory changes.json
+  try {
+    const cwd = process.cwd();
+    const memoryPath = path.join(os.homedir(), '.openpowers', 'memory', flattenCwdPath(cwd), 'changes.json');
+
+    if (!fs.existsSync(memoryPath)) {
+      logger.warn(`Global memory changes.json not found at ${memoryPath}, skipping sync`);
+    } else {
+      let memoryData: Record<string, unknown> | null = null;
+      try {
+        const raw = fs.readFileSync(memoryPath, 'utf-8');
+        memoryData = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        logger.error(`Failed to parse global memory changes.json at ${memoryPath}, skipping sync`);
+      }
+
+      if (memoryData) {
+        const changes = memoryData.changes as Array<Record<string, unknown>> | undefined;
+        const match = changes?.find((c) => c.name === name);
+        if (!match) {
+          logger.warn(`Change '${name}' not found in global memory changes.json, skipping sync`);
+        } else {
+          // Update change status to archived
+          match.status = 'archived';
+
+          // Update finalize.archive stage
+          const stage = match.stage as Record<string, unknown> | undefined;
+          const finalize = stage?.finalize as Record<string, unknown> | undefined;
+          const archive = finalize?.archive as Record<string, unknown> | undefined;
+          if (archive) {
+            archive.status = 'done';
+            archive.to = new Date().toISOString();
+          } else {
+            logger.warn(`stage.finalize.archive is missing for change '${name}', still persisting status: archived`);
+          }
+
+          writeMemoryChangesJson(cwd, memoryData as unknown as ChangesJson);
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`Failed to sync global memory changes.json: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   process.stdout.write(`Change '${name}' archived successfully to openpowers/archive/${targetDirName}/\n`);
 }

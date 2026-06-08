@@ -22,15 +22,16 @@ const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
 
 /**
- * Flattens a cwd path into a safe directory name.
+ * Flattens a cwd path into a safe directory name with Memory_ prefix.
  * Step 1: normalize path (collapse doubled separators, unify backslashes)
  * Step 2: replace : with _ (Windows drive letter separator)
  * Step 3: replace / with _
+ * Step 4: prepend Memory_ prefix
  * @param cwd - The current working directory path
- * @returns Flattened path safe for use as a directory name
+ * @returns Flattened path with Memory_ prefix safe for use as a directory name
  */
 export function flattenCwdPath(cwd: string): string {
-  return normalizePath(cwd).replace(/:/g, '_').replace(/\//g, '_');
+  return 'Memory_' + normalizePath(cwd).replace(/:/g, '_').replace(/\//g, '_');
 }
 
 /** Schema for a single stage step with title metadata */
@@ -538,13 +539,14 @@ function handleBrainstormStage(entry: ChangeEntry, data?: Partial<StageStep>): v
   // Auto-close predecessor: explore
   closeIfInProgress(entry.stage.explore);
 
+  const existing = entry.stage.brainstorm;
   entry.stage.brainstorm = {
-    title: data.title ?? '',
-    from: data.from ?? new Date().toISOString(),
-    to: data.to ?? new Date().toISOString(),
-    status: data.status ?? 'in_progress',
-    inputPath: data.inputPath ?? '',
-    outputPath: data.outputPath ?? '',
+    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
+    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
+    status: data.status ?? (existing?.status ?? 'in_progress'),
+    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
 
@@ -560,13 +562,14 @@ function handleProposeStage(entry: ChangeEntry, data?: Partial<StageStep>): void
   // Auto-close predecessor: brainstorm
   closeIfInProgress(entry.stage.brainstorm);
 
+  const existing = entry.stage.propose;
   entry.stage.propose = {
-    title: data.title ?? '',
-    from: data.from ?? new Date().toISOString(),
-    to: data.to ?? new Date().toISOString(),
-    status: data.status ?? 'in_progress',
-    inputPath: data.inputPath ?? '',
-    outputPath: data.outputPath ?? '',
+    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
+    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
+    status: data.status ?? (existing?.status ?? 'in_progress'),
+    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
 
@@ -582,13 +585,14 @@ function handlePlanStage(entry: ChangeEntry, data?: Partial<StageStep>): void {
   // Auto-close predecessor: propose
   closeIfInProgress(entry.stage.propose);
 
+  const existing = entry.stage.plan;
   entry.stage.plan = {
-    title: data.title ?? '',
-    from: data.from ?? new Date().toISOString(),
-    to: data.to ?? new Date().toISOString(),
-    status: data.status ?? 'in_progress',
-    inputPath: data.inputPath ?? '',
-    outputPath: data.outputPath ?? '',
+    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
+    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
+    status: data.status ?? (existing?.status ?? 'in_progress'),
+    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
 
@@ -604,13 +608,14 @@ function handleReviewArtifactsStage(entry: ChangeEntry, data?: Partial<StageStep
   // Auto-close predecessor: plan
   closeIfInProgress(entry.stage.plan);
 
+  const existing = entry.stage.reviewArtifacts;
   entry.stage.reviewArtifacts = {
-    title: data.title ?? '',
-    from: data.from ?? new Date().toISOString(),
-    to: data.to ?? new Date().toISOString(),
-    status: data.status ?? 'in_progress',
-    inputPath: data.inputPath ?? '',
-    outputPath: data.outputPath ?? '',
+    title: (data.title && data.title !== '') ? data.title : (existing?.title ?? ''),
+    from: (data.from && data.from !== '') ? data.from : (existing?.from ?? new Date().toISOString()),
+    to: (data.to && data.to !== '') ? data.to : (existing?.to ?? new Date().toISOString()),
+    status: data.status ?? (existing?.status ?? 'in_progress'),
+    inputPath: (data.inputPath && data.inputPath !== '') ? data.inputPath : (existing?.inputPath ?? ''),
+    outputPath: (data.outputPath && data.outputPath !== '') ? data.outputPath : (existing?.outputPath ?? ''),
   };
 }
 
@@ -682,11 +687,11 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
           closeIfInProgress(existingSAD.progress[existingSAD.progress.length - 1]);
           const newEntry: StageStep = {
             title: newItem.title ?? '',
-            from: newItem.from ?? new Date().toISOString(),
-            to: newItem.to ?? new Date().toISOString(),
+            from: (newItem.from && newItem.from !== '') ? newItem.from : new Date().toISOString(),
+            to: (newItem.to && newItem.to !== '') ? newItem.to : new Date().toISOString(),
             status: newItem.status ?? 'in_progress',
-            inputPath: newItem.inputPath ?? '',
-            outputPath: newItem.outputPath ?? '',
+            inputPath: (newItem.inputPath && newItem.inputPath !== '') ? newItem.inputPath : '',
+            outputPath: (newItem.outputPath && newItem.outputPath !== '') ? newItem.outputPath : '',
           };
           existingSAD.progress.push(newEntry);
         }
@@ -702,11 +707,11 @@ function handleCodingStage(entry: ChangeEntry, codingData?: unknown[]): void {
       }
       const newProgressEntries: StageStep[] = newProgress.map((np) => ({
         title: np.title ?? '',
-        from: np.from ?? new Date().toISOString(),
-        to: np.to ?? new Date().toISOString(),
+        from: (np.from && np.from !== '') ? np.from : new Date().toISOString(),
+        to: (np.to && np.to !== '') ? np.to : new Date().toISOString(),
         status: np.status ?? 'in_progress',
-        inputPath: np.inputPath ?? '',
-        outputPath: np.outputPath ?? '',
+        inputPath: (np.inputPath && np.inputPath !== '') ? np.inputPath : '',
+        outputPath: (np.outputPath && np.outputPath !== '') ? np.outputPath : '',
       }));
       entry.stage.subAgentDev.push({
         featureId,
@@ -751,14 +756,37 @@ function handleFinalizeStage(entry: ChangeEntry, data?: { integration?: Partial<
   }
 
   if (Array.isArray(data.integration)) {
-    entry.stage.finalize.integration = data.integration.map((item) => ({
-      title: item.title ?? '',
-      from: item.from ?? new Date().toISOString(),
-      to: item.to ?? new Date().toISOString(),
-      status: item.status ?? 'in_progress',
-      inputPath: item.inputPath ?? '',
-      outputPath: item.outputPath ?? '',
-    }));
+    if (!Array.isArray(entry.stage.finalize.integration)) {
+      entry.stage.finalize.integration = [];
+    }
+    for (const newItem of data.integration) {
+      const newTitle = newItem.title ?? '';
+      // Find matching existing integration item by title
+      const matchIndex = newTitle
+        ? entry.stage.finalize.integration.findIndex((p) => p.title === newTitle)
+        : -1;
+
+      if (matchIndex >= 0) {
+        // Merge: new non-empty values override, empty/null values preserve old
+        const existing = entry.stage.finalize.integration[matchIndex];
+        if (newItem.title && newItem.title !== '') existing.title = newItem.title;
+        if (newItem.from && newItem.from !== '') existing.from = newItem.from;
+        if (newItem.to && newItem.to !== '') existing.to = newItem.to;
+        if (newItem.status) existing.status = newItem.status;
+        if (newItem.inputPath && newItem.inputPath !== '') existing.inputPath = newItem.inputPath;
+        if (newItem.outputPath && newItem.outputPath !== '') existing.outputPath = newItem.outputPath;
+      } else {
+        // No title match — append as new integration item
+        entry.stage.finalize.integration.push({
+          title: newItem.title ?? '',
+          from: (newItem.from && newItem.from !== '') ? newItem.from : new Date().toISOString(),
+          to: (newItem.to && newItem.to !== '') ? newItem.to : new Date().toISOString(),
+          status: newItem.status ?? 'in_progress',
+          inputPath: (newItem.inputPath && newItem.inputPath !== '') ? newItem.inputPath : '',
+          outputPath: (newItem.outputPath && newItem.outputPath !== '') ? newItem.outputPath : '',
+        });
+      }
+    }
   }
   if (data.codecheck) {
     entry.stage.finalize.codecheck = {

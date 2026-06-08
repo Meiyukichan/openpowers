@@ -206,9 +206,9 @@ export function startScheduler(): void {
       return;
     }
 
-    // 2) Filter to directories with non-empty designs/
+    // 2) Filter to directories with non-empty designs/ that start with Memory_
     const pendingDirs = entries
-      .filter((entry) => entry.isDirectory())
+      .filter((entry) => entry.isDirectory() && entry.name.startsWith('Memory_'))
       .map((entry) => path.join(MEMORY_DIR, entry.name))
       .filter((subDir) => hasNonEmptyDesigns(subDir));
 
