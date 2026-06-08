@@ -46,7 +46,12 @@
     "title": "Changes",
     "searchPlaceholder": "Search...",
     "projectView": "Projects",
-    "recentView": "Recent"
+    "activeView": "Active Changes",
+    "loading": "Loading...",
+    "emptyActive": "No active changes",
+    "emptyProject": "No project changes",
+    "failedToLoad": "Failed to load changes",
+    "retry": "Retry"
   },
   "providerList": {
     "noProviders": "No providers configured",

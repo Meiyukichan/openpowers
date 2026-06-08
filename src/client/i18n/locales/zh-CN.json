@@ -46,7 +46,12 @@
     "title": "Changes",
     "searchPlaceholder": "搜索...",
     "projectView": "项目",
-    "recentView": "最近"
+    "activeView": "变更中",
+    "loading": "加载中...",
+    "emptyActive": "暂无变更中项目",
+    "emptyProject": "暂无项目变更",
+    "failedToLoad": "加载变更失败",
+    "retry": "重试"
   },
   "providerList": {
     "noProviders": "暂无供应商配置",

@@ -7,6 +7,7 @@
 
 import * as express from 'express';
 import { loadOrCreateChangesJson } from '../../commands/change/shared.js';
+import { getAllChanges } from './shared.js';
 
 // ---------------------------------------------------------------------------
 // Router
@@ -29,6 +30,28 @@ changesRouter.get('/', (_req, res) => {
     res.status(200).json({ ok: true, data });
   } catch {
     res.status(500).json({ ok: false, error: 'Failed to load changes data' });
+  }
+});
+
+/**
+ * GET /openpowers/api/changes/all
+ * Aggregates changes from all Memory_ directories under ~/.openpowers/memory/.
+ * Accepts optional query parameters: status, cwd, query.
+ * Returns a ChangeEntryWithCwd array sorted by updateAt descending.
+ */
+changesRouter.get('/all', (req, res) => {
+  try {
+    const options: Record<string, string> = {};
+    const { status, cwd, query } = req.query as Record<string, string | undefined>;
+
+    if (status && status !== '') options.status = status;
+    if (cwd && cwd !== '') options.cwd = cwd;
+    if (query && query !== '') options.query = query;
+
+    const data = getAllChanges(options);
+    res.status(200).json({ ok: true, data });
+  } catch {
+    res.status(500).json({ ok: false, error: 'Failed to load aggregated changes data' });
   }
 });
 

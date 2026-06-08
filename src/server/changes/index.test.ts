@@ -10,12 +10,17 @@ import * as express from 'express';
 
 // ---- mocks ----
 
-const { loadOrCreateChangesJsonMock } = vi.hoisted(() => ({
+const { loadOrCreateChangesJsonMock, getAllChangesMock } = vi.hoisted(() => ({
   loadOrCreateChangesJsonMock: vi.fn(),
+  getAllChangesMock: vi.fn(),
 }));
 
 vi.mock('../../commands/change/shared.js', () => ({
   loadOrCreateChangesJson: loadOrCreateChangesJsonMock,
+}));
+
+vi.mock('./shared.js', () => ({
+  getAllChanges: getAllChangesMock,
 }));
 
 // ---- helpers ----
@@ -92,6 +97,125 @@ describe('changesRouter', () => {
       });
       expect(res.body.data.changes).toEqual([]);
       expect(res.body.data.archive).toEqual([]);
+    });
+  });
+
+  describe('GET /all (mounted at /openpowers/api/changes/all)', () => {
+    async function createTestApp() {
+      const mod = await importFresh();
+      const app = express.default();
+      app.use(express.default.json());
+      app.use('/openpowers/api/changes', mod.changesRouter);
+      return app;
+    }
+
+    it('should return 200 with aggregated changes array (no params)', async () => {
+      const mockChanges = [
+        { name: 'change-a', description: 'Change A', cwd: 'D:\\project_a', updateAt: '2026-06-09T10:00:00Z' },
+        { name: 'change-b', description: 'Change B', cwd: 'D:\\project_b', updateAt: '2026-06-08T10:00:00Z' },
+      ];
+      getAllChangesMock.mockReturnValue(mockChanges);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ok: true,
+        data: mockChanges,
+      });
+      expect(getAllChangesMock).toHaveBeenCalledTimes(1);
+      expect(getAllChangesMock).toHaveBeenCalledWith({});
+    });
+
+    it('should pass status query param to getAllChanges', async () => {
+      const mockChanges = [
+        { name: 'active-change', status: 'active', cwd: 'D:\\project', updateAt: '2026-06-09T10:00:00Z' },
+      ];
+      getAllChangesMock.mockReturnValue(mockChanges);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all?status=active');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual(mockChanges);
+      expect(getAllChangesMock).toHaveBeenCalledWith({ status: 'active' });
+    });
+
+    it('should pass cwd query param to getAllChanges', async () => {
+      getAllChangesMock.mockReturnValue([]);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all?cwd=D%3A%5Cproject');
+
+      expect(res.status).toBe(200);
+      expect(getAllChangesMock).toHaveBeenCalledWith({ cwd: 'D:\\project' });
+    });
+
+    it('should pass query param to getAllChanges', async () => {
+      const mockChanges = [
+        { name: 'ui-change', description: 'UI feature', cwd: 'D:\\project', updateAt: '2026-06-09T10:00:00Z' },
+      ];
+      getAllChangesMock.mockReturnValue(mockChanges);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all?query=ui');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual(mockChanges);
+      expect(getAllChangesMock).toHaveBeenCalledWith({ query: 'ui' });
+    });
+
+    it('should pass all query params combined (AND logic)', async () => {
+      getAllChangesMock.mockReturnValue([]);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all?status=active&cwd=D%3A%5Cproject&query=ui');
+
+      expect(res.status).toBe(200);
+      expect(getAllChangesMock).toHaveBeenCalledWith({
+        status: 'active',
+        cwd: 'D:\\project',
+        query: 'ui',
+      });
+    });
+
+    it('should return 200 with empty array when no changes found', async () => {
+      getAllChangesMock.mockReturnValue([]);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ok: true,
+        data: [],
+      });
+    });
+
+    it('should return 200 with empty array when empty query string passed', async () => {
+      getAllChangesMock.mockReturnValue([]);
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all?status=&cwd=&query=');
+
+      expect(res.status).toBe(200);
+      // Empty string params should be treated as absent
+      expect(getAllChangesMock).toHaveBeenCalledWith({});
     });
   });
 
@@ -210,6 +334,23 @@ describe('changesRouter', () => {
       expect(res.body).toEqual({
         ok: false,
         error: 'Failed to load changes data',
+      });
+    });
+
+    it('should return 500 when getAllChanges throws on GET /all', async () => {
+      getAllChangesMock.mockImplementation(() => {
+        throw new Error('EACCES: permission denied');
+      });
+
+      const app = await createTestApp();
+
+      const res = await request(app)
+        .get('/openpowers/api/changes/all');
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Failed to load aggregated changes data',
       });
     });
   });
