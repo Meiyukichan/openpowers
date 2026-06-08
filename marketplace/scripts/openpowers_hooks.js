@@ -100,7 +100,7 @@ export function buildBeforeAgentCommand(sessionId, purpose) {
 export function buildInitCommand(sessionId, cwd, prompt) {
   const command = ['openpowers', 'agents', 'init', '--session', sessionId, '--cwd', cwd];
   if (prompt) {
-    command.push('--prompt', prompt);
+    command.push('--prompt', `"${prompt}"`);
   }
   return command;
 }
