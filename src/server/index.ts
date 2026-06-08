@@ -48,7 +48,7 @@ export function createApp(options?: { clientDir?: string; beforeProxy?: (app: ex
     app.use('/openpowers/ui', express.default.static(clientDir, { redirect: false }));
     // SPA fallback: serve index.html for any /openpowers/ui subpath not matching a static file
     app.use('/openpowers/ui', (_req, res) => {
-      res.sendFile(path.join(clientDir, 'index.html'));
+      res.sendFile(path.join(clientDir, 'index.html'), { dotfiles: 'allow' });
     });
   } else {
     // Friendly message when the frontend has not been built yet
