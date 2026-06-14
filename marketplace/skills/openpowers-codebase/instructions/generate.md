@@ -9,6 +9,9 @@ Generate a hierarchical structured code-document tree for medium-to-large codeba
 
 When required parameters are missing, you MUST use `AskUserQuestion` to ask the user. Do not ask about optional parameters.
 
+## Output language
+{`language`}
+
 ## Codebase Collection Concepts
 
 You **MUST** accurately, carefully, and thoroughly read `Codebase Collection Concepts`: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/guidance-codebase.md`, and then comprehensively understand the concepts, constraints, and content requirements of **Module, Module Index File, Submodule, Submodule Index File, and Spec Document**.

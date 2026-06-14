@@ -8,6 +8,9 @@ Task tool (general-purpose):
   prompt: |
     You are initialize a top toc.md for codebase of project.
 
+    ## Output language
+    {`language`}
+
     ## Project Directory
     {projectDir}
 

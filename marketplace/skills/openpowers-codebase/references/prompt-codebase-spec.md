@@ -8,6 +8,9 @@ Task tool (general-purpose):
   prompt: |
     You are generating spec document for {spec name}.
 
+    ## Output language
+    {`language`}
+
     ## Project Directory
     {projectDir}
 
