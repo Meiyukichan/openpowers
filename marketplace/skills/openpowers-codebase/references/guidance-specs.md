@@ -109,7 +109,7 @@ Include step-by-step explanations so readers can use them directly.
 - `param2` (`Type`): {Detailed explanation}
 
 **Return Value**:
-- `ReturnType`): {Detailed explanation of return value meaning}
+- `ReturnType`: {Detailed explanation of return value meaning}
 - Possible errors/edge cases: {Explanation}
 
 **Core Logic**:

@@ -36,10 +36,11 @@ You **MUST** strictly and accurately execute the following instruction document:
 
 ### Current Instruction
 
-- When `instruction = explore`, current instruction: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/explore.md`
-- When `instruction = generate`, current instruction: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/generate.md`
-- When `instruction = synchronize`, current instruction: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/synchronize.md`
+- When `instruction = explore`, current instruction is: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/explore.md`
+- When `instruction = generate`, current instruction is: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/generate.md`
+- When `instruction = synchronize`, current instruction is: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/instructions/synchronize.md`
 
 ## RED LAW
 
 - Progressive Document Reading: ONLY ALLOW reading the instruction document WHEN you are about to execute that instruction.
+- Strictly prohibited to read any documents other than the current instruction document.
