@@ -73,9 +73,14 @@ const EnhancementRulesSchema = z.object({
   implement: z.array(z.unknown()),
 });
 
+const MemorySchema = z.object({
+  schedule: z.string(),
+});
+
 const EnhancementSchema = z.object({
   context: z.nullable(z.unknown()),
   rules: EnhancementRulesSchema,
+  memory: MemorySchema.optional(),
 });
 
 /**

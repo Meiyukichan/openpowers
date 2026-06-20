@@ -257,6 +257,34 @@ describe('cron callback: start and finish logging', () => {
 });
 
 describe('cron callback: directory scanning', () => {
+  it('should log and exit gracefully when memory directory cannot be read', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    // Make readdirSync throw for MEMORY_DIR
+    const originalReaddirSyncImpl = readdirSyncMock.getMockImplementation();
+    readdirSyncMock.mockImplementation((p: unknown, options?: unknown) => {
+      const pathStr = normalizeDirPath(String(p));
+      if (pathStr === normalizeDirPath(MEMORY_DIR) || pathStr === normalizeDirPath(MEMORY_DIR) + '/') {
+        throw new Error('EACCES: permission denied');
+      }
+      // Fall back to original for other paths
+      return originalReaddirSyncImpl!(p, options as any);
+    });
+
+    await capturedCronCallback!();
+
+    // Verify the catch block handled the error
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler: could not read memory directory, skipping');
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+    // No processing should occur
+    expect(cpSyncMock).not.toHaveBeenCalled();
+    expect(execMock).not.toHaveBeenCalled();
+
+    // Restore
+    readdirSyncMock.mockImplementation(originalReaddirSyncImpl || (() => []));
+  });
+
   it('should scan .openpowers/memory subdirectories', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
@@ -304,6 +332,35 @@ describe('cron callback: directory scanning', () => {
     expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Processing'));
   });
 
+  it('should skip directory when designs/ subdirectory cannot be read', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+
+    // Make readdirSync throw for the designs dir (covers hasNonEmptyDesigns catch at line 76)
+    const originalImpl = readdirSyncMock.getMockImplementation();
+    readdirSyncMock.mockImplementation((p: unknown, options?: unknown) => {
+      const pathStr = normalizeDirPath(String(p));
+      if (pathStr === normalizeDirPath(designsDir) || pathStr === normalizeDirPath(designsDir) + '/') {
+        throw new Error('EACCES: permission denied');
+      }
+      return originalImpl!(p, options as any);
+    });
+
+    await capturedCronCallback!();
+
+    // Should skip the directory (designs/ unreadable)
+    expect(cpSyncMock).not.toHaveBeenCalled();
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler: no directories with pending designs found');
+
+    // Restore
+    readdirSyncMock.mockImplementation(originalImpl || (() => []));
+  });
+
   it('should skip directory with empty designs/ subdirectory', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
@@ -320,6 +377,46 @@ describe('cron callback: directory scanning', () => {
 
     // Should NOT process (no cpSync calls)
     expect(cpSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('should log error when designs/ cannot be read in processProject', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    // designs dir exists with .md files (so hasNonEmptyDesigns passes)
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+
+    // Make readdirSync throw only on the second call to designsDir (processProject's call)
+    // hasNonEmptyDesigns calls it first (via .filter), which should succeed
+    let designsReadCount = 0;
+    const originalImpl = readdirSyncMock.getMockImplementation();
+    readdirSyncMock.mockImplementation((p: unknown, options?: unknown) => {
+      const pathStr = normalizeDirPath(String(p));
+      if (pathStr === normalizeDirPath(designsDir) || pathStr === normalizeDirPath(designsDir) + '/') {
+        designsReadCount++;
+        if (designsReadCount > 1) {
+          throw new Error('EIO: i/o error');
+        }
+      }
+      return originalImpl!(p, options as any);
+    });
+
+    await capturedCronCallback!();
+
+    // Should log the error and skip this project
+    expect(appendLogMock).toHaveBeenCalledWith(`Could not read designs directory: ${designsDir}`);
+    // Should NOT exec claude for this project
+    const designerCalls = execMock.mock.calls.filter((c: unknown[]) => String(c[0]).includes('backgroud-designer'));
+    expect(designerCalls.length).toBe(0);
+    // Task should still finish
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+
+    // Restore
+    readdirSyncMock.mockImplementation(originalImpl || (() => []));
   });
 
   it('should skip directory without designs/ subdirectory', async () => {
@@ -564,6 +661,47 @@ describe('cron callback: cleanup', () => {
     );
   });
 
+  it('should log error when rmSync fails during design file cleanup', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const designFilePath = path.join(designsDir, 'change-a.md');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    // Both output files exist so cleanup triggers
+    mockDirListing[path.join(projectDir, 'project-design.md')] = [];
+    mockDirListing[path.join(projectDir, 'project-portrait.md')] = [];
+
+    // Make rmSync throw only for the design file cleanup
+    const originalRmSyncImpl = rmSyncMock.getMockImplementation();
+    rmSyncMock.mockImplementation((target: string, options?: unknown) => {
+      if (normalizeDirPath(target) === normalizeDirPath(designFilePath)) {
+        throw new Error('EACCES: permission denied');
+      }
+      // Allow other rmSync calls (.claude) to proceed
+    });
+
+    await capturedCronCallback!();
+
+    // Verify catch block logged the design file cleanup failure
+    expect(appendLogMock).toHaveBeenCalledWith(
+      `Failed to cleanup design file ${designFilePath}: EACCES: permission denied`,
+    );
+    // Task should still complete normally
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+    // .claude cleanup should still execute
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      expect.stringMatching(/.claude/),
+      { recursive: true, force: true },
+    );
+
+    // Restore
+    rmSyncMock.mockImplementation(originalRmSyncImpl || (() => {}));
+  });
+
   it('should NOT delete designs/ when project-design.md or project-portrait.md missing', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
@@ -624,6 +762,43 @@ describe('cron callback: cleanup', () => {
       expect.stringMatching(/.claude/),
       { recursive: true, force: true },
     );
+  });
+
+  it('should log error when rmSync fails during .claude cleanup in processProject', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const claudeDir = path.join(projectDir, '.claude');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    // Both output files exist so cleanup triggers
+    mockDirListing[path.join(projectDir, 'project-design.md')] = [];
+    mockDirListing[path.join(projectDir, 'project-portrait.md')] = [];
+
+    // Make rmSync throw only for .claude directories
+    const originalRmSyncImpl = rmSyncMock.getMockImplementation();
+    rmSyncMock.mockImplementation((target: string, options?: unknown) => {
+      const normalized = normalizeDirPath(String(target));
+      if (normalized === normalizeDirPath(claudeDir) || normalized === normalizeDirPath(path.join(PROJECT_GROUP_DIR, '.claude'))) {
+        throw new Error('EBUSY: resource busy or locked');
+      }
+      // Allow other rmSync calls (e.g. design files) to proceed
+    });
+
+    await capturedCronCallback!();
+
+    // Verify catch block logged the .claude cleanup failure
+    expect(appendLogMock).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to cleanup .claude'),
+    );
+    // Task should still complete normally
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+
+    // Restore original implementation
+    rmSyncMock.mockImplementation(originalRmSyncImpl || (() => {}));
   });
 
   it('should process multiple directories and clean up each', async () => {
@@ -1062,6 +1237,49 @@ describe('project group sync: cleanup', () => {
 
     expect(projectClaudeCleanup).toBeDefined();
     expect(projectGroupClaudeCleanup).toBeDefined();
+  });
+
+  it('should log error when rmSync fails during aggregate file cleanup', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+    const aggregatedFilePath = path.join(PROJECT_GROUP_DIR, 'Memory_project1.md');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+    ];
+
+    // Make rmSync throw only for the aggregated file cleanup
+    const originalRmSyncImpl = rmSyncMock.getMockImplementation();
+    rmSyncMock.mockImplementation((target: string, ...args: unknown[]) => {
+      if (target === aggregatedFilePath) {
+        throw new Error('EACCES: permission denied');
+      }
+      // Allow other rmSync calls (e.g., .claude cleanup) to proceed
+    });
+
+    await capturedCronCallback!();
+
+    // Verify catch block logged the cleanup failure
+    expect(appendLogMock).toHaveBeenCalledWith(
+      `Failed to cleanup aggregated file ${aggregatedFilePath}: EACCES: permission denied`,
+    );
+    // Task should still complete normally (exception caught, finally runs)
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+    // .claude cleanup in finally should still execute
+    const claudeCalls = rmSyncMock.mock.calls.filter((c: unknown[]) => String(c[0]).includes('.claude'));
+    expect(claudeCalls.length).toBeGreaterThan(0);
+
+    // Restore original implementation
+    rmSyncMock.mockImplementation(originalRmSyncImpl || (() => {}));
   });
 });
 

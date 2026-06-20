@@ -397,7 +397,7 @@ describe('src/commands/change/shared.ts', () => {
       const data = loadOrCreateChangesJson();
       expect(data).toEqual({
         framework: '@meiyukichan/openpowers',
-        version: '1.0.2',
+        version: '1.0.3',
         changes: [],
         archive: [],
       });
@@ -415,7 +415,7 @@ describe('src/commands/change/shared.ts', () => {
       const { loadOrCreateChangesJson } = mod;
       const data = loadOrCreateChangesJson();
       expect(data.framework).toBe('@meiyukichan/openpowers');
-      expect(data.version).toBe('1.0.2');
+      expect(data.version).toBe('1.0.3');
       expect(data.changes.length).toBe(1);
       expect(data.archive).toEqual([]);
     });
@@ -448,7 +448,7 @@ describe('src/commands/change/shared.ts', () => {
       const data = loadOrCreateChangesJson();
       // Should force-update to current pkg values, not preserve old ones
       expect(data.framework).toBe('@meiyukichan/openpowers');
-      expect(data.version).toBe('1.0.2');
+      expect(data.version).toBe('1.0.3');
       // Should NOT write to disk (only reads, no structural change committed)
       expect(mockFs.writeFileSync).not.toHaveBeenCalled();
     });
