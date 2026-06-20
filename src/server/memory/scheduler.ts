@@ -27,6 +27,9 @@ const resourcesDir = path.resolve(moduleDirname, '..', '..', '..', 'resources');
 // Memory root directory for scanning
 const MEMORY_DIR = path.join(os.homedir(), '.openpowers', 'memory');
 
+// Project group working directory for cross-project memory sync
+const PROJECT_GROUP_DIR = path.join(MEMORY_DIR, 'Project_Group');
+
 /**
  * Reads the cron expression from resources/openpowers.json,
  * falling back to '0 2 * * *' on any failure.
@@ -104,6 +107,22 @@ async function executeClaudeDesigner(designsDir: string, projectDir: string, des
 }
 
 /**
+ * Builds and executes the claude CLI command for project group memory sync.
+ */
+async function executeClaudeGrouper(projectsDir: string, projectMdNames: string[]): Promise<void> {
+  const projectMdList = projectMdNames.join('、');
+  const command = `claude --add-dir "${projectsDir}" --agent backgroud-grouper --permission-mode bypassPermissions -p "使用子代理：backgroud-grouper 按照它的要求和步骤处理。项目设计文档列表为： ${projectMdList}"`;
+  appendLog(`Executing: ${command}`);
+  await execAsync(command, {
+    cwd: projectsDir,
+    timeout: 600000, // 10 minutes
+    env: process.env,
+    windowsHide: true,
+  });
+  appendLog(`Claude grouper execution succeeded: ${projectsDir}`);
+}
+
+/**
  * Deletes the designs/ directory only when both project-design.md
  * and project-portrait.md exist after claude execution.
  */
@@ -177,6 +196,64 @@ async function processProject(projectDir: string): Promise<void> {
 }
 
 /**
+ * Synchronizes project group memory: copies agents/skills, aggregates
+ * project-design.md files from pending dirs, executes backgroud-grouper,
+ * and cleans up.
+ */
+async function syncProjectGroup(pendingDirs: string[]): Promise<void> {
+  appendLog('Starting project group sync');
+
+  const claudeDir = path.join(PROJECT_GROUP_DIR, '.claude');
+
+  try {
+    // 1) Copy agents/skills to Project_Group/.claude
+    copyClaudeResources(claudeDir);
+
+    // 2) Aggregate project-design.md files
+    const projectMdNames: string[] = [];
+    for (const projectDir of pendingDirs) {
+      const srcDesign = path.join(projectDir, 'project-design.md');
+      if (!fs.existsSync(srcDesign)) {
+        appendLog(`project-design.md not found for ${projectDir}, skipping`);
+        continue;
+      }
+      const basename = path.basename(projectDir);
+      const destMd = path.join(PROJECT_GROUP_DIR, `${basename}.md`);
+      fs.cpSync(srcDesign, destMd);
+      projectMdNames.push(`${basename}.md`);
+      appendLog(`Aggregated: ${srcDesign} -> ${destMd}`);
+    }
+
+    // 3) Execute grouper if there are aggregated files
+    if (projectMdNames.length === 0) {
+      appendLog('No aggregated Memory_*.md files found, skipping grouper execution');
+      return;
+    }
+
+    await executeClaudeGrouper(PROJECT_GROUP_DIR, projectMdNames);
+
+    // 4) Clean up aggregated Memory_*.md files on success
+    for (const mdName of projectMdNames) {
+      const mdPath = path.join(PROJECT_GROUP_DIR, mdName);
+      try {
+        if (fs.existsSync(mdPath)) {
+          fs.rmSync(mdPath);
+          appendLog(`Cleaned up aggregated file: ${mdPath}`);
+        }
+      } catch (cleanupErr) {
+        const msg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+        appendLog(`Failed to cleanup aggregated file ${mdPath}: ${msg}`);
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    appendLog(`Group sync failed: ${message}`);
+  } finally {
+    tryCleanupClaude(claudeDir);
+  }
+}
+
+/**
  * Starts the daily scheduler.
  * Reads the cron expression from enhancement.memory.schedule in
  * resources/openpowers.json (fallback to '0 2 * * *').
@@ -222,6 +299,9 @@ export function startScheduler(): void {
     for (const projectDir of pendingDirs) {
       await processProject(projectDir);
     }
+
+    // 4) Project group memory sync
+    await syncProjectGroup(pendingDirs);
 
     appendLog('Scheduler task finished');
   });

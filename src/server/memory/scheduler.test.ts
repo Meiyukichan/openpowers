@@ -65,6 +65,11 @@ const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, 
         const nk = normalizeDirPath(rawKey);
         if (nk.startsWith(parent + '/')) return true;
       }
+      // Also check if cpSync was called to create anything under this .claude dir
+      for (const call of cpSyncMock.mock.calls) {
+        const dest = normalizeDirPath(String(call[1]));
+        if (dest.startsWith(normalized + '/') || dest === normalized) return true;
+      }
     }
     return false;
   }),
@@ -367,7 +372,8 @@ describe('cron callback: directory scanning', () => {
 
     // Only Memory_ prefixed directory should be processed
     // project1 (no prefix) should be skipped entirely
-    expect(cpSyncMock).toHaveBeenCalledTimes(2); // 2 cpSync calls for agents + skills for Memory_project2 only
+    // 2 cpSync for processProject (agents + skills) + 2 cpSync for syncProjectGroup (agents + skills to Project_Group/.claude)
+    expect(cpSyncMock).toHaveBeenCalledTimes(4);
     expect(appendLogMock).toHaveBeenCalledWith(expect.stringMatching(/Processing/));
     const procCalls = appendLogMock.mock.calls.filter((c: unknown[]) => String(c[0]).includes('Processing'));
     expect(procCalls.length).toBe(1);
@@ -643,15 +649,15 @@ describe('cron callback: cleanup', () => {
 
     await capturedCronCallback!();
 
-    // Two claude executions
-    expect(execMock).toHaveBeenCalledTimes(2);
+    // Two processProject claude executions + one syncProjectGroup grouper execution
+    expect(execMock).toHaveBeenCalledTimes(3);
 
-    // Two sets of cleanup (designs + .claude for each project = 4 rmSync calls)
+    // Two sets of cleanup (designs + .claude for each project) + syncProjectGroup .claude cleanup
     const rmSyncCalls = rmSyncMock.mock.calls;
     const designCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('designs'));
     const claudeCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('.claude'));
     expect(designCalls.length).toBe(2);
-    expect(claudeCalls.length).toBe(2);
+    expect(claudeCalls.length).toBe(3); // 2 from processProject + 1 from syncProjectGroup
   });
 });
 
@@ -736,5 +742,392 @@ describe('cron: dynamic cron expression', () => {
     expect(cronScheduleMock).toHaveBeenCalledTimes(1);
     expect(cronScheduleMock).toHaveBeenCalledWith('0 2 * * *', expect.any(Function));
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler using default cron: 0 2 * * * (enhancement.memory.schedule not found)');
+  });
+});
+
+// =========================================================
+// Project group sync (syncProjectGroup)
+// =========================================================
+const PROJECT_GROUP_DIR = path.join(MEMORY_DIR, 'Project_Group');
+
+describe('project group sync: trigger condition', () => {
+  it('should call syncProjectGroup when pendingDirs is non-empty', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    // project-design.md exists for aggregation
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // syncProjectGroup should be triggered: it copies resources to Project_Group/.claude
+    const projectGroupClaudeDir = path.join(PROJECT_GROUP_DIR, '.claude');
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      expect.stringContaining('agents'),
+      path.join(projectGroupClaudeDir, 'agents'),
+      { recursive: true },
+    );
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      expect.stringContaining('skills'),
+      path.join(projectGroupClaudeDir, 'skills'),
+      { recursive: true },
+    );
+  });
+
+  it('should NOT trigger syncProjectGroup when pendingDirs is empty', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    mockDirListing[MEMORY_DIR] = [];
+
+    await capturedCronCallback!();
+
+    // No cpSync to Project_Group should occur
+    const cpSyncCalls = cpSyncMock.mock.calls;
+    const projectGroupCalls = cpSyncCalls.filter((c: unknown[]) => String(c[1]).includes('Project_Group'));
+    expect(projectGroupCalls.length).toBe(0);
+  });
+});
+
+describe('project group sync: resource copying', () => {
+  it('should copy agents and skills to Project_Group/.claude', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    const projectGroupClaudeDir = path.join(PROJECT_GROUP_DIR, '.claude');
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      expect.stringContaining('agents'),
+      path.join(projectGroupClaudeDir, 'agents'),
+      { recursive: true },
+    );
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      expect.stringContaining('skills'),
+      path.join(projectGroupClaudeDir, 'skills'),
+      { recursive: true },
+    );
+  });
+});
+
+describe('project group sync: document aggregation', () => {
+  it('should copy project-design.md to Project_Group/{basename}.md for each pending dir', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // cpSync should be called to copy project-design.md to Project_Group/Memory_project1.md
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      path.join(projectDir, 'project-design.md'),
+      path.join(PROJECT_GROUP_DIR, 'Memory_project1.md'),
+    );
+  });
+
+  it('should skip project without project-design.md and log', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    // project-design.md does NOT exist (no entry in mockDirListing for projectDir)
+    // existsSyncMock will return false for project-design.md
+
+    await capturedCronCallback!();
+
+    // Should log that project-design.md is missing
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('project-design.md not found'));
+  });
+
+  it('should aggregate multiple projects', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const project1Dir = path.join(MEMORY_DIR, 'Memory_project1');
+    const project2Dir = path.join(MEMORY_DIR, 'Memory_project2');
+    const designs1Dir = path.join(project1Dir, 'designs');
+    const designs2Dir = path.join(project2Dir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [
+      makeDirent('Memory_project1', true),
+      makeDirent('Memory_project2', true),
+    ];
+    mockDirListing[designs1Dir] = [makeDirent('a.md', false)];
+    mockDirListing[designs2Dir] = [makeDirent('b.md', false)];
+    mockDirListing[project1Dir] = [makeDirent('designs', true), makeDirent('project-design.md', false)];
+    mockDirListing[project2Dir] = [makeDirent('designs', true), makeDirent('project-design.md', false)];
+
+    await capturedCronCallback!();
+
+    // Both projects should be aggregated
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      path.join(project1Dir, 'project-design.md'),
+      path.join(PROJECT_GROUP_DIR, 'Memory_project1.md'),
+    );
+    expect(cpSyncMock).toHaveBeenCalledWith(
+      path.join(project2Dir, 'project-design.md'),
+      path.join(PROJECT_GROUP_DIR, 'Memory_project2.md'),
+    );
+  });
+});
+
+describe('project group sync: grouper execution', () => {
+  it('should execute claude CLI with backgroud-grouper agent and correct parameters', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    // Project_Group has the aggregated Memory_*.md file
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // Find the exec call for grouper (second exec call, after processProject's designer call)
+    const execCalls = execMock.mock.calls;
+    const grouperCall = execCalls.find((c: unknown[]) => String(c[0]).includes('backgroud-grouper'));
+    expect(grouperCall).toBeDefined();
+
+    const command = grouperCall![0] as string;
+    expect(command).toContain('backgroud-grouper');
+    expect(command).toContain('--permission-mode bypassPermissions');
+    expect(command).toContain('--add-dir');
+    expect(command).toContain(PROJECT_GROUP_DIR);
+    expect(command).toContain('Memory_project1.md');
+
+    const options = grouperCall![1] as Record<string, unknown>;
+    expect(options.cwd).toBe(PROJECT_GROUP_DIR);
+    expect(options.timeout).toBe(600000);
+    expect(options.windowsHide).toBe(true);
+  });
+
+  it('should NOT execute grouper when no Memory_*.md files exist in Project_Group', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    // No project-design.md, so no aggregation happens
+    mockDirListing[projectDir] = [makeDirent('designs', true)];
+    mockDirListing[PROJECT_GROUP_DIR] = []; // empty Project_Group
+
+    await capturedCronCallback!();
+
+    // Only the processProject exec call should exist (for backgroud-designer)
+    const execCalls = execMock.mock.calls;
+    const grouperCalls = execCalls.filter((c: unknown[]) => String(c[0]).includes('backgroud-grouper'));
+    expect(grouperCalls.length).toBe(0);
+  });
+});
+
+describe('project group sync: cleanup', () => {
+  it('should delete Memory_*.md files after successful grouper execution', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // Should delete Memory_project1.md from Project_Group
+    expect(rmSyncMock).toHaveBeenCalledWith(
+      path.join(PROJECT_GROUP_DIR, 'Memory_project1.md'),
+    );
+  });
+
+  it('should NOT delete Memory_*.md files when grouper execution fails', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+    ];
+
+    // Make grouper execution fail (second exec call)
+    let execCallCount = 0;
+    execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+      execCallCount++;
+      if (execCallCount === 2) {
+        // Second call = grouper = fail
+        if (callback) callback(new Error('Grouper failed'), '', '');
+      } else {
+        if (callback) callback(null, '', '');
+      }
+    });
+
+    await capturedCronCallback!();
+
+    // Should NOT delete Memory_project1.md from Project_Group (grouper failed)
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const memoryMdCalls = rmSyncCalls.filter((c: unknown[]) => {
+      const target = String(c[0]);
+      return target.includes('Project_Group') && target.includes('Memory_') && target.endsWith('.md');
+    });
+    expect(memoryMdCalls.length).toBe(0);
+
+    // Should still clean up .claude
+    const claudeCalls = rmSyncCalls.filter((c: unknown[]) => String(c[0]).includes('.claude'));
+    expect(claudeCalls.length).toBeGreaterThan(0);
+  });
+
+  it('should always clean up Project_Group/.claude in finally', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+    ];
+
+    await capturedCronCallback!();
+
+    // Should clean up both project .claude and Project_Group .claude
+    const projectClaudeDir = path.join(projectDir, '.claude');
+    const projectGroupClaudeDir = path.join(PROJECT_GROUP_DIR, '.claude');
+
+    const rmSyncCalls = rmSyncMock.mock.calls;
+    const projectClaudeCleanup = rmSyncCalls.find((c: unknown[]) => c[0] === projectClaudeDir);
+    const projectGroupClaudeCleanup = rmSyncCalls.find((c: unknown[]) => c[0] === projectGroupClaudeDir);
+
+    expect(projectClaudeCleanup).toBeDefined();
+    expect(projectGroupClaudeCleanup).toBeDefined();
+  });
+});
+
+describe('project group sync: exception handling', () => {
+  it('should catch exceptions and log without propagating to cron callback', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+
+    // Make grouper execution fail
+    let execCallCount = 0;
+    execMock.mockImplementation((_command: string, _options: any, callback: any) => {
+      execCallCount++;
+      if (execCallCount === 2) {
+        if (callback) callback(new Error('Grouper exploded'), '', '');
+      } else {
+        if (callback) callback(null, '', '');
+      }
+    });
+
+    // Should NOT throw - exception is caught internally
+    await expect(capturedCronCallback!()).resolves.not.toThrow();
+
+    // Should log the group sync failure
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Group sync failed'));
+    // Should still log task finished
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+  });
+
+  it('should continue to Scheduler task finished after syncProjectGroup error', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+
+    // Make cpSync throw during group sync to simulate a catastrophic failure
+    let cpSyncCallCount = 0;
+    cpSyncMock.mockImplementation((...args: unknown[]) => {
+      cpSyncCallCount++;
+      // cpSync calls: 1=processProject agents, 2=processProject skills, 3=groupSync agents (this will throw)
+      if (cpSyncCallCount === 3) {
+        throw new Error('Disk full');
+      }
+    });
+
+    await capturedCronCallback!();
+
+    // Even with group sync failure, task should finish
+    expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
+    expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Group sync failed'));
   });
 });
