@@ -821,6 +821,12 @@ describe('cron callback: cleanup', () => {
     mockDirListing[path.join(project1Dir, 'project-portrait.md')] = [];
     mockDirListing[path.join(project2Dir, 'project-design.md')] = [];
     mockDirListing[path.join(project2Dir, 'project-portrait.md')] = [];
+    // Project_Group contains aggregated Memory_*.md files for grouper
+    const projectGroupDir = path.join(MEMORY_DIR, 'Project_Group');
+    mockDirListing[projectGroupDir] = [
+      makeDirent('Memory_project1.md', false),
+      makeDirent('Memory_project2.md', false),
+    ];
 
     await capturedCronCallback!();
 
@@ -1297,6 +1303,9 @@ describe('project group sync: exception handling', () => {
       makeDirent('designs', true),
       makeDirent('project-design.md', false),
     ];
+    // Project_Group contains aggregated Memory_*.md for grouper to process
+    const projectGroupDir = path.join(MEMORY_DIR, 'Project_Group');
+    mockDirListing[projectGroupDir] = [makeDirent('Memory_project1.md', false)];
 
     // Make grouper execution fail
     let execCallCount = 0;

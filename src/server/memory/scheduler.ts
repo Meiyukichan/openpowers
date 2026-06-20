@@ -210,7 +210,6 @@ async function syncProjectGroup(pendingDirs: string[]): Promise<void> {
     copyClaudeResources(claudeDir);
 
     // 2) Aggregate project-design.md files
-    const projectMdNames: string[] = [];
     for (const projectDir of pendingDirs) {
       const srcDesign = path.join(projectDir, 'project-design.md');
       if (!fs.existsSync(srcDesign)) {
@@ -220,13 +219,20 @@ async function syncProjectGroup(pendingDirs: string[]): Promise<void> {
       const basename = path.basename(projectDir);
       const destMd = path.join(PROJECT_GROUP_DIR, `${basename}.md`);
       fs.cpSync(srcDesign, destMd);
-      projectMdNames.push(`${basename}.md`);
       appendLog(`Aggregated: ${srcDesign} -> ${destMd}`);
     }
 
-    // 3) Execute grouper if there are aggregated files
+    // 3) Read ALL Memory_*.md files from Project_Group (includes leftovers from previous failed runs)
+    let projectMdNames: string[];
+    try {
+      projectMdNames = fs.readdirSync(PROJECT_GROUP_DIR)
+        .filter((entry) => entry.startsWith('Memory_') && entry.endsWith('.md'));
+    } catch {
+      appendLog('Could not read Project_Group directory, skipping grouper execution');
+      return;
+    }
     if (projectMdNames.length === 0) {
-      appendLog('No aggregated Memory_*.md files found, skipping grouper execution');
+      appendLog('No Memory_*.md files found in Project_Group, skipping grouper execution');
       return;
     }
 
