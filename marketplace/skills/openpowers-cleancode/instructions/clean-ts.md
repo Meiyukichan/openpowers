@@ -41,7 +41,17 @@ Based on the chapter list identified in Phase 1, perform the following steps:
 
 ### Phase 3: Output coding guidelines (final output of this Skill)
 
-Synthesize the standards gathered in Phase 2, then output a coding guidelines document in Markdown. This is the final output of this Skill — do not write to a file; it is for direct reference by subsequent coding steps. Use the following format:
+Synthesize the standards gathered in Phase 2, then output a coding guidelines document in Markdown. This is the final output of this Skill — do not write to a file; it is for direct reference by subsequent coding steps.
+
+**Quality requirements — the generated content must be detailed and accurate:**
+
+- **Be specific, not generic**: Every rule must come from the reference documents actually read in Phase 2. Do not fabricate rules from general knowledge or write vague advice like "use good naming". Quote the concrete rule as stated in the source document.
+- **Include precise details**: For each rule, include the exact constraint (e.g., "max line length 120 characters", not "keep lines short"). If the reference document specifies a limit, threshold, or pattern, carry it over verbatim.
+- **Provide faithful code samples**: Good/Bad samples must faithfully reflect the rule from the reference document. Do not invent simplified or guessed examples — prefer examples from the reference when available.
+- **Cover all matched chapters**: Every chapter identified in Phase 1 that is relevant must be reflected in the output. Do not skip a chapter because "it's obvious" — if Phase 1 flagged it, Phase 3 must cover it.
+- **Scope-aware**: Only include rules relevant to the actual requirement or changes. Do not dump the entire reference document.
+
+Use the following format:
 
 ```md
 ## Coding Guidelines
