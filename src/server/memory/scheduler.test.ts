@@ -1145,6 +1145,24 @@ describe('project group sync: grouper execution', () => {
 });
 
 describe('project group sync: cleanup', () => {
+  /** Helper: valid JSON content that passes schema validation */
+  function setupValidGroupsJson(jsonPath: string): void {
+    mockFileSystem[jsonPath.replace(/\\/g, '/').toLowerCase()] = JSON.stringify({
+      version: '1.0.0',
+      lastUpdated: '2026-06-21T00:00:00Z',
+      groups: [
+        {
+          projectGroup: '测试项目群',
+          projectDesc: '测试描述',
+          projectPortrait: '面向测试团队，采用Monorepo架构，核心实体Test/Report，关键组件：测试引擎；覆盖自动化测试场景，服务QA团队，达成质量提升；数据流CI→Test→报告；不包含：部署、监控',
+          members: ['Memory_project1.md'],
+          tags: ['测试'],
+          status: 'active',
+        },
+      ],
+    });
+  }
+
   it('should delete Memory_*.md files after successful grouper execution', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
@@ -1160,10 +1178,14 @@ describe('project group sync: cleanup', () => {
     ];
     mockDirListing[PROJECT_GROUP_DIR] = [
       makeDirent('Memory_project1.md', false),
+      makeDirent('project-groups.json', false),
     ];
+    setupValidGroupsJson(path.join(PROJECT_GROUP_DIR, 'project-groups.json'));
 
     await capturedCronCallback!();
 
+    // Validation should pass
+    expect(appendLogMock).toHaveBeenCalledWith('project-groups.json schema validation passed');
     // Should delete Memory_project1.md from Project_Group
     expect(rmSyncMock).toHaveBeenCalledWith(
       path.join(PROJECT_GROUP_DIR, 'Memory_project1.md'),
@@ -1261,7 +1283,9 @@ describe('project group sync: cleanup', () => {
     ];
     mockDirListing[PROJECT_GROUP_DIR] = [
       makeDirent('Memory_project1.md', false),
+      makeDirent('project-groups.json', false),
     ];
+    setupValidGroupsJson(path.join(PROJECT_GROUP_DIR, 'project-groups.json'));
 
     // Make rmSync throw only for the aggregated file cleanup
     const originalRmSyncImpl = rmSyncMock.getMockImplementation();
@@ -1269,11 +1293,14 @@ describe('project group sync: cleanup', () => {
       if (target === aggregatedFilePath) {
         throw new Error('EACCES: permission denied');
       }
-      // Allow other rmSync calls (e.g., .claude cleanup) to proceed
+      // Allow other rmSync calls (e.g., .claude cleanup, project-groups.json delete) to proceed
+      if (originalRmSyncImpl) return originalRmSyncImpl(target, ...args);
     });
 
     await capturedCronCallback!();
 
+    // Validation should pass
+    expect(appendLogMock).toHaveBeenCalledWith('project-groups.json schema validation passed');
     // Verify catch block logged the cleanup failure
     expect(appendLogMock).toHaveBeenCalledWith(
       `Failed to cleanup aggregated file ${aggregatedFilePath}: EACCES: permission denied`,
@@ -1356,5 +1383,106 @@ describe('project group sync: exception handling', () => {
     // Even with group sync failure, task should finish
     expect(appendLogMock).toHaveBeenCalledWith('Scheduler task finished');
     expect(appendLogMock).toHaveBeenCalledWith(expect.stringContaining('Group sync failed'));
+  });
+});
+
+describe('project group sync: validation', () => {
+  const validGroupsJson = JSON.stringify({
+    version: '1.0.0',
+    lastUpdated: '2026-06-21T00:00:00Z',
+    groups: [
+      {
+        projectGroup: '测试项目群',
+        projectDesc: '测试描述',
+        projectPortrait:
+          '面向测试团队，采用Monorepo架构，核心实体Test/Report，关键组件：测试引擎；覆盖自动化测试场景，服务QA团队，达成质量提升；数据流CI→Test→报告；不包含：部署、监控',
+        members: ['Memory_project1.md'],
+        tags: ['测试'],
+        status: 'active',
+      },
+    ],
+  });
+
+  const invalidGroupsJson = JSON.stringify({
+    version: '1.0.0',
+    generatedAt: '2026-06-21T00:00:00Z',
+    groups: [
+      {
+        id: 'test-group',
+        name: '测试项目群',
+        description: '测试描述',
+        // missing projectPortrait
+        projects: [{ id: 'p1', name: 'Project1', techStack: {} }],
+        similarityDimensions: { tech: 0.8 },
+      },
+    ],
+  });
+
+  it('should pass validation and clean up when project-groups.json is valid', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+      makeDirent('project-groups.json', false),
+    ];
+
+    // Provide valid JSON to readFileSync mock
+    const jsonPath = path.join(PROJECT_GROUP_DIR, 'project-groups.json');
+    mockFileSystem[jsonPath.replace(/\\/g, '/').toLowerCase()] = validGroupsJson;
+
+    await capturedCronCallback!();
+
+    // Validation should pass
+    expect(appendLogMock).toHaveBeenCalledWith('project-groups.json schema validation passed');
+    // Memory_*.md files should be cleaned up
+    expect(rmSyncMock).toHaveBeenCalledWith(expect.stringContaining('Memory_project1.md'));
+  });
+
+  it('should reject invalid project-groups.json, delete it, and skip Memory_*.md cleanup', async () => {
+    const { startScheduler } = await importFresh();
+    startScheduler();
+
+    const projectDir = path.join(MEMORY_DIR, 'Memory_project1');
+    const designsDir = path.join(projectDir, 'designs');
+
+    mockDirListing[MEMORY_DIR] = [makeDirent('Memory_project1', true)];
+    mockDirListing[designsDir] = [makeDirent('change-a.md', false)];
+    mockDirListing[projectDir] = [
+      makeDirent('designs', true),
+      makeDirent('project-design.md', false),
+    ];
+    mockDirListing[PROJECT_GROUP_DIR] = [
+      makeDirent('Memory_project1.md', false),
+      makeDirent('project-groups.json', false),
+    ];
+
+    // Provide invalid JSON to readFileSync mock (wrong field names, missing projectPortrait)
+    const jsonPath = path.join(PROJECT_GROUP_DIR, 'project-groups.json');
+    mockFileSystem[jsonPath.replace(/\\/g, '/').toLowerCase()] = invalidGroupsJson;
+
+    await capturedCronCallback!();
+
+    // Validation should fail
+    expect(appendLogMock).toHaveBeenCalledWith(
+      expect.stringContaining('project-groups.json validation FAILED'),
+    );
+    // Invalid file should be deleted
+    expect(rmSyncMock).toHaveBeenCalledWith(expect.stringContaining('project-groups.json'));
+    // Memory_*.md cleanup should be skipped (validation failed before reaching that code)
+    const rmCalls = rmSyncMock.mock.calls;
+    const mdCleanupCalls = rmCalls.filter(
+      (c: unknown[]) => String(c[0]).includes('Memory_') && String(c[0]).endsWith('.md'),
+    );
+    expect(mdCleanupCalls.length).toBe(0);
   });
 });

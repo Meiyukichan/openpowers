@@ -16,6 +16,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendLog } from './schedule-logger.js';
+import { validateProjectGroupsFile } from './project-group-schema.js';
 
 const execAsync = promisify(exec);
 
@@ -237,6 +238,17 @@ async function syncProjectGroup(pendingDirs: string[]): Promise<void> {
     }
 
     await executeClaudeGrouper(PROJECT_GROUP_DIR, projectMdNames);
+
+    // 3.5) Validate generated project-groups.json against schema
+    const groupsJsonPath = path.join(PROJECT_GROUP_DIR, 'project-groups.json');
+    const validation = validateProjectGroupsFile(groupsJsonPath);
+    if (!validation.ok) {
+      appendLog(`project-groups.json validation FAILED — rejecting output:\n${validation.error}`);
+      try { fs.rmSync(groupsJsonPath); } catch {}
+      appendLog('Deleted invalid project-groups.json, will retry on next schedule');
+      return;
+    }
+    appendLog('project-groups.json schema validation passed');
 
     // 4) Clean up aggregated Memory_*.md files on success
     for (const mdName of projectMdNames) {

@@ -50,7 +50,7 @@
             "implement": []
         },
         "memory": {
-            "schedule": "0 21 * * *"
+            "schedule": "14 18 * * *"
         }
     }
 }

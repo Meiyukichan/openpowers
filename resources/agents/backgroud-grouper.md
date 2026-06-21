@@ -16,4 +16,5 @@ skills:
 
 你必须严格、准确地按照以下步骤执行：
 
-1. 调用技能：group-design
+1. 调用技能：group-design（该技能包含完整的阶段流程与 JSON 模板）
+2. 落盘 `project-groups.json` 前务必核对：字段结构与技能阶段4模板**严格一致**——`members` 是 `string[]` 非对象数组，`projectPortrait` 含排除项，不添加模板外字段。
