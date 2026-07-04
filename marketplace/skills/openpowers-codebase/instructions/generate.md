@@ -14,7 +14,7 @@ When required parameters are missing, you MUST use `AskUserQuestion` to ask the 
 
 ## Codebase Collection Concepts
 
-You **MUST** accurately, carefully, and thoroughly read `Codebase Collection Concepts`: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/guidance-codebase.md`, and then comprehensively understand the concepts, constraints, and content requirements of **Module, Module Index File, Submodule, Submodule Index File, and Spec Document**.
+You **MUST** accurately, carefully, and thoroughly read `Codebase Collection Concepts`: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/guidance-codebase.md`, and then comprehensively understand the concepts, constraints, and content requirements of **Module, Module Index File, Submodule, Submodule Index File, and Spec Document**.
 
 ## Codebase Structure
 
@@ -43,26 +43,26 @@ Execute strictly in the following phases. Do not skip or merge phases.
 
 ### Phase 1: Global Scan — Discover All Modules
 
-1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-modules-partitioner.md` to dispatch the `Modules Partitioner Subagent`.
+1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-modules-partitioner.md` to dispatch the `Modules Partitioner Subagent`.
 2. Present the module partitioning result given by `Modules Partitioner Subagent` to the user and wait for confirmation before proceeding to subsequent phases.
 
 ### Phase 2: Per-Module Scan — Discover Submodules and Specs
 
-Read Module Plan: `{codebaseDir}/.tmp/module-plan.json`, and then process batch (5) modules **sequentially** (you **MUST** concurrently process 5 module at a time, and wait util they all complete):
+Read Module Plan: `{codebaseDir}/.tmp/module-plan.json`, and then process batch (10) modules **sequentially** (you **MUST** concurrently process 10 module at a time, and wait util they all complete):
 
-1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-submodules-partitioner.md` to dispatch the `SubModules Partitioner Subagent` for ONE module.
+1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-submodules-partitioner.md` to dispatch the `SubModules Partitioner Subagent` for ONE module.
 2. Present the submodule partitioning result given by `SubModules Partitioner Subagent`.
 
 ### Phase 3: Per-Submodule Scan — Verify and Supplement Phase 2 Plans
 
-Process batch (5) module plans **sequentially** (you **MUST** concurrently process 5 module plans at a time, and wait util they all complete):
+Process batch (10) module plans **sequentially** (you **MUST** concurrently process 10 module plans at a time, and wait util they all complete):
 
-1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-submodules-validator.md` to dispatch the `SubModules Validator Subagent` for ONE module plan - `{codebaseDir}/.tmp/module-{name}-plan.json`.
+1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-submodules-validator.md` to dispatch the `SubModules Validator Subagent` for ONE module plan - `{codebaseDir}/.tmp/module-{name}-plan.json`.
 2. Present the submodule partitioning result given by `SubModules Validator Subagent`.
 
 ### Phase 4: Initial Processing — Generate Overview Document First
 
-Before entering Phase 5, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-codebase-toptoc.md` to dispatch the `Init-Top-Toc Subagent` to generate the initial version of `{codebaseDir}/toc.md`.
+Before entering Phase 5, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-codebase-toptoc.md` to dispatch the `Init-Top-Toc Subagent` to generate the initial version of `{codebaseDir}/toc.md`.
 
 This is an initial skeleton version; submodule/spec details will be supplemented after Phase 5 processing (see Phase 5.6).
 Note: The overview must list each module's detailed description and module index file path.
@@ -77,24 +77,24 @@ When processing a module, process its `submodules` (follow `Process Submodule Sp
 
 #### 5.2 Process Submodule Specs
 
-When processing a submodule, process its `spec` documents concurrently (follow `Generate Spec Document`). **Process 5 specs in parallel per batch, complete one batch before processing the next**.
+When processing a submodule, process its `spec` documents concurrently (follow `Generate Spec Document`). **Process 10 specs in parallel per batch, complete one batch before processing the next**.
 
 #### 5.3 Generate Spec Document
 
-1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-codebase-spec.md` to dispatch the `Spec Generator Subagent` for ONE spec
+1. Strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-codebase-spec.md` to dispatch the `Spec Generator Subagent` for ONE spec
 2. After completing this spec, output progress: `[spec] module/submodule/spec-xxx.md — done`
 
 #### 5.4 Create Submodule Index File After Processing All Submodule Children
 
-After all spec documents under a submodule are written, create `{codebaseDir}/{moduleName}/{submodule}/toc.md` using template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/template-submodule-toc.md`.
+After all spec documents under a submodule are written, create `{codebaseDir}/{moduleName}/{submodule}/toc.md` using template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/template-submodule-toc.md`.
 
 #### 5.5 Create Module Index File After Processing All Module Children
 
-After all child items (submodules and direct specs) under a module are processed, create `{codebaseDir}/{moduleName}/toc.md` using template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/template-module-toc.md`
+After all child items (submodules and direct specs) under a module are processed, create `{codebaseDir}/{moduleName}/toc.md` using template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/template-module-toc.md`
 
 #### 5.6 Update Overview Document After All Modules Are Processed
 
-After all modules are processed, rewrite `{codebaseDir}/toc.md` with complete module descriptions, submodule descriptions, spec descriptions, and module index paths using template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/template-top-toc.md`
+After all modules are processed, rewrite `{codebaseDir}/toc.md` with complete module descriptions, submodule descriptions, spec descriptions, and module index paths using template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/template-top-toc.md`
 
 Note: Each module in the overview must include detailed descriptions of its submodules and direct specs — not just counts. **Descriptions should explain responsibilities and coverage scope**, not just names. Descriptions must be detailed enough to support retriever navigation — given a query (e.g., "mcp implementation"), the user should be able to navigate smoothly via: overview → module index → submodule index → spec document.
 
@@ -104,11 +104,11 @@ After all documents are generated, delete the `{codebaseDir}/.tmp/` directory an
 
 #### 5.8 Comprehensive Review — Refine Overview Document
 
-After all spec and index documents are generated, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-codebase-reviewer.md` to dispatch the `Comprehensive Reviewer Subagent` to perform a comprehensive review and optimization of the entire project documentation.
+After all spec and index documents are generated, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-codebase-reviewer.md` to dispatch the `Comprehensive Reviewer Subagent` to perform a comprehensive review and optimization of the entire project documentation.
 
 #### 5.9 Final Check — Verify Index Traceability
 
-After completing all document generation and comprehensive review, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/openpowers-codebase/references/prompt-codebase-checker.md` to dispatch the `Index Traceability Checker Subagent` to perform index traceability verification on all toc.md files to ensure that starting from any index level, the final spec and source code can be smoothly located.
+After completing all document generation and comprehensive review, strictly follow the template: `${CLAUDE_PLUGIN_ROOT}/skills/optix-codebase/references/prompt-codebase-checker.md` to dispatch the `Index Traceability Checker Subagent` to perform index traceability verification on all toc.md files to ensure that starting from any index level, the final spec and source code can be smoothly located.
 
 #### 5.10 Fix Substandard Spec Documents
 
@@ -151,4 +151,4 @@ After completing the comprehensive review, fix any substandard spec documents fo
 8.  **Overview in two steps.** First generate the initial overview in Phase 4, then update the overview with complete information in Phase 5.6.
 9.  **Comprehensive review before overview optimization.** After all specs are generated, you must first read and understand them all, then optimize toc.md from a global perspective. Spec content and module/submodule partitioning may be adjusted. 500 lines is a suggested upper limit, but the overview serves a retriever navigation role — information completeness takes priority over line count. Do not append any statistics sections (e.g., "Generation Statistics", "Document Statistics") to the end of the overview.
 10. **Final check for index traceability.** After all documents are generated, perform index traceability verification on all toc.md files: randomly sample descriptions at each level and verify smooth navigation to specs and source code. Fix any issues immediately.
-11.  **Process 5 specs in parallel per batch, complete one batch before processing the next**.
+11.  **Process 10 specs in parallel per batch, complete one batch before processing the next**.

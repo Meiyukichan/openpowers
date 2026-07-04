@@ -8,7 +8,7 @@ Output is a feature list JSON file that serves as the execution contract: agents
 You **MUST** dispatch the `integration testing subagent` strictly in the following parameter format (`OpenPowers:integration:Purpose` is the critical description marker of `integration testing subagent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:integration:Purpose Execute integration testing: {change name}"
   prompt: |
     You are executing integration testing for {`openpowers/changes/<name>`}

@@ -189,7 +189,7 @@ In this phase, you must strictly and accurately follow these steps (Note! direct
 1. In this phase, you MUST dispatch a `Planning Phase Subagent` using the following Task template (`OpenPowers:plan:Purpose` is the critical description marker of `Planning Phase Subagent`, do NOT mistake it):
 
   ```
-  Task tool (general-purpose):
+  Agent tool (general-purpose):
     description: "OpenPowers:plan:Purpose Create change plan: [change name]"
     prompt: |
       You are generating supplementary pre-dev docs and creating a change plan: [change name]

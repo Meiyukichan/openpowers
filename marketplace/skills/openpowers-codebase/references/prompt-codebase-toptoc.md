@@ -3,7 +3,7 @@
 Dispatch the `Init-Top-Toc Subagent` strictly according to the following parameter format:
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Init top toc of codebase"
   prompt: |
     You are initialize a top toc.md for codebase of project.

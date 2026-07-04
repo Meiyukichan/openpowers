@@ -1,56 +1,61 @@
 {
-    "language": "chinese",
-    "switchProviders": {
-        "workflow": "default",
-        "explore": "default",
-        "propose": "default",
-        "plan": "default",
-        "review": "default",
-        "coding": "default",
-        "finalize": "default"
-    },
-    "project": {
-        "sourcecode": "./",
-        "codebases": {
-            "enable": false,
-            "path": "docs/codebases"
-        },
-        "repositories": [
-            {
-                "path": "./openpowers/",
-                "description": "The location of OpenPowers changes, recommend viewing archived changes and ongoing changes to achieve a global historical reference when starting a new OpenPowers change."
-            }
-        ],
-        "references": []
-    },
-    "experimental": {
-        "explore": true,
-        "websearch": true,
-        "context7": true,
-        "review": {
-            "openpowers": false,
-            "propose": false,
-            "plan": false,
-            "specs": false,
-            "code": true,
-            "acceptance": true
-        },
-        "prompt": {
-            "reviewCode": null
-        },
-        "coverage": "70%",
-        "budget": true,
-        "factor": 1
-    },
-    "enhancement": {
-        "context": null,
-        "rules": {
-            "design": [],
-            "specs": [],
-            "implement": []
-        },
-        "memory": {
-            "schedule": "14 18 * * *"
-        }
+  "language": "chinese",
+  "switchProviders": {
+    "workflow": "default",
+    "explore": "default",
+    "propose": "default",
+    "plan": "default",
+    "review": "default",
+    "coding": "default",
+    "finalize": "default"
+  },
+  "project": {
+    "sourcecode": "./",
+    "codebase": {
+      "enable": false,
+      "path": "docs/codebase"
     }
+  },
+  "exploration": {
+    "codebase": [],
+    "repository": [
+      {
+        "type": "path",
+        "path": "./openpowers/",
+        "description": "The location of OpenPowers Artifacts, you shall viewing archived changes and ongoing changes to achieve a global historical reference when starting a new OpenPowers change."
+      }
+    ],
+    "reference": [],
+    "specification": []
+  },
+  "experimental": {
+    "explore": true,
+    "websearch": true,
+    "context7": true,
+    "review": {
+      "openpowers": false,
+      "propose": false,
+      "plan": false,
+      "specs": false,
+      "code": true,
+      "acceptance": true
+    },
+    "prompt": {
+      "reviewCode": null
+    },
+    "coverage": "70%",
+    "budget": true,
+    "factor": 1
+  },
+  "enhancement": {
+    "context": null,
+    "rules": {
+      "design": [],
+      "specs": [],
+      "implement": []
+    },
+    "memory": {
+      "schedule": "14 18 * * *"
+    }
+  }
 }

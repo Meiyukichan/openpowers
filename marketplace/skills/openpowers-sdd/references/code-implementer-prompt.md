@@ -3,7 +3,7 @@
 Dispatch the `Implementer Subagent` strictly according to the following parameter format (`OpenPowers:coding:Purpose` is the critical description marker of `Implementer subagent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:coding:Purpose Implement {feature-id}: {feature name}"
   prompt: |
     You are implementing feature {feature-id}: {feature name}

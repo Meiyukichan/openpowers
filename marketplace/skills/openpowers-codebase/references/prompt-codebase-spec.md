@@ -3,7 +3,7 @@
 Dispatch the `Spec Generator Subagent` strictly according to the following parameter format:
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Generate spec document: {spec name}"
   prompt: |
     You are generating spec document for {spec name}.

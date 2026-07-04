@@ -33,7 +33,7 @@ Returns two values in order:
 Dispatch the `review subagent` strictly following the parameter format below (`OpenPowers:review:Purpose` is the critical description marker of `review subagent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:review:Purpose Review OpenPowers Artifacts: {change name <name>}"
   prompt: |
     You are reviewing OpenPowers artifacts: {change name <name>}

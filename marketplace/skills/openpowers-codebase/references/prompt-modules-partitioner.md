@@ -3,7 +3,7 @@
 Dispatch the `Modules Partitioner Subagent` strictly according to the following parameter format:
 
 ``````
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Global Scan — Discover All Modules"
   prompt: |
     You are a professional and cautious code exploration expert. You are currently analyzing the business structure of the project code. Your task is to provide the most fundamental project module division results for subsequent sub-agents to generate the codebase.

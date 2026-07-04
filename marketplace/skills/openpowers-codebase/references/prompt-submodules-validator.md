@@ -3,7 +3,7 @@
 Dispatch the `SubModules Partitioner Subagent` strictly according to the following parameter format:
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Module Validate — Verify and Supplement submodule plan of {module-name}"
   prompt: |
     You are verifying and supplementing submodule plan of {module-name}.

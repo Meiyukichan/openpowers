@@ -3,7 +3,7 @@
 Dispatch the `SubModules Partitioner Subagent` strictly according to the following parameter format:
 
 ``````
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Module Scan — Discover Submodules and Specs of {module-name}"
   prompt: |
     You are a professional and cautious code exploration expert. Your current task is to scan module: {module-name}, discover its submodules and specification candidates, so that subsequent sub‑agents can generate accurate code specification documents accordingly.

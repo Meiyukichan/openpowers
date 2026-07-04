@@ -57,7 +57,7 @@ Grouping result:
 For each group from Stage 2, **serially invoke** the sync codebase sub-agent using the Task tool with the following template (`OpenPowers:finalize:Purpose` is the critical description marker of `sync codebase sub-agent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:finalize:Purpose Sync [group brief description] codebase"
   prompt: |
     You are syncing the codebase for [group brief description]

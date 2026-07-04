@@ -3,7 +3,7 @@
 Dispatch the `Index Traceability Checker Subagent` strictly according to the following parameter format:
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Final Check — Verify Index Traceability"
   prompt: |
     You are performing index traceability verification on all toc.md files to ensure that starting from any index level, the final spec and source code can be smoothly located.

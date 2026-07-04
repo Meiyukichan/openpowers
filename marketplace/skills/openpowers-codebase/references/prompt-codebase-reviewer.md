@@ -3,7 +3,7 @@
 Dispatch the `Comprehensive Reviewer Subagent` strictly according to the following parameter format:
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "Comprehensive Review — Refine Overview Document"
   prompt: |
     You are performing a comprehensive review and optimization for generated codebase of project.

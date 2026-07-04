@@ -3,7 +3,7 @@
 Strictly dispatch the `reference explorer subagent` using the following parameter format (`OpenPowers:explore:Purpose` is the critical description marker of `reference explorer subagent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:explore:Purpose Explore references for {feature-id}: {feature name}"
   prompt: |
     You are exploring references for {feature-id}: {feature name}.

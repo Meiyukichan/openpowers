@@ -5,7 +5,7 @@
 Dispatch the `Code Quality Review Subagent` strictly according to the following parameter format (`OpenPowers:review:Purpose` is the critical description marker of `Code Quality Review Subagent`, do NOT mistake it):
 
 ```
-Task tool (general-purpose):
+Agent tool (general-purpose):
   description: "OpenPowers:review:Purpose Review code quality for {feature-id}: {feature name}"
   prompt: |
     You are reviewing the code quality of {feature-id}: {feature name}.
