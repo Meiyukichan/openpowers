@@ -149,7 +149,25 @@ export function registerConfigCommand(program: Command): void {
     .action((keys: string[]) => {
       const config = loadConfig();
       for (const key of keys) {
-        const value = queryConfig(config, key);
+        let value: unknown;
+        if (key === 'codebases') {
+          // Assemble from project.codebase.path + exploration.codebase
+          const projectPath = queryConfig(config, 'project.codebase.path');
+          const explorationCodebase = queryConfig(config, 'exploration.codebase');
+          const assembled: unknown[] = [];
+          if (projectPath !== undefined) {
+            assembled.push({
+              path: projectPath,
+              description: 'codebase dir of current project, you MUST explore it when using optix-explore skill',
+            });
+          }
+          if (Array.isArray(explorationCodebase)) {
+            assembled.push(...explorationCodebase);
+          }
+          value = assembled;
+        } else {
+          value = queryConfig(config, key);
+        }
         process.stdout.write(key + '=' + formatValue(value) + '\n');
       }
     });

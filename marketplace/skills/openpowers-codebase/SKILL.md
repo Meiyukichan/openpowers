@@ -10,7 +10,7 @@ This skill provides Codebase integration with three core capabilities: explore, 
 
 ## Input Parameters
 
-1. `codebaseDir` <required>: root dirctory of the project codebase
+1. `codebaseDir` <required>: root directory of the project codebase
 2. `instruction` <required>: type of instruction to invoke codebase operation, with following choice:
    - `explore`: query relevant implementations from the codebase using business, feature, or code keywords.
    - `generate`: generate a structured codebase for the project.
@@ -32,7 +32,7 @@ openpowers config show language
 
 You **MUST** strictly and accurately execute the following instruction document:
 
-1. execute `Current Instruction`, and wait util this instruction executes completely.
+1. execute `Current Instruction`, and wait until this instruction executes completely.
 
 ### Current Instruction
 

@@ -48,10 +48,10 @@ For each instruction in the resolved list, **concurrently** dispatch a separate 
 
 For each instruction resolved in Step 1, you **MUST** concurrently dispatch a separate `instruction executing subagent` strictly in the following format:
 
-(**RED LAW**: Forbid openpowers-explore to read ` Instruction Documents` before dispatching the subagent. The subagent will read the template documents. `OpenPowers:explore:Purpose` is the critical description marker of each `instruction executing subagent`, do NOT mistake it)
+(**RED LAW**: Forbid openpowers-explore to read `Instruction Documents` before dispatching the subagent. The subagent will read the template documents. `OpenPowers:explore:Purpose` is the critical description marker of each `instruction executing subagent`, do NOT mistake it)
 
 ```
-task tool (general):
+Agent tool (general-purpose):
   description: "OpenPowers:explore:Purpose Explore {instruction} for {`exploreContent`}"
   prompt: |
     You are exploring {instruction}: {`exploreContent`}

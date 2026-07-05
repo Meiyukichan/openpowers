@@ -111,10 +111,10 @@ Deeply explore ideas, understand context, investigate the codebase, clarify requ
 ### Execution Steps
 At this point, the final openpowers change directory: `openpowers/changes/<name>/` must be determined (or create one by yourself, do NOT ask user). In this phase, you must strictly and accurately follow these steps:
 
-1. Invoke Skill: openpowers-explore to explore the project code, with parameters:
-  - Exploration type: project
-  - Exploration content: $ARGUMENTS
-  - Output file path: `{cwd}/openpowers/changes/<name>/exploration.md`
+1. Invoke Skill: openpowers-explore to explore the project, with parameters:
+  - `exploreType`: for-design
+  - `exploreContent`: $ARGUMENTS
+  - `outputDir`: `{cwd}/openpowers/changes/<name>/explore-design`
 
 ### Principle
 Exploration time, not implementation time. Do not write code.
@@ -138,7 +138,7 @@ In this phase, you must strictly and accurately follow these steps (do NOT dispa
 
 1. Invoke Skill: openpowers-brainstorm to brainstorm and align on user requirements. And wait util this skill complete.
 2. You MUST use `AskUserQuestion` tool to ask user 'Are there any further details that need clarification?', with following selections:
-  - Continue to create OptixSpec artifacts
+  - Continue to create OpenPowers artifacts
   - Pause for further discussion
 3. When user selects 'continue', then **automatically** invoke Skill: openpowers-propose to create a new change proposal.
 

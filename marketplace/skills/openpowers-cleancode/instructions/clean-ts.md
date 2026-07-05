@@ -107,7 +107,7 @@ After all verification issues are fixed, proceed to write the output file.
 After Phase 5 completes, return the result using the following wrapper format. The `Exploration Result` field should contain either the `outputFile` path (if provided) or the full Phase 5 output content.
 
 ```md
-AiOptix CleanCode Exploration Result
+OpenPowers CleanCode Exploration Result
 # Explore Content
 {`Context`}
 # Explore Type

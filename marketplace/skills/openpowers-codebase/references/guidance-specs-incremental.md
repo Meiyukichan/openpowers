@@ -2,7 +2,7 @@
 
 > **Important Reminder**: Before generating or updating any spec document, **you must re-read this file** and strictly follow all the specifications below. This file is the standard reference for spec document generation and must not be skipped.
 >
-> This specification is fully consistent with `openpowers-codebase-generator`'s `SPEC-GENERATION-GUIDE.md`, ensuring that specs generated via `openpowers-codebase-sync` can be seamlessly queried by `openpowers-codebase-explorer`.
+> This specification is fully consistent with `openpowers-codebase`'s `generate` instruction (see `guidance-specs.md`), ensuring that specs generated via `openpowers-codebase`'s `synchronize` instruction can be seamlessly queried by `openpowers-codebase`'s `explore` instruction.
 
 ---
 
@@ -23,7 +23,7 @@ When generating a spec document, in addition to reading the source files directl
 - **Downward**: Check which other source files/modules this spec depends on, understand its underlying support
 - Based on call relationships and usage scenarios, supplement relevant context into the spec document (e.g., "Usage Examples", "Dependency Relationships" sections)
 
-> **Incremental Mode Exception**: In `openpowers-codebase-sync`'s incremental update mode, reading scope is constrained by SKILL.md Phase 3 rules:
+> **Incremental Mode Exception**: In `openpowers-codebase`'s `synchronize` instruction incremental update mode, reading scope is constrained by the synchronize instruction Phase 3 rules:
 > - Only read the changed files themselves, do not expand scope
 > - If the change does not affect external interfaces, no need to read dependency files
 > - If the change affects external interfaces, you may read directly imported modules (one level only), but do not trace upward to callers

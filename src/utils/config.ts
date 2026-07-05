@@ -25,22 +25,27 @@ const ProviderSwitchSchema = z.object({
   finalize: z.string(),
 });
 
-const CodebasesSchema = z.object({
+const CodebaseSchema = z.object({
   enable: z.boolean(),
   path: z.string(),
 });
 
-const RepositoryRefSchema = z.object({
-  path: z.string().optional(),
+const ExplorationItemSchema = z.object({
+  path: z.string(),
   type: z.string().optional(),
   description: z.string().optional(),
 });
 
 const ProjectSchema = z.object({
   sourcecode: z.string(),
-  codebases: CodebasesSchema,
-  repositories: z.array(RepositoryRefSchema),
-  references: z.array(RepositoryRefSchema),
+  codebase: CodebaseSchema,
+});
+
+const ExplorationSchema = z.object({
+  codebase: z.array(ExplorationItemSchema),
+  repository: z.array(ExplorationItemSchema),
+  reference: z.array(ExplorationItemSchema),
+  specification: z.array(ExplorationItemSchema),
 });
 
 const ReviewSchema = z.object({
@@ -91,6 +96,7 @@ export const OpenPowersConfigSchema = z.object({
   language: z.string(),
   switchProviders: ProviderSwitchSchema,
   project: ProjectSchema,
+  exploration: ExplorationSchema,
   experimental: ExperimentalSchema,
   enhancement: EnhancementSchema.optional(),
 }).loose();

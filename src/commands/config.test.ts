@@ -155,7 +155,7 @@ describe('src/commands/config.ts', () => {
 
   it('config show should print JSON stringified value for array values', async () => {
     const { loadConfig } = await import('../utils/config.js');
-    const mockConfig = { project: { repositories: [{ path: '/test' }] } };
+    const mockConfig = { exploration: { codebase: [{ path: '/test' }] } };
     vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').OpenPowersConfig);
 
     const mod = await import('./config.js');
@@ -163,10 +163,10 @@ describe('src/commands/config.ts', () => {
     const program = new Command();
     registerConfigCommand(program);
 
-    await program.parseAsync(['config', 'show', 'project.repositories'], { from: 'user' });
+    await program.parseAsync(['config', 'show', 'exploration.codebase'], { from: 'user' });
 
     const output = stdoutCalls.join('');
-    expect(output).toBe('project.repositories=' + JSON.stringify(mockConfig.project.repositories) + '\n');
+    expect(output).toBe('exploration.codebase=' + JSON.stringify(mockConfig.exploration.codebase) + '\n');
   });
 
   it('config show should handle mixed output: non-object, object, missing keys', async () => {
@@ -174,7 +174,8 @@ describe('src/commands/config.ts', () => {
     const mockConfig = {
       language: 'chinese',
       switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' },
-      project: { sourcecode: './', references: [] },
+      project: { sourcecode: './' },
+      exploration: { reference: [] },
     };
     vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
 
@@ -184,7 +185,7 @@ describe('src/commands/config.ts', () => {
     registerConfigCommand(program);
 
     await program.parseAsync(
-      ['config', 'show', 'language', 'switchProviders', 'nonexistent.key', 'project.references'],
+      ['config', 'show', 'language', 'switchProviders', 'nonexistent.key', 'exploration.reference'],
       { from: 'user' },
     );
 
@@ -194,7 +195,33 @@ describe('src/commands/config.ts', () => {
     expect(lines[0]).toBe('language=chinese');
     expect(lines[1]).toBe('switchProviders=' + JSON.stringify(mockConfig.switchProviders));
     expect(lines[2]).toBe('nonexistent.key=None');
-    expect(lines[3]).toBe('project.references=' + JSON.stringify(mockConfig.project.references));
+    expect(lines[3]).toBe('exploration.reference=' + JSON.stringify(mockConfig.exploration.reference));
+  });
+
+  it('config show codebases should assemble project.codebase.path + exploration.codebase into a list', async () => {
+    const { loadConfig } = await import('../utils/config.js');
+    const mockConfig = {
+      project: { codebase: { enable: true, path: 'docs/codebase' } },
+      exploration: { codebase: [{ path: '/extra', description: 'extra codebase' }] },
+    };
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
+
+    const mod = await import('./config.js');
+    registerConfigCommand = mod.registerConfigCommand;
+    const program = new Command();
+    registerConfigCommand(program);
+
+    await program.parseAsync(['config', 'show', 'codebases'], { from: 'user' });
+
+    const output = stdoutCalls.join('');
+    const expected = [
+      {
+        path: 'docs/codebase',
+        description: 'codebase dir of current project, you MUST explore it when using optix-explore skill',
+      },
+      { path: '/extra', description: 'extra codebase' },
+    ];
+    expect(output).toBe('codebases=' + JSON.stringify(expected) + '\n');
   });
 });
 

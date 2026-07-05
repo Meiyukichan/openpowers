@@ -2,7 +2,7 @@
 
 > **Important Reminder**: Before updating any toc.md file, **you must re-read this file** and strictly follow all the specifications below.
 >
-> This specification is fully consistent with `openpowers-codebase-generator`'s toc.md generation rules, ensuring that index files updated via `openpowers-codebase-sync` can be seamlessly queried by `openpowers-codebase-explorer`.
+> This specification is fully consistent with `openpowers-codebase`'s `generate` instruction toc.md generation rules (see `guidance-codebase.md`), ensuring that index files updated via `openpowers-codebase`'s `synchronize` instruction can be seamlessly queried by `openpowers-codebase`'s `explore` instruction.
 
 ---
 

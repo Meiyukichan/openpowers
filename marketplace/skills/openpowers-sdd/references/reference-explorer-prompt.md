@@ -17,7 +17,7 @@ Agent tool (general-purpose):
     ## Execution Flow
     Strictly and accurately follow these steps:
     1. Invoke the skill `openpowers-explore` to obtain the feature's reference documentation or implementation, with the following skill parameters:
-        - Exploration type: references
-        - Exploration content: {exploration content}
-        - Output file path: `{cwd}/openpowers/changes/<name>/reference/{feature-id}.md`
+        - `exploreType`: for-coding
+        - `exploreContent`: {detailed requirement exploration content of this feature}
+        - `outputDir`: `{cwd}/openpowers/changes/<name>/explore-coding/{feature-id}`
 ```

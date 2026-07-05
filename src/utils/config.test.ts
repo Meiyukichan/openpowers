@@ -60,12 +60,16 @@ const defaultConfigFixture = {
   },
   project: {
     sourcecode: './',
-    codebases: {
+    codebase: {
       enable: false,
-      path: 'docs/codebases',
+      path: 'docs/codebase',
     },
-    repositories: [],
-    references: [],
+  },
+  exploration: {
+    codebase: [],
+    repository: [],
+    reference: [],
+    specification: [],
   },
   experimental: {
     explore: true,
@@ -101,7 +105,9 @@ const overrideConfigFixture = {
   },
   project: {
     sourcecode: 'src/',
-    repositories: [{ path: '/custom', description: 'custom repo' }],
+  },
+  exploration: {
+    repository: [{ path: '/custom', description: 'custom repo' }],
   },
 };
 
@@ -182,9 +188,9 @@ describe('queryConfig', () => {
     language: 'chinese',
     project: {
       sourcecode: './',
-      codebases: {
-        codebases: false,
-        path: 'docs/codebases',
+      codebase: {
+        enable: false,
+        path: 'docs/codebase',
       },
     },
     switchProviders: {
@@ -280,7 +286,7 @@ describe('loadConfig', () => {
       coding: 'mimo',
     });
     expect(result.project.sourcecode).toBe('src/');
-    expect(result.project.repositories).toEqual([{ path: '/custom', description: 'custom repo' }]);
+    expect(result.exploration.repository).toEqual([{ path: '/custom', description: 'custom repo' }]);
   });
 
   it('should silently skip override when .claude/openpowers.json does not exist', () => {

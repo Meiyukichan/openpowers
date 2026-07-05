@@ -45,11 +45,6 @@ openpowers config show exploration.reference
 ```
 [
     {
-        "type": "codebase",
-        "path": "path/to/codebase",
-        "description": "description about this codebase"
-    },
-    {
         "type": "directory",
         "path": "path/to/reference",
         "description": "description about this reference directory"
@@ -68,7 +63,6 @@ openpowers config show exploration.reference
 ```
 
 **Reference material types <type>**:
-   - `codebase`: Query reference materials through codebase. `path` is the directory of codebase.
    - `directory`: local reference materials. `path` is a directory or path of local reference.
    - `skill`: Query reference materials through a skill. `path` is the name of skill or just content of skill.
    - `url`: Query reference materials through an online url. `path` is the url of online reference materials.
@@ -77,7 +71,7 @@ openpowers config show exploration.reference
    - If an element's `description` is empty, **it should be explored by default**
    - If `description` is not empty, **it should be explored ONLY WHEN** the requirement understanding `{from Phase 2}` is related to this `description`.
 
-### Phase 2: Understand Reference Requirements
+### Phase 2: Understand Requirements
 
 Understand the "Explore Content: {`exploreContent`}" in your own words, translating the user's colloquial description into a more professional formulation. The understanding structure is as follows:
 
@@ -87,38 +81,31 @@ Understand the "Explore Content: {`exploreContent`}" in your own words, translat
 
 ### Phase 3: Explore Reference Materials
 
-Iterate through the `reference materials configuration` list and dispatch each element to one of the four scenarios below based on its type, obtaining the exploration results of requirement understanding `{from Phase 2}` for each element:
+Iterate through the `reference materials configuration` list and dispatch each element to one of the three scenarios below based on its type, obtaining the exploration results of requirement understanding `{from Phase 2}` for each element:
 
-#### Scenario 1: `type = codebase`
-
-1. Call the skill: openpowers-codebase with following arguments:
-   - `codebaseDir`: `path` of this element
-   - `instruction`: explore
-   - `userQuery`: requirement understanding `{from Phase 2}`
-
-#### Scenario 2: `type = directory`
+#### Scenario 1: `type = directory`
 
 Use tools (Grep, Glob, Read, etc.) to explore the reference materials path:
 
 Precondition check:
    - The `path` exists and the directory under the path is non-empty
 
-Exploration strategy (by priority):
+**Exploration strategy** (by priority):
 
 1. **Keyword Search**: Use Grep to search for keywords from the exploration content
 2. **File Matching**: Use Glob to match potentially relevant files
 3. **Structure Understanding**: Read key files to understand architecture and implementation details
 4. **Trace Call Chains**: Trace call relationships upward/downward from entry points
 
-#### Scenario 3: `type = skill`
+#### Scenario 2: `type = skill`
 
 1. Precondition check:
    - If `path` is a file path, it must exist and be a markdown file; if `path` is a skill name, this skill must exist. if `path` is content of skill, directly use it.
-2. Call the skill: Read the `path` file or invoke skill (`path`) or use content of skill (`path`) to explore reference materials.
+2. Call the skill: Read the `path` file or invoke skill (`path`) or use content of skill (`path`) to explore reference materials following **Exploration strategy**.
 
-#### Scenario 4: `type = url`
+#### Scenario 3: `type = url`
 
-1. Download reference materials from `url` and explore the online reference materials
+1. Download reference materials from `url` and explore the online reference materials following **Exploration strategy**.
 
 ### Phase 4: Supplementary Exploration
 
