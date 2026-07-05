@@ -20,7 +20,7 @@
     "codebase": [],
     "repository": [
       {
-        "type": "path",
+        "type": "directory",
         "path": "./openpowers/",
         "description": "The location of OpenPowers Artifacts, you shall viewing archived changes and ongoing changes to achieve a global historical reference when starting a new OpenPowers change."
       }

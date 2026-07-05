@@ -28,7 +28,7 @@ cleancode
 {`outputDir`}
 
 ### Output File
-{`outputDir`}/cleancode.md
+{`outputDir`}/cleancode.md (when `outputDir` is provided)
 
 ## Execution Flow
 
@@ -38,11 +38,8 @@ Execute strictly in the following phases. Do not skip or merge phases.
 
 Parse the `exploreContent` in your own words and structure the understanding as follows:
 
-1. **What** – What feature, module, or flow does the user want to understand?  
-   Translate the user's colloquial description into a clear technical statement.
-
+1. **What** – What feature, module, or flow does the user want to understand? Translate the user's colloquial description into a clear technical statement.
 2. **Boundaries** – What is the scope of the exploration? (e.g., entire project, specific module, a particular call chain, etc.)
-
 3. **Goal** – What does the user aim to achieve through this exploration? (e.g., understand implementation details, locate entry points, identify dependencies, assess impact of a change, etc.)
 
 Additionally, based on the understanding above, **derive the code characteristics** that are relevant to the potential changes:
@@ -99,7 +96,7 @@ Return the exploration output result in the following format:
 ```md
 Openpowers Explore — Exploration Result
 # Explore Content
-{`exploreContent`}
+requirement understanding `{from Phase 1}`
 # Explore Type
 cleancode
 # Exploration Results
