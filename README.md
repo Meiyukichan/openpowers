@@ -98,32 +98,61 @@ openpowers enable
 
 ### 1. Marketplace — Claude Code 插件
 
-OpenPowers 作为一个 Claude Code 插件安装后，会向 Claude Code 注入 **13 个技能（Skills）**、**生命周期钩子（Hooks）** 以及核心的 **工作流命令**。
+OpenPowers 作为一个 Claude Code 插件安装后，会向 Claude Code 注入 **12 个技能（Skills）**、**生命周期钩子（Hooks）** 以及核心的 **工作流命令**。
 
 #### 核心命令
 
 | 命令 | 说明 |
 |------|------|
-| `/openpowers:workflow` | 启动 8 阶段结构化开发工作流 |
+| `/openpowers:workflow` | 启动 6 阶段结构化开发工作流 |
 
-#### 13 个技能一览
+#### 12 个技能一览
 
 | 技能 | 类型 | 说明 |
 |------|------|------|
-| `openpowers-workflow` | 命令 | 8 阶段 SDD+TDD 工作流入口 |
-| `openpowers-explore` | 探索 | 代码库探索性调查，了解现有实现与架构 |
+| `openpowers-workflow` | 命令 | 6 阶段 SDD+TDD 工作流入口 |
+| `openpowers-explore` | 探索 | 并发分派多个探索子代理，深入调查代码库、仓库资料、参考文档、已有规格等 |
 | `openpowers-brainstorm` | 思考 | 头脑风暴助手，梳理需求与方案思路 |
 | `openpowers-propose` | 提案 | 一键生成提案、设计文档与规格说明 |
-| `openpowers-schema` | 设计 | 生成 API 或数据库 Schema 文档 |
-| `openpowers-plan` | 规划 | 基于规格生成可执行实施计划 |
-| `openpowers-review` | 审查 | 分派 3 个子审查 Agent 审查提案/计划/代码质量 |
-| `openpowers-sdd` | 实现 | 子代理驱动开发，按功能并发派发实现任务 |
+| `openpowers-plan` | 规划 | 补充技术规格 Schema 文档，基于规格生成可执行实施计划 |
+| `openpowers-review` | 审查 | 分派审查子代理，依次审查提案和计划的完整性与可行性，自动修复问题 |
+| `openpowers-sdd` | 实现 | 子代理驱动开发，按拓扑顺序逐个派发实现子代理并经过两阶段复审 |
 | `openpowers-tdd` | 测试 | TDD 强制执行，先写测试再写实现 |
-| `openpowers-finalize` | 收尾 | 自动 Git 提交、推送，完成代码保存 |
-| `openpowers-archive` | 归档 | 归档已完成的变更至历史记录 |
-| `openpowers-codebase-generator` | 文档 | 生成结构化项目文档树 |
-| `openpowers-codebase-explorer` | 查询 | 按业务/功能关键词查询代码库 |
-| `openpowers-codebase-sync` | 同步 | 随代码变更同步文档 |
+| `openpowers-finalize` | 收尾 | 自动 Git 提交、推送并同步 Codebase 文档 |
+| `openpowers-codebase` | 文档 | Codebase 集成，提供 explore、generate、synchronize 三大指令 |
+| `openpowers-cleancode` | 质量 | 查询编码规范，在生成代码前输出聚焦的规范指南 |
+| `openpowers-commit` | 工具 | 自动暂存、生成 Conventional Commits 消息并安全推送 |
+
+#### openpowers-codebase 详解
+
+`openpowers-codebase` 将项目的源代码组织为分层结构化的**代码文档树**（Codebase），支持大模型按层级导航检索。文档树结构如下：
+
+```
+{codebaseDir}/
+├── toc.md                          ← 总索引（Overview，≤500 行）
+├── {module-a}/
+│   ├── toc.md                      ← 模块索引
+│   ├── {submodule-1}/
+│   │   ├── toc.md                  ← 子模块索引
+│   │   ├── spec-xxx.md
+│   │   └── spec-yyy.md
+│   ├── {submodule-2}/
+│   │   └── ...
+│   └── spec-zzz.md                 ← 模块直属 Spec
+└── ...
+```
+
+通过 `instruction` 参数选择三大操作：
+
+| 指令 | 用途 | 核心流程 |
+|------|------|------|
+| `explore` | 按业务/功能/代码关键词查询相关实现 | 模块定位 → 子模块匹配 → Spec 验证 → 输出源码摘要 + 上下游调用链 |
+| `generate` | 从零生成项目 Codebase 文档树 | 全局扫描分模块 → 逐模块发现子模块/Spec → 生成 Spec 文档 → 逐级生成 toc.md → 综合审查 |
+| `synchronize` | 将增量代码变更同步回文档树 | 确定 Codebase 状态 → 定位目标 Spec → 创建/更新/删除 Spec → 自底向上更新 toc → 索引可达性校验 |
+
+- **explore** 依赖已生成的文档树，不生成新文档；查询结果包含 Spec 摘要 + 直接源码 + 上游调用方 + 下游依赖
+- **generate** 自动跳过测试文件（`*.test.ts`、`__tests__/**` 等），模块/子模块规模有上限控制（≤50 子项 / 5-50 Spec）
+- **synchronize** 严格增量原则，仅处理用户提供的变更文件列表，不扩大范围；首次初始化时自动切换到 `generate` 流程
 
 #### Hooks 生命周期钩子
 
@@ -149,24 +178,31 @@ openpowers [command] [options]
 
 | 命令 | 说明 |
 |------|------|
-| `openpowers init` | 初始化 OpenPowers 插件（每次开机仅需执行一次），安装完成后自动启动 UI 服务 |
+| `openpowers init` | 初始化 OpenPowers 插件，安装完成后自动启动 UI 服务 |
 | `openpowers ui [--restart]` | 启动 Web UI 管理面板并在浏览器中打开 |
+| `openpowers launch` | 启动后端服务（不打开浏览器） |
+| `openpowers active` | 探测后端服务状态，若未运行则自动启动（自愈） |
 | `openpowers enable` | 开启 Anthropic API 代理，将 Claude Code 请求路由至活跃供应商 |
 | `openpowers disable` | 关闭代理，恢复原始 Claude Code 设置 |
 | `openpowers remove [-y]` | 卸载 OpenPowers 插件及其所有配置 |
 | `openpowers recover` | 当 Claude Code 配置出现问题时，恢复默认设置 |
-| `openpowers config list` | 列出当前完整配置（JSON 格式） |
-| `openpowers config show <key...>` | 按路径查询配置项 |
-| `openpowers agents list [--session <id>]` | 列出模型供应商或会话阶段-模型映射 |
-| `openpowers agents show <name> --session <id>` | 查看会话中某工作流阶段使用的模型 |
-| `openpowers agents switch <name> [--session <id>]` | 切换会话或全局的模型供应商 |
-| `openpowers agents init --session <id>` | 初始化会话设置文件 |
+| `openpowers config list` | 列出当前完整合并配置（JSON 格式） |
+| `openpowers config show <key...>` | 按路径查询配置项（支持 `codebases` 虚拟键） |
+| `openpowers config mode <lite\|standard\|max>` | 一键应用实验性功能预设 |
+| `openpowers config set <key> <value> [--global]` | 写入单键配置（自动推断类型） |
+| `openpowers agents list [--session <id>]` | 列出模型供应商表格或会话阶段-模型映射 |
+| `openpowers agents show <stage> --session <id>` | 查看某阶段的模型名称 |
+| `openpowers agents switch <name> [--session <id>]` | 全局/会话级切换模型供应商 |
+| `openpowers agents init --session <id> --cwd <path>` | 初始化会话配置文件 |
 | `openpowers change list` | 列出所有活跃变更及其进度 |
 | `openpowers change new <name> --desc <描述>` | 创建新的变更目录 |
-| `openpowers change status <name>` | 输出变更的制品管线状态（JSON） |
+| `openpowers change status <name>` | 查看变更的制品管线状态（JSON） |
 | `openpowers change archive <name>` | 归档已完成变更 |
-| `openpowers change instruction <name> --proposal\|--design\|--specs` | 从模板生成制品创建指令 |
+| `openpowers change instruction <name> --proposal\|--design\|--specs` | 获取制品生成指令 |
 | `openpowers change feature <name> --status\|--next\|--start\|--complete` | 功能生命周期管理 |
+| `openpowers change stage <name> --session <id> --status <st> [--title\|--input\|--output]` | 更新变更的阶段进度 |
+| `openpowers schedule restart` | 重启 cron 调度器 |
+| `openpowers schedule stop` | 停止 cron 调度器 |
 
 ---
 
@@ -250,7 +286,27 @@ openpowers ui
 openpowers ui --restart
 ```
 
-在 `http://localhost:3939` 启动 Web 管理面板。`--restart` 会先终止已有进程再重新启动。
+在 `http://localhost:3939/openpowers/ui` 启动 Web 管理面板。`--restart` 会先终止已有进程再重新启动。
+
+---
+
+### `openpowers launch`
+
+```bash
+openpowers launch
+```
+
+在后台启动 OpenPowers 后端服务，不打开浏览器。若服务已在运行则提示。
+
+---
+
+### `openpowers active`
+
+```bash
+openpowers active
+```
+
+探测后端服务状态。若服务已在运行，输出 "active"；若未运行，自动启动服务（自愈机制）。
 
 ---
 
@@ -301,37 +357,56 @@ openpowers recover
 ### `openpowers config`
 
 ```bash
-# 查看完整配置
+# 查看完整配置（合并默认+项目覆盖）
 openpowers config list
 
 # 按路径查询
 openpowers config show language
 openpowers config show project.sourcecode
-openpowers config show switchProviders.plan switchProviders.coding
+openpowers config show project.codebase
+openpowers config show exploration.repository
+openpowers config show codebases
+
+# 一键应用功能预设（lite / standard / max）
+openpowers config mode standard
+
+# 写入配置（自动推断类型：字符串、数字、布尔）
+openpowers config set experimental.review.code true
+openpowers config set language english --global
 ```
+
+`config show codebases` 是虚拟键，自动将 `project.codebase.path` 和 `exploration.codebase` 合并为一个统一列表。
+
+`config mode` 预设：
+| 模式 | explore | openpowers review | specs review | code review |
+|------|---------|-------------------|--------------|-------------|
+| `lite` | 关闭 | 关闭 | 关闭 | 关闭 |
+| `standard` | 开启 | 关闭 | 关闭 | 开启 |
+| `max` | 开启 | 开启 | 开启 | 开启 |
 
 ---
 
 ### `openpowers agents`
 
 ```bash
-# 列出所有模型供应商
+# 列出所有模型供应商（表格）
 openpowers agents list
 
 # 查看会话的阶段-模型映射
 openpowers agents list --session <session-id>
 
-# 查看某阶段的模型
+# 查看某阶段使用的模型
 openpowers agents show plan --session <session-id>
 
-# 全局切换供应商（模型名或供应商名称）
+# 全局切换供应商（按供应商名或模型名）
 openpowers agents switch DeepSeek
 
-# 会话级切换供应商
+# 会话级切换
 openpowers agents switch kimi2.6 --session <session-id>
 
 # 初始化会话设置
 openpowers agents init --session <session-id> --cwd /path/to/project
+  [--change <change-name>] [--prompt <text>]
 ```
 
 ---
@@ -339,7 +414,7 @@ openpowers agents init --session <session-id> --cwd /path/to/project
 ### `openpowers change`
 
 ```bash
-# 列出所有活跃变更
+# 列出所有活跃变更及其进度
 openpowers change list
 
 # 创建新变更
@@ -348,25 +423,51 @@ openpowers change new my-feature --desc "添加用户登录功能"
 # 查看变更状态
 openpowers change status my-feature
 
+# 获取制品生成指令
+openpowers change instruction my-feature --proposal
+
+# 管理功能生命周期
+openpowers change feature my-feature --status
+openpowers change feature my-feature --next
+openpowers change feature my-feature --start feat-1
+openpowers change feature my-feature --complete feat-1
+
+# 更新阶段进度（由 Hook 调用）
+openpowers change stage explore --session <id> --status done --title "探索结果"
+
 # 归档已完成变更
 openpowers change archive my-feature
 ```
 
 ---
 
+### `openpowers schedule`
+
+```bash
+# 重启 cron 调度器
+openpowers schedule restart
+
+# 停止 cron 调度器
+openpowers schedule stop
+```
+
+需要在 OpenPowers 后端服务运行的状态下使用。
+
+---
+
 ## 工作流详解
 
-`/openpowers:workflow` 提供从创意到交付的 8 阶段完整开发流程：
+`/openpowers:workflow` 提供从创意到交付的 6 阶段完整开发流程：
 
 ```
-创意 → 1.Explore → 2.Propose → 3.Review → 4.Plan → 5.Review → 6.SDD实现 → 7.Finalize → 8.Archive
+创意 → 1.Explore → 2.Propose → 3.Plan → 4.Review → 5.SDD → 6.Finalize
 ```
 
 ### 阶段 1：Explore（探索）
 
-使用 `openpowers-explore` 技能深入调查代码库，理解现有实现、架构模式与集成点。
+使用 `openpowers-explore` 技能根据 `exploreType` 并发分派多个探索子代理，深入调查项目的代码结构、参考文档、仓库资料、已有规格等。
 
-**产出**：`exploration.md`
+**产出**：探索结果写入 `explore-design/` 目录
 
 **供应商**：自动使用 `explore` 阶段配置的模型
 
@@ -374,10 +475,12 @@ openpowers change archive my-feature
 
 ### 阶段 2：Propose（提案）
 
-生成完整变更提案，包括：
+先使用 `openpowers-brainstorm` 进行需求头脑风暴与对齐，然后使用 `openpowers-propose` 一键生成完整提案制品：
 - `proposal.md` — 变更的目的、范围和影响
-- `design.md` — 技术设计决策文档
+- `design.md` — 技术设计决策
 - `specs/**/*.md` — 详细功能规格说明
+
+此阶段结束后会让用户选择工作流模式（Lite / Standard / Max）以控制后续阶段的审查级别。
 
 **产出**：提案三件套
 
@@ -385,22 +488,9 @@ openpowers change archive my-feature
 
 ---
 
-### 阶段 3：Review Propose（审查提案）
+### 阶段 3：Plan（规划）
 
-使用 `openpowers-review` 技能，分派 3 个专业子审查 Agent：
-- 完整性审查
-- 一致性审查
-- 可行性审查
-
-**产出**：审查反馈与修改建议
-
-**供应商**：自动使用 `review` 阶段配置的模型
-
----
-
-### 阶段 4：Plan（规划）
-
-基于规格文档生成可执行的实施计划。
+分派规划子代理，基于规格文档生成可执行的实施计划 `plan.json`，支持依赖拓扑排序。
 
 **产出**：`plan.json`（可选 `api.yaml`、`database.md`）
 
@@ -408,50 +498,41 @@ openpowers change archive my-feature
 
 ---
 
-### 阶段 5：Review Plan（审查计划）
+### 阶段 4：Review OpenPowers Artifacts（审查制品）
 
-再次使用 `openpowers-review`，验证实施计划的可行性与完整性。
+使用 `openpowers-review` 技能审查提案、设计、规格和计划的完整性与可行性。
+
+**产出**：审查反馈与修改建议
 
 **供应商**：自动使用 `review` 阶段配置的模型
 
 ---
 
-### 阶段 6：SDD Implementation（子代理驱动开发）
+### 阶段 5：SDD — 子代理驱动开发
 
-使用 `openpowers-sdd` 技能，将实施计划按功能点拆分为独立任务，并发分派**全新的子代理**执行。
+使用 `openpowers-sdd` 技能，按 `plan.json` 中的特征（Feature）列表，依拓扑顺序为每个特征独立分派实现子代理。每个子代理内部强制执行 `openpowers-tdd`（先写测试再写实现），并经过**规格合规审查**和**代码质量审查**两阶段复审。
 
-**产出**：测试用例 + 实现代码 + 审查报告
+**产出**：测试用例 + 实现代码 + 审查通过报告
 
 **供应商**：每个子代理可独立配置不同供应商模型
 
 ---
 
-### 阶段 7：Finalize（收尾）
+### 阶段 6：Finalize（收尾）
 
 使用 `openpowers-finalize` 技能自动完成：
-- `git add` 所有变更
-- `git commit` 提交代码
-- `git push` 推送至远程仓库
+- 集成测试
+- Codebase 文档同步
+- 变更归档
+- Git 提交与推送
 
 **供应商**：自动使用 `finalize` 阶段配置的模型
 
 ---
 
-### 阶段 8：Archive（归档）
+### 从中断处恢复
 
-使用 `openpowers-archive` 技能将完成的变更移动至：
-
-```
-openpowers/archive/YYYY-MM-DD-<name>/
-```
-
-保留完整的历史记录，支持随时回溯查看。
-
----
-
-### 从任意阶段恢复
-
-工作流支持中断恢复。如果在某个阶段中断，下次运行时可以从该阶段继续，不会丢失已有的产出物。
+工作流支持中断恢复。启动时会自动检测已有制品，跳过已完成的阶段，从当前进度继续执行，不丢失已有产出物。
 
 ---
 
@@ -471,69 +552,70 @@ OpenPowers 支持全局默认配置和项目级覆盖配置：
 
   // 各阶段自动切换的模型供应商
   "switchProviders": {
-    "workflow": "deepseek-v4-pro",  // 工作流调度
-    "explore": "MiniMax-M2.7",      // 探索阶段
+    "workflow": "default",          // 工作流调度
+    "explore": "default",           // 探索阶段
     "propose": "default",           // 提案阶段
-    "plan": "deepseek-v4-pro",      // 规划阶段
-    "review": "deepseek-v4-pro",    // 审查阶段
-    "coding": "MiniMax-M2.7",       // 编码阶段
-    "finalize": "MiniMax-M2.7"      // 收尾阶段
+    "plan": "default",              // 规划阶段
+    "review": "default",            // 审查阶段
+    "coding": "default",            // 编码阶段
+    "finalize": "default"           // 收尾阶段
   },
 
   // 项目设置
   "project": {
-    "sourcecode": "src",           // 源码目录
-    "codebases": {                 // 代码库文档设置
-      "enabled": false,
-      "path": "codebases"
-    },
-    // 项目额外仓库，比如前后端分离的前端仓库
-    "repositories": [
+    "sourcecode": "./",            // 源码目录
+    "codebase": {                  // 项目 Codebase 设置
+      "enable": false,
+      "path": "docs/codebase"
+    }
+  },
+
+  // 探索配置
+  "exploration": {
+    "codebase": [],                // 探索时查询的额外 Codebase 路径列表
+    "repository": [                // 探索时参考的项目仓库列表
       {
-        "path": "path/to/some-project1",
-        "description": "description about project1"
-      },
-      {
-        "path": "path/to/some-project2",
-        "description": "description about project2"
+        "type": "directory",
+        "path": "./openpowers/",
+        "description": "OpenPowers 制品目录，用于跨变更全局历史参考"
       }
     ],
-    // 外部参考仓库
-    "references": [
-      {
-        "type": "repository",
-        "path": "path/to/repository",
-        "description": "description about this repository"
-      },
-      {
-        "type": "codebases",
-        "path": "path/to/codebases",
-        "description": "description about this codebases"
-      },
-      {
-        "type": "skill",
-        "path": "path/to/skill or skill name",
-        "description": "description about this skill"
-      }
-    ]
+    "reference": [],               // 探索时参考的外部资料列表
+    "specification": []            // 探索时参考的规格文档列表
   },
 
   // 实验性特性
   "experimental": {
-    "codebases": false,         // 是否开启codebase功能
-    "websearch": true,          // 是否开启websearch功能
-    "context7": true,           // 是否开启context7功能
+    "explore": true,               // 是否开启探索阶段
+    "websearch": true,             // 是否开启 Web 搜索
+    "context7": true,              // 是否开启 Context7
     "review": {
-        "propose": true,        // 是否开启提案审查阶段
-        "plan": true,           // 是否开启计划审查阶段
-        "specs": true,          // 是否开启规格审查阶段
-        "code": true            // 是否开启代码检视阶段
+      "openpowers": false,         // 是否审查 OpenPowers 制品
+      "propose": false,            // 是否开启提案审查
+      "plan": false,               // 是否开启计划审查
+      "specs": false,              // 是否开启规格审查
+      "code": true,                // 是否开启代码检视
+      "acceptance": true           // 是否开启验收审查
     },
     "prompt": {
-        "review-code": null     // 代码检视自定义提示词，可以是skill name
+      "reviewCode": null           // 代码检视自定义提示词（skill 名或内容）
     },
-    "coverage": "70%",          // 要求项目达到的测试覆盖率
-    "factor": 1                 // 计划文档生成的特性个数因子（features < factor * specs）
+    "coverage": "70%",             // 要求项目达到的测试覆盖率
+    "budget": true,                // 是否开启预算管理
+    "factor": 1                    // 计划文档生成的特性个数因子（features < factor * specs）
+  },
+
+  // 增强配置
+  "enhancement": {
+    "context": null,               // 增强上下文
+    "rules": {
+      "design": [],                // 设计阶段增强规则
+      "specs": [],                 // 规格阶段增强规则
+      "implement": []              // 实现阶段增强规则
+    },
+    "memory": {
+      "schedule": "14 18 * * *"    // 记忆调度 cron 表达式
+    }
   }
 }
 ```

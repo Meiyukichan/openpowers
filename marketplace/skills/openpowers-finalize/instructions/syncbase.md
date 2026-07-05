@@ -7,11 +7,12 @@ Read staged file changes, group changes under the `main source directory` by mod
 Call the following script to get the `instruction configuration`:
 
 ```bash
-openpowers config show project.sourcecode project.codebases.enable
+openpowers config show project.sourcecode project.codebase.enable project.codebase.path
 ```
 
 - `project.sourcecode`: `main source directory` of this project
-- `project.codebases.enable`: whether to call `openpowers-codebase` to sync the codebase
+- `project.codebase.enable`: whether to call `openpowers-codebase` to sync the codebase
+- `project.codebase.path`: path of project codebase
 
 ## Instruction Execution Stages
 
@@ -54,7 +55,7 @@ Grouping result:
 
 ### Stage 3: Call openpowers-codebase to Sync Codebase
 
-For each group from Stage 2, **serially invoke** the sync codebase sub-agent using the Task tool with the following template (`OpenPowers:finalize:Purpose` is the critical description marker of `sync codebase sub-agent`, do NOT mistake it):
+For each group from Stage 2, **serially invoke** the sync codebase subagent using the Task tool with the following template (`OpenPowers:finalize:Purpose` is the critical description marker of `sync codebase subagent`, do NOT mistake it):
 
 ```
 Agent tool (general-purpose):
@@ -62,14 +63,15 @@ Agent tool (general-purpose):
   prompt: |
     You are syncing the codebase for [group brief description]
 
-    ## Changed file list
-    [all file paths in this group with their change types, comma separated]
-
-    ## codebase operation type
-    sync
+    ## Current Project Directory
+    {cwd}
 
     ## Work steps
-    1. Call Skill: openpowers-codebase to update codebases
+    1. Call Skill: openpowers-codebase with the following arguments:
+       - `codebaseDir`: {`project.codebase.path`}
+       - `instruction`: synchronize
+       - `Modified file paths`: [all file paths in this group, comma separated]
+       - `Change description`: [group brief description]
     2. Ignore the skill's return value, whether success or failure
 ```
 
