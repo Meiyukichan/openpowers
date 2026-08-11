@@ -18,8 +18,8 @@ import { logger } from '../utils/logger.js';
 // Claude settings file under user's home directory
 const CLAUDE_SETTINGS_FILE = path.join(os.homedir(), '.claude', 'settings.json');
 
-// Backup file in OpenPowers data directory
-const BACKUP_FILE = path.join(os.homedir(), '.openpowers', 'settings.bak.json');
+// Backup file in Furina data directory
+const BACKUP_FILE = path.join(os.homedir(), '.furina', 'settings.bak.json');
 
 // Proxy env configuration (fixed values)
 const PROXY_BASE_URL = 'http://localhost:3939';
@@ -94,7 +94,7 @@ export function writeClaudeSettings(data: Record<string, unknown>): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Copies ~/.claude/settings.json to ~/.openpowers/settings.bak.json.
+ * Copies ~/.claude/settings.json to ~/.furina/settings.bak.json.
  * Logs a warning and does nothing if the source file does not exist.
  */
 export function backupClaudeSettings(): void {
@@ -110,7 +110,7 @@ export function backupClaudeSettings(): void {
 }
 
 /**
- * Copies ~/.openpowers/settings.bak.json to ~/.claude/settings.json.
+ * Copies ~/.furina/settings.bak.json to ~/.claude/settings.json.
  * Returns true on success, false if the backup file does not exist.
  * @returns true if restore succeeded, false if backup was missing
  */

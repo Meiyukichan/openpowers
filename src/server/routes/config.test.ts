@@ -35,15 +35,15 @@ beforeEach(async () => {
   configRouter = mod.configRouter;
 });
 
-describe('GET /openpowers/api/config', () => {
+describe('GET /furina/api/config', () => {
   it('should return 200 with language "chinese" when store has chinese', async () => {
     getLanguageMock.mockReturnValue('chinese');
 
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
-    const res = await request(app).get('/openpowers/api/config');
+    const res = await request(app).get('/furina/api/config');
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ language: 'chinese' });
@@ -54,25 +54,25 @@ describe('GET /openpowers/api/config', () => {
 
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
-    const res = await request(app).get('/openpowers/api/config');
+    const res = await request(app).get('/furina/api/config');
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ language: 'english' });
   });
 });
 
-describe('PUT /openpowers/api/config', () => {
+describe('PUT /furina/api/config', () => {
   it('should update language and return 200 when language is "english"', async () => {
     getLanguageMock.mockReturnValue('chinese');
 
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
     const res = await request(app)
-      .put('/openpowers/api/config')
+      .put('/furina/api/config')
       .send({ language: 'english' });
 
     expect(res.status).toBe(200);
@@ -85,10 +85,10 @@ describe('PUT /openpowers/api/config', () => {
 
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
     const res = await request(app)
-      .put('/openpowers/api/config')
+      .put('/furina/api/config')
       .send({ language: 'chinese' });
 
     expect(res.status).toBe(200);
@@ -99,10 +99,10 @@ describe('PUT /openpowers/api/config', () => {
   it('should return 400 when language field is missing', async () => {
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
     const res = await request(app)
-      .put('/openpowers/api/config')
+      .put('/furina/api/config')
       .send({});
 
     expect(res.status).toBe(400);
@@ -113,10 +113,10 @@ describe('PUT /openpowers/api/config', () => {
   it('should return 400 when language field is invalid', async () => {
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
     const res = await request(app)
-      .put('/openpowers/api/config')
+      .put('/furina/api/config')
       .send({ language: 'french' });
 
     expect(res.status).toBe(400);
@@ -127,10 +127,10 @@ describe('PUT /openpowers/api/config', () => {
   it('should return 400 when body is not an object', async () => {
     const app = express.default();
     app.use(express.default.json());
-    app.use('/openpowers/api/config', configRouter);
+    app.use('/furina/api/config', configRouter);
 
     const res = await request(app)
-      .put('/openpowers/api/config')
+      .put('/furina/api/config')
       .send('not-json');
 
     expect(res.status).toBe(400);

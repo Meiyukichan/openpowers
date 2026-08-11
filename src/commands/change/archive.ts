@@ -1,7 +1,7 @@
 /**
  * Archive subcommand for the change command
  * Validates change existence, active status, and artifact completion,
- * then moves the change directory to openpowers/archive/YYYY-MM-DD-<name>/
+ * then moves the change directory to furina/archive/YYYY-MM-DD-<name>/
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -21,8 +21,8 @@ import { flattenCwdPath, writeMemoryChangesJson } from '../../utils/memory.js';
 import type { ChangesJson } from '../../utils/memory.js';
 
 /**
- * Archives a completed change by moving its directory from openpowers/changes/ to
- * openpowers/archive/YYYY-MM-DD-<name>/ after validating that the change exists,
+ * Archives a completed change by moving its directory from furina/changes/ to
+ * furina/archive/YYYY-MM-DD-<name>/ after validating that the change exists,
  * is active (not already archived), and all artifacts have status "done".
  * @param name - The change name to archive
  */
@@ -61,7 +61,7 @@ export function runChangeArchive(name: string): void {
     process.exit(1);
   }
 
-  // Build target archive path: openpowers/archive/YYYY-MM-DD-<name>/
+  // Build target archive path: furina/archive/YYYY-MM-DD-<name>/
   const today = new Date().toISOString().slice(0, 10);
   const targetDirName = `${today}-${name}`;
   const targetDir = path.join(ARCHIVE_DIR, targetDirName);
@@ -104,7 +104,7 @@ export function runChangeArchive(name: string): void {
   // Sync global memory changes.json
   try {
     const cwd = process.cwd();
-    const memoryPath = path.join(os.homedir(), '.openpowers', 'memory', flattenCwdPath(cwd), 'changes.json');
+    const memoryPath = path.join(os.homedir(), '.furina', 'memory', flattenCwdPath(cwd), 'changes.json');
 
     if (!fs.existsSync(memoryPath)) {
       logger.warn(`Global memory changes.json not found at ${memoryPath}, skipping sync`);
@@ -145,5 +145,5 @@ export function runChangeArchive(name: string): void {
     logger.error(`Failed to sync global memory changes.json: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  process.stdout.write(`Change '${name}' archived successfully to openpowers/archive/${targetDirName}/\n`);
+  process.stdout.write(`Change '${name}' archived successfully to furina/archive/${targetDirName}/\n`);
 }

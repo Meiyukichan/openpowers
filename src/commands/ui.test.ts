@@ -72,7 +72,7 @@ beforeEach(() => {
   killPortProcessMock.mockResolvedValue(undefined);
   waitForPortFreeMock.mockResolvedValue(undefined);
   gracefulShutdownMock.mockResolvedValue(undefined);
-  startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
+  startBackendServiceMock.mockReturnValue('http://localhost:3939/furina/ui');
 });
 
 // ---- test suites ----
@@ -118,7 +118,7 @@ describe('runUi', () => {
     expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
-    expect(args).toContain('http://localhost:3939/openpowers/ui');
+    expect(args).toContain('http://localhost:3939/furina/ui');
   });
 
   it('should not restart when port is already occupied (without --restart)', async () => {
@@ -131,7 +131,7 @@ describe('runUi', () => {
     expect(startBackendServiceMock).not.toHaveBeenCalled();
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
-    expect(args).toContain('http://localhost:3939/openpowers/ui');
+    expect(args).toContain('http://localhost:3939/furina/ui');
   });
 
   it('should call gracefulShutdown and then start backend on --restart', async () => {
@@ -169,6 +169,6 @@ describe('runUi', () => {
     expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
     expect(execSyncMock).toHaveBeenCalled();
     const args = execSyncMock.mock.calls[0][0] as string;
-    expect(args).toContain('http://localhost:3939/openpowers/ui');
+    expect(args).toContain('http://localhost:3939/furina/ui');
   });
 });

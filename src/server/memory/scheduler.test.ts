@@ -77,7 +77,7 @@ const { cronScheduleMock, appendLogMock, cpSyncMock, rmSyncMock, mkdirSyncMock, 
     const key = String(p).replace(/\\/g, '/').toLowerCase();
     if (key in mockFileSystem) return mockFileSystem[key];
     for (const mk of Object.keys(mockFileSystem)) {
-      if (mk.endsWith('resources/openpowers.json') && key.endsWith('resources/openpowers.json')) {
+      if (mk.endsWith('resources/furina.json') && key.endsWith('resources/furina.json')) {
         return mockFileSystem[mk];
       }
     }
@@ -145,7 +145,7 @@ function makeDirent(name: string, isDir: boolean): Dirent {
   };
 }
 
-const MEMORY_DIR = '/Users/test/.openpowers/memory';
+const MEMORY_DIR = '/Users/test/.furina/memory';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -285,7 +285,7 @@ describe('cron callback: directory scanning', () => {
     readdirSyncMock.mockImplementation(originalReaddirSyncImpl || (() => []));
   });
 
-  it('should scan .openpowers/memory subdirectories', async () => {
+  it('should scan .furina/memory subdirectories', async () => {
     const { startScheduler } = await importFresh();
     startScheduler();
 
@@ -874,10 +874,10 @@ describe('cron: dynamic cron expression', () => {
   /** The scheduler resolves ../../resources from its source file location,
    *  which in tests maps to <project_root>/resources */
   function schedulerResourcesConfigPath(): string {
-    return path.join(process.cwd(), 'resources', 'openpowers.json');
+    return path.join(process.cwd(), 'resources', 'furina.json');
   }
 
-  it('should use cron from enhancement.memory.schedule in resources/openpowers.json', async () => {
+  it('should use cron from enhancement.memory.schedule in resources/furina.json', async () => {
     const configPath = schedulerResourcesConfigPath();
     mockFileSystem[configPath.replace(/\\/g, '/').toLowerCase()] = JSON.stringify({
       enhancement: {

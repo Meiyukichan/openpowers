@@ -18,10 +18,10 @@ describe('src/cli/index.ts', () => {
     expect(program.version()).toBe('1.0.3');
   });
 
-  it('should register all 12 subcommands (init, ui, active, launch, remove, recover, change, config, enable, disable, agents, schedule)', async () => {
+  it('should register all 13 subcommands (init, ui, active, launch, remove, recover, change, config, enable, disable, agents, schedule, migrate)', async () => {
     const { program } = await import('./index.js');
     const names = program.commands.map((cmd) => cmd.name());
-    expect(names.length).toBe(12);
+    expect(names.length).toBe(13);
     expect(names).toContain('init');
     expect(names).toContain('ui');
     expect(names).toContain('active');
@@ -34,5 +34,6 @@ describe('src/cli/index.ts', () => {
     expect(names).toContain('disable');
     expect(names).toContain('agents');
     expect(names).toContain('schedule');
+    expect(names).toContain('migrate');
   });
 });

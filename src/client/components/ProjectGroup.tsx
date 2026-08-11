@@ -11,7 +11,7 @@ import { ChevronDown, FolderGit2 } from 'lucide-react';
 import type { ChangeEntryWithCwd } from '../../server/changes/shared.js';
 import { ChangeCard } from './ChangeCard.js';
 
-const EXPANDED_KEY = 'openpowers:expandedGroups';
+const EXPANDED_KEY = 'furina:expandedGroups';
 
 /** Props for the ProjectGroup component. */
 export interface ProjectGroupProps {
@@ -53,7 +53,7 @@ function sortByUpdateAtDesc(changes: ChangeEntryWithCwd[]): ChangeEntryWithCwd[]
 
 /**
  * Returns the project name (last path segment) from a cwd path.
- * e.g. "D:\project-code\llm\openpowers" → "openpowers"
+ * e.g. "D:\project-code\llm\furina" → "furina"
  */
 function projectName(cwd: string): string {
   const parts = cwd.split(/[\\/]/);

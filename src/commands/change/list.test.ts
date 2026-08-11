@@ -85,7 +85,7 @@ vi.mock('../../utils/memory.js', () => ({
 }));
 
 describe('src/commands/change/list.ts', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
   const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
 
   let runChangeList: () => void;

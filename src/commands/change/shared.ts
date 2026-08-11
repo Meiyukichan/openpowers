@@ -14,9 +14,9 @@ const require = module.createRequire(import.meta.url);
 const pkg = require('../../../package.json');
 
 // Path constants (absolute, cross-platform)
-const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
-const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
-const CHANGES_JSON_PATH = path.join(process.cwd(), 'openpowers', 'changes.json');
+const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
+const ARCHIVE_DIR = path.join(process.cwd(), 'furina', 'archive');
+const CHANGES_JSON_PATH = path.join(process.cwd(), 'furina', 'changes.json');
 
 /**
  * Converts an absolute path to a Linux-style forward-slash path relative to process.cwd().
@@ -88,7 +88,7 @@ export function validateChangeName(name: string): { valid: boolean; error?: stri
 /**
  * Builds the artifacts array for a change directory path based on actual filesystem state.
  * Only includes artifacts whose corresponding file (or directory for specs) exists on disk.
- * @param dirPath - The directory path for the change (e.g., 'openpowers/changes/my-feature')
+ * @param dirPath - The directory path for the change (e.g., 'furina/changes/my-feature')
  * @returns Array of { id, outputPath } objects for artifacts that exist on the filesystem
  */
 export function buildArtifacts(dirPath: string): Array<{ id: string; outputPath: string }> {
@@ -141,7 +141,7 @@ export function computeProgress(planPath: string): { features: number; todo: num
 }
 
 /**
- * Loads openpowers/changes.json or returns the default structure if it does not exist.
+ * Loads furina/changes.json or returns the default structure if it does not exist.
  * Silently auto-creates changes.json with default values when missing.
  * @returns The parsed changes.json object
  */
@@ -169,8 +169,8 @@ export function loadOrCreateChangesJson(): { framework: string; version: string;
 }
 
 /**
- * Synchronizes openpowers/changes.json with the filesystem state.
- * Scans openpowers/changes/ for active changes and openpowers/archive/ for archived changes.
+ * Synchronizes furina/changes.json with the filesystem state.
+ * Scans furina/changes/ for active changes and furina/archive/ for archived changes.
  * Recomputes features/todo from plan.json and fills missing artifacts/closedAt fields.
  * @returns The up-to-date changes.json object
  */

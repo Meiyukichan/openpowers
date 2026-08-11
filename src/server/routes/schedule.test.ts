@@ -47,12 +47,12 @@ describe('scheduleRouter', () => {
     expect(typeof mod.scheduleRouter).toBe('function');
   });
 
-  describe('PUT / (mounted at /openpowers/api/schedule)', () => {
+  describe('PUT / (mounted at /furina/api/schedule)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/schedule', mod.scheduleRouter);
+      app.use('/furina/api/schedule', mod.scheduleRouter);
       return app;
     }
 
@@ -61,7 +61,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .put('/openpowers/api/schedule')
+        .put('/furina/api/schedule')
         .send({});
 
       expect(res.status).toBe(200);
@@ -74,7 +74,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .put('/openpowers/api/schedule')
+        .put('/furina/api/schedule')
         .send({});
 
       expect(res.status).toBe(200);
@@ -87,7 +87,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       await request(app)
-        .put('/openpowers/api/schedule')
+        .put('/furina/api/schedule')
         .send({});
 
       expect(startSchedulerMock).not.toHaveBeenCalled();
@@ -98,19 +98,19 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       await request(app)
-        .put('/openpowers/api/schedule')
+        .put('/furina/api/schedule')
         .send({});
 
       expect(startSchedulerMock).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('DELETE / (mounted at /openpowers/api/schedule)', () => {
+  describe('DELETE / (mounted at /furina/api/schedule)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/schedule', mod.scheduleRouter);
+      app.use('/furina/api/schedule', mod.scheduleRouter);
       return app;
     }
 
@@ -119,7 +119,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .delete('/openpowers/api/schedule')
+        .delete('/furina/api/schedule')
         .send({});
 
       expect(res.status).toBe(200);
@@ -132,7 +132,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .delete('/openpowers/api/schedule')
+        .delete('/furina/api/schedule')
         .send({});
 
       expect(res.status).toBe(200);
@@ -144,19 +144,19 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       await request(app)
-        .delete('/openpowers/api/schedule')
+        .delete('/furina/api/schedule')
         .send({});
 
       expect(stopSchedulerMock).not.toHaveBeenCalled();
     });
   });
 
-  describe('POST /restart (mounted at /openpowers/api/schedule/restart)', () => {
+  describe('POST /restart (mounted at /furina/api/schedule/restart)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/schedule', mod.scheduleRouter);
+      app.use('/furina/api/schedule', mod.scheduleRouter);
       return app;
     }
 
@@ -164,7 +164,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .post('/openpowers/api/schedule/restart')
+        .post('/furina/api/schedule/restart')
         .send({});
 
       expect(res.status).toBe(200);
@@ -180,7 +180,7 @@ describe('scheduleRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .post('/openpowers/api/schedule/restart')
+        .post('/furina/api/schedule/restart')
         .send({});
 
       expect(res.status).toBe(500);

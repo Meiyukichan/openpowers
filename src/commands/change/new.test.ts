@@ -77,8 +77,8 @@ vi.mock('../../utils/logger.js', () => ({
 }));
 
 describe('src/commands/change/new.ts', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
-  const CHANGES_JSON_PATH = path.join(process.cwd(), 'openpowers', 'changes.json');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
+  const CHANGES_JSON_PATH = path.join(process.cwd(), 'furina', 'changes.json');
 
   let runChangeNew: (name: string, options: { desc: string }) => void;
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>;
@@ -124,7 +124,7 @@ describe('src/commands/change/new.ts', () => {
     expect(content).toContain('A new feature');
     expect(content).toContain('"artifacts": []');
     // Path should be relative to cwd with forward slashes
-    expect(content).toContain('"path": "openpowers/changes/my-feature"');
+    expect(content).toContain('"path": "furina/changes/my-feature"');
     // Should print success message to stdout
     const stdoutCalls = stdoutWriteSpy.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(stdoutCalls.some((s: unknown) => String(s).includes("Change 'my-feature' created successfully"))).toBe(true);
@@ -144,14 +144,14 @@ describe('src/commands/change/new.ts', () => {
     // Pre-seed changes.json with an existing entry for the same name
     const originalEntry = {
       name: 'dup-feature',
-      path: 'openpowers/changes/dup-feature',
+      path: 'furina/changes/dup-feature',
       description: 'Old',
       createdAt: '2026-01-01T00:00:00.000Z',
       features: 0,
       todo: 0,
     };
     mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       changes: [originalEntry],
       archive: [],

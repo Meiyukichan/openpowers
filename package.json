@@ -1,10 +1,10 @@
 {
-  "name": "@meiyukichan/openpowers",
+  "name": "@meiyukichan/furina",
   "version": "1.0.3",
-  "description": "OpenPowers CLI - plugin-based development toolkit",
+  "description": "Furina CLI - plugin-based development toolkit",
   "type": "module",
   "bin": {
-    "openpowers": "./bin/openpowers.js"
+    "furina": "./bin/furina.js"
   },
   "engines": {
     "node": ">=20"

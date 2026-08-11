@@ -1,5 +1,5 @@
 /**
- * Express router for /openpowers/api/providers CRUD endpoints and active provider management.
+ * Express router for /furina/api/providers CRUD endpoints and active provider management.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -15,8 +15,8 @@ import {
   getActiveProviderId,
   setActiveProviderId,
   clearActiveProviderId,
-  getEnableOpenpowersProxy,
-  setEnableOpenpowersProxy,
+  getEnableFurinaProxy,
+  setEnableFurinaProxy,
   getNeverClaudeSettings,
   setNeverClaudeSettings,
   getProviderById,
@@ -120,7 +120,7 @@ function ensureFirstWriteBackup(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * GET /openpowers/api/providers
+ * GET /furina/api/providers
  * Returns the full list of configured providers as a JSON array.
  * Resolves icon from usedTemplate when provider has no explicit icon.
  */
@@ -154,7 +154,7 @@ providersRouter.get('/', (_req, res) => {
 });
 
 /**
- * GET /openpowers/api/providers/active
+ * GET /furina/api/providers/active
  * Returns the currently active provider ID, or null if none is set.
  */
 providersRouter.get('/active', (_req, res) => {
@@ -163,7 +163,7 @@ providersRouter.get('/active', (_req, res) => {
 });
 
 /**
- * PUT /openpowers/api/providers/active
+ * PUT /furina/api/providers/active
  * Sets the specified provider as the active provider, then syncs Claude
  * settings. When proxy is off, writes the provider's env; when proxy is on,
  * writes proxy env. On first write, backs up existing settings.
@@ -187,7 +187,7 @@ providersRouter.put('/active', (req, res) => {
   }
   try {
     ensureFirstWriteBackup();
-    if (getEnableOpenpowersProxy()) {
+    if (getEnableFurinaProxy()) {
       writeEnvToClaudeSettings(getProxyEnv());
     } else {
       const provider = getProviderById(parsed.data.providerId);
@@ -203,7 +203,7 @@ providersRouter.put('/active', (req, res) => {
 });
 
 /**
- * POST /openpowers/api/providers
+ * POST /furina/api/providers
  * Creates a new provider. Validates input with zod; generates UUID and
  * createdAt on the server.
  */
@@ -227,22 +227,22 @@ providersRouter.post('/', (req, res) => {
 });
 
 /**
- * GET /openpowers/api/providers/proxy
- * Returns the current enableOpenpowersProxy state.
+ * GET /furina/api/providers/proxy
+ * Returns the current enableFurinaProxy state.
  */
 providersRouter.get('/proxy', (_req, res) => {
-  const enabled = getEnableOpenpowersProxy();
-  res.status(200).json({ enableOpenpowersProxy: enabled });
+  const enabled = getEnableFurinaProxy();
+  res.status(200).json({ enableFurinaProxy: enabled });
 });
 
 /** Zod schema for setting the proxy enabled state. */
 const SetProxySchema = z.object({
-  enableOpenpowersProxy: z.boolean(),
+  enableFurinaProxy: z.boolean(),
 });
 
 /**
- * PUT /openpowers/api/providers/proxy
- * Sets the enableOpenpowersProxy flag and syncs Claude settings.
+ * PUT /furina/api/providers/proxy
+ * Sets the enableFurinaProxy flag and syncs Claude settings.
  * Enabling writes proxy env; disabling writes active provider env or
  * restores settings from backup if no active provider is set.
  */
@@ -253,8 +253,8 @@ providersRouter.put('/proxy', (req, res) => {
     return;
   }
   try {
-    setEnableOpenpowersProxy(parsed.data.enableOpenpowersProxy);
-    if (parsed.data.enableOpenpowersProxy) {
+    setEnableFurinaProxy(parsed.data.enableFurinaProxy);
+    if (parsed.data.enableFurinaProxy) {
       ensureFirstWriteBackup();
       writeEnvToClaudeSettings(getProxyEnv());
     } else {
@@ -265,7 +265,7 @@ providersRouter.put('/proxy', (req, res) => {
         restoreClaudeSettings();
       }
     }
-    res.status(200).json({ enableOpenpowersProxy: parsed.data.enableOpenpowersProxy });
+    res.status(200).json({ enableFurinaProxy: parsed.data.enableFurinaProxy });
   } catch (err) {
     logger.error(`Failed to update proxy settings: ${err instanceof Error ? err.message : String(err)}`);
     res.status(500).json({ error: 'Failed to update proxy settings' });
@@ -278,7 +278,7 @@ const SetEnabledSchema = z.object({
 });
 
 /**
- * PUT /openpowers/api/providers/:id/enabled
+ * PUT /furina/api/providers/:id/enabled
  * Toggles the enabled state of a provider. When disabling, clears the active
  * provider ID and syncs Claude settings if the disabled provider was active.
  */
@@ -297,9 +297,9 @@ providersRouter.put('/:id/enabled', (req, res) => {
     return;
   }
   try {
-    if (parsed.data.enabled === false && wasActive && !getEnableOpenpowersProxy()) {
+    if (parsed.data.enabled === false && wasActive && !getEnableFurinaProxy()) {
       restoreClaudeSettings();
-    } else if (parsed.data.enabled === false && wasActive && getEnableOpenpowersProxy()) {
+    } else if (parsed.data.enabled === false && wasActive && getEnableFurinaProxy()) {
       writeEnvToClaudeSettings(getProxyEnv());
     }
     res.status(200).json(provider);
@@ -310,7 +310,7 @@ providersRouter.put('/:id/enabled', (req, res) => {
 });
 
 /**
- * PUT /openpowers/api/providers/:id
+ * PUT /furina/api/providers/:id
  * Updates an existing provider. Only fields present in the body are modified.
  * When the edited provider is the active provider and proxy is disabled,
  * syncs the provider's model config to Claude settings.
@@ -329,7 +329,7 @@ providersRouter.put('/:id', (req, res) => {
     return;
   }
   try {
-    if (getActiveProviderId() === req.params.id && !getEnableOpenpowersProxy()) {
+    if (getActiveProviderId() === req.params.id && !getEnableFurinaProxy()) {
       writeEnvToClaudeSettings(getProviderEnv(provider));
     }
     res.status(200).json(provider);
@@ -340,7 +340,7 @@ providersRouter.put('/:id', (req, res) => {
 });
 
 /**
- * DELETE /openpowers/api/providers/templates/:name
+ * DELETE /furina/api/providers/templates/:name
  * Deletes a custom provider template by name. Builtin templates cannot be
  * deleted (returns 403). Non-existent names return 404.
  */
@@ -363,14 +363,14 @@ providersRouter.delete('/templates/:name', (req, res) => {
 });
 
 /**
- * DELETE /openpowers/api/providers/:id
+ * DELETE /furina/api/providers/:id
  * Removes a provider from the configuration. If the deleted provider was
  * the active provider and the proxy was disabled, restores the original
  * Claude settings from backup.
  */
 providersRouter.delete('/:id', (req, res) => {
   const wasActive = getActiveProviderId() === req.params.id;
-  const proxyDisabled = !getEnableOpenpowersProxy();
+  const proxyDisabled = !getEnableFurinaProxy();
   const found = deleteProvider(req.params.id);
   if (!found) {
     res.status(404).json({ error: `Provider not found: ${req.params.id}` });
@@ -383,7 +383,7 @@ providersRouter.delete('/:id', (req, res) => {
 });
 
 /**
- * POST /openpowers/api/providers/reset
+ * POST /furina/api/providers/reset
  * Restores Claude settings from backup (if available), then clears the
  * active provider. If no backup exists, a warning is logged and the
  * active provider is still cleared.
@@ -417,7 +417,7 @@ const ProviderTemplateInputSchema = z.object({
 });
 
 /**
- * GET /openpowers/api/providers/templates
+ * GET /furina/api/providers/templates
  * Returns the full list of provider preset templates.
  */
 providersRouter.get('/templates', (_req, res) => {
@@ -430,7 +430,7 @@ providersRouter.get('/templates', (_req, res) => {
 });
 
 /**
- * POST /openpowers/api/providers/templates
+ * POST /furina/api/providers/templates
  * Adds a new provider template. Validates required fields, strips apiKey
  * if present, and rejects duplicate names with 409.
  */
@@ -464,7 +464,7 @@ const ProviderValidateSchema = z.object({
 });
 
 /**
- * POST /openpowers/api/providers/validate
+ * POST /furina/api/providers/validate
  * Validates an API key by calling the upstream /v1/models endpoint
  * with a 5 second timeout. Does not store the key.
  */

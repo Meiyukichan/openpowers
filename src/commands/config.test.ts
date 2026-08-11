@@ -39,7 +39,7 @@ vi.mock('../utils/config.js', async () => {
 
 /** Resolves the absolute path the CLI writes to when cwd is mocked to tmpDir. */
 function tmpConfigFile(tmpDir: string): string {
-  return path.join(tmpDir, '.claude', 'openpowers.json');
+  return path.join(tmpDir, '.claude', 'furina.json');
 }
 
 describe('src/commands/config.ts', () => {
@@ -84,7 +84,7 @@ describe('src/commands/config.ts', () => {
   it('config list should output merged config as formatted JSON', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { language: 'chinese', switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -104,7 +104,7 @@ describe('src/commands/config.ts', () => {
       switchProviders: { workflow: 'default', explore: 'default', propose: 'default', plan: 'default', review: 'default', coding: 'default', finalize: 'default' },
       project: { sourcecode: './' },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -124,7 +124,7 @@ describe('src/commands/config.ts', () => {
   it('config show should print JSON for plain object values', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { project: { sourcecode: './' } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -140,7 +140,7 @@ describe('src/commands/config.ts', () => {
   it('config show should print key=None for keys that do not exist', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { language: 'chinese' };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -156,7 +156,7 @@ describe('src/commands/config.ts', () => {
   it('config show should print JSON stringified value for array values', async () => {
     const { loadConfig } = await import('../utils/config.js');
     const mockConfig = { exploration: { codebase: [{ path: '/test' }] } };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -177,7 +177,7 @@ describe('src/commands/config.ts', () => {
       project: { sourcecode: './' },
       exploration: { reference: [] },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -204,7 +204,7 @@ describe('src/commands/config.ts', () => {
       project: { codebase: { enable: true, path: 'docs/codebase' } },
       exploration: { codebase: [{ path: '/extra', description: 'extra codebase' }] },
     };
-    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').OpenPowersConfig);
+    vi.mocked(loadConfig).mockReturnValue(mockConfig as unknown as import('../utils/config.js').FurinaConfig);
 
     const mod = await import('./config.js');
     registerConfigCommand = mod.registerConfigCommand;
@@ -241,7 +241,7 @@ describe('MODE_PRESETS constant', () => {
     expect(MODE_PRESETS.lite).toEqual({
       experimental: {
         explore: false,
-        review: { openpowers: false, specs: false, code: false },
+        review: { furina: false, specs: false, code: false },
       },
     });
   });
@@ -252,7 +252,7 @@ describe('MODE_PRESETS constant', () => {
     expect(MODE_PRESETS.standard).toEqual({
       experimental: {
         explore: true,
-        review: { openpowers: false, specs: false, code: true },
+        review: { furina: false, specs: false, code: true },
       },
     });
   });
@@ -263,7 +263,7 @@ describe('MODE_PRESETS constant', () => {
     expect(MODE_PRESETS.max).toEqual({
       experimental: {
         explore: true,
-        review: { openpowers: true, specs: true, code: true },
+        review: { furina: true, specs: true, code: true },
       },
     });
   });
@@ -277,7 +277,7 @@ describe('config mode <mode> subcommand', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openpowers-mode-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'furina-mode-'));
     vi.spyOn(process, 'cwd').mockReturnValue(tmpDir);
   });
 
@@ -288,7 +288,7 @@ describe('config mode <mode> subcommand', () => {
     }
   });
 
-  it('mode lite should create .claude/openpowers.json with the lite preset (2-space indent + trailing newline)', async () => {
+  it('mode lite should create .claude/furina.json with the lite preset (2-space indent + trailing newline)', async () => {
     const mod = await import('./config.js');
     const program = new Command();
     mod.registerConfigCommand(program);
@@ -303,7 +303,7 @@ describe('config mode <mode> subcommand', () => {
         {
           experimental: {
             explore: false,
-            review: { openpowers: false, specs: false, code: false },
+            review: { furina: false, specs: false, code: false },
           },
         },
         null,
@@ -326,7 +326,7 @@ describe('config mode <mode> subcommand', () => {
         {
           experimental: {
             explore: true,
-            review: { openpowers: false, specs: false, code: true },
+            review: { furina: false, specs: false, code: true },
           },
         },
         null,
@@ -349,7 +349,7 @@ describe('config mode <mode> subcommand', () => {
         {
           experimental: {
             explore: true,
-            review: { openpowers: true, specs: true, code: true },
+            review: { furina: true, specs: true, code: true },
           },
         },
         null,
@@ -361,7 +361,7 @@ describe('config mode <mode> subcommand', () => {
   it('mode standard should preserve unrelated user keys (e.g. language=chinese)', async () => {
     const claudeDir = path.join(tmpDir, '.claude');
     fs.mkdirSync(claudeDir, { recursive: true });
-    const filePath = path.join(claudeDir, 'openpowers.json');
+    const filePath = path.join(claudeDir, 'furina.json');
     fs.writeFileSync(
       filePath,
       JSON.stringify({ experimental: { websearch: false }, language: 'chinese' }, null, 2) + '\n',
@@ -381,7 +381,7 @@ describe('config mode <mode> subcommand', () => {
           experimental: {
             websearch: false,
             explore: true,
-            review: { openpowers: false, specs: false, code: true },
+            review: { furina: false, specs: false, code: true },
           },
           language: 'chinese',
         },
@@ -432,7 +432,7 @@ describe('config mode <mode> subcommand', () => {
     await program.parseAsync(['config', 'mode', 'lite'], { from: 'user' });
 
     expect(fs.existsSync(claudeDir)).toBe(true);
-    expect(fs.existsSync(path.join(claudeDir, 'openpowers.json'))).toBe(true);
+    expect(fs.existsSync(path.join(claudeDir, 'furina.json'))).toBe(true);
   });
 });
 
@@ -445,7 +445,7 @@ describe('config set <key> <value> subcommand', () => {
   let stdoutCalls: string[];
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openpowers-set-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'furina-set-'));
     vi.spyOn(process, 'cwd').mockReturnValue(tmpDir);
     stdoutCalls = [];
     vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
@@ -501,20 +501,20 @@ describe('config set <key> <value> subcommand', () => {
     expect(raw).toBe(JSON.stringify({ language: 'chinese' }, null, 2) + '\n');
   });
 
-  it('set experimental.review.openpowers true should create intermediate objects on an empty file', async () => {
+  it('set experimental.review.furina true should create intermediate objects on an empty file', async () => {
     const mod = await import('./config.js');
     const program = new Command();
     mod.registerConfigCommand(program);
 
     await program.parseAsync(
-      ['config', 'set', 'experimental.review.openpowers', 'true'],
+      ['config', 'set', 'experimental.review.furina', 'true'],
       { from: 'user' },
     );
 
     const filePath = tmpConfigFile(tmpDir);
     const raw = fs.readFileSync(filePath, 'utf-8');
     expect(raw).toBe(
-      JSON.stringify({ experimental: { review: { openpowers: true } } }, null, 2) + '\n',
+      JSON.stringify({ experimental: { review: { furina: true } } }, null, 2) + '\n',
     );
   });
 
@@ -599,7 +599,7 @@ describe('config set <key> <value> subcommand', () => {
   it('set should overwrite only the targeted key, preserving unrelated user keys', async () => {
     const claudeDir = path.join(tmpDir, '.claude');
     fs.mkdirSync(claudeDir, { recursive: true });
-    const filePath = path.join(claudeDir, 'openpowers.json');
+    const filePath = path.join(claudeDir, 'furina.json');
     fs.writeFileSync(
       filePath,
       JSON.stringify({ experimental: { websearch: false }, language: 'chinese' }, null, 2) + '\n',

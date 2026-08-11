@@ -77,8 +77,8 @@ vi.mock('../../utils/logger.js', () => ({
 }));
 
 describe('src/commands/change/status.ts', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
-  const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
+  const ARCHIVE_DIR = path.join(process.cwd(), 'furina', 'archive');
   const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
   const NORM_ARCHIVE_DIR = ARCHIVE_DIR.replace(/\\/g, '/');
 

@@ -1,9 +1,9 @@
 /**
- * Global memory scheduler: runs a daily task to scan .openpowers/memory
+ * Global memory scheduler: runs a daily task to scan .furina/memory
  * directories for pending designs, copy agents/skills, execute claude CLI,
  * and clean up.
  * Cron expression is read from enhancement.memory.schedule in
- * resources/openpowers.json, falling back to '0 2 * * *'.
+ * resources/furina.json, falling back to '0 2 * * *'.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -26,19 +26,19 @@ const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
 const resourcesDir = path.resolve(moduleDirname, '..', '..', '..', 'resources');
 
 // Memory root directory for scanning
-const MEMORY_DIR = path.join(os.homedir(), '.openpowers', 'memory');
+const MEMORY_DIR = path.join(os.homedir(), '.furina', 'memory');
 
 // Project group working directory for cross-project memory sync
 const PROJECT_GROUP_DIR = path.join(MEMORY_DIR, 'Project_Group');
 
 /**
- * Reads the cron expression from resources/openpowers.json,
+ * Reads the cron expression from resources/furina.json,
  * falling back to '0 2 * * *' on any failure.
  */
 function readCronFromConfig(): string {
   const fallback = '0 2 * * *';
   try {
-    const configPath = path.join(resourcesDir, 'openpowers.json');
+    const configPath = path.join(resourcesDir, 'furina.json');
     const raw = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const enhancement = parsed?.['enhancement'] as Record<string, unknown> | undefined;
@@ -274,8 +274,8 @@ async function syncProjectGroup(pendingDirs: string[]): Promise<void> {
 /**
  * Starts the daily scheduler.
  * Reads the cron expression from enhancement.memory.schedule in
- * resources/openpowers.json (fallback to '0 2 * * *').
- * Registers a cron job that scans ~/.openpowers/memory/
+ * resources/furina.json (fallback to '0 2 * * *').
+ * Registers a cron job that scans ~/.furina/memory/
  * for subdirectories with non-empty designs/ folders,
  * copies agents/skills, executes claude CLI, and cleans up.
  * No-op if already running.

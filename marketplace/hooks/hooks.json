@@ -6,16 +6,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-agent"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --before-agent"
           }
         ]
       },
       {
-        "matcher": "mcp__plugin_openpowers_openpowers-mcp-server__markBeginPropose",
+        "matcher": "mcp__plugin_furina_furina-mcp-server__markBeginPropose",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-propose"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --before-propose"
           }
         ]
       },
@@ -24,16 +24,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-bash"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --before-bash"
           }
         ]
       },
       {
-        "matcher": "mcp__plugin_openpowers_openpowers-mcp-server__markEndPropose",
+        "matcher": "mcp__plugin_furina_furina-mcp-server__markEndPropose",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --after-agent"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --after-agent"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --before-question"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --before-question"
           }
         ]
       }
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --after-agent"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --after-agent"
           }
         ]
       }
@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/openpowers_hooks.js\" --init-agent"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/furina_hooks.js\" --init-agent"
           }
         ]
       }

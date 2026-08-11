@@ -32,7 +32,7 @@ function getApiUrl(params: Record<string, string>): string {
     }
   }
   const qs = searchParams.toString();
-  return `/openpowers/api/changes/all${qs ? `?${qs}` : ''}`;
+  return `/furina/api/changes/all${qs ? `?${qs}` : ''}`;
 }
 
 /**
@@ -112,7 +112,7 @@ export interface ProjectSidebarProps {
   selectedChange?: ChangeEntryWithCwd | null;
 }
 
-const SIDEBAR_TAB_KEY = 'openpowers:sidebarTab';
+const SIDEBAR_TAB_KEY = 'furina:sidebarTab';
 
 export function ProjectSidebar({ onChangeClick, selectedChange }: ProjectSidebarProps = {}): React.ReactElement {
   const { t } = useTranslation();

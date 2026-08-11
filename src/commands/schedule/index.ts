@@ -1,5 +1,5 @@
 /**
- * @fileoverview schedule command - manages the OpenPowers cron scheduler
+ * @fileoverview schedule command - manages the Furina cron scheduler
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -13,13 +13,13 @@ async function runScheduleRestart(): Promise<void> {
   const portInUse = await isPortInUse(UI_PORT);
   if (!portInUse) {
     process.stdout.write(
-      'OpenPowers server is not running. Please run `openpowers launch` first.\n',
+      'Furina server is not running. Please run `furina launch` first.\n',
     );
     process.exitCode = 1;
     return;
   }
 
-  await sendApiRequest(UI_PORT, 'POST', '/openpowers/api/schedule/restart');
+  await sendApiRequest(UI_PORT, 'POST', '/furina/api/schedule/restart');
   process.stdout.write('Scheduler restarted.\n');
 }
 
@@ -27,13 +27,13 @@ async function runScheduleStop(): Promise<void> {
   const portInUse = await isPortInUse(UI_PORT);
   if (!portInUse) {
     process.stdout.write(
-      'OpenPowers server is not running. Please run `openpowers launch` first.\n',
+      'Furina server is not running. Please run `furina launch` first.\n',
     );
     process.exitCode = 1;
     return;
   }
 
-  await sendApiRequest(UI_PORT, 'DELETE', '/openpowers/api/schedule');
+  await sendApiRequest(UI_PORT, 'DELETE', '/furina/api/schedule');
   process.stdout.write('Scheduler stopped.\n');
 }
 
@@ -44,7 +44,7 @@ async function runScheduleStop(): Promise<void> {
 export function registerScheduleCommand(program: Command): void {
   const scheduleCmd = program
     .command('schedule')
-    .description('Manage the OpenPowers cron scheduler');
+    .description('Manage the Furina cron scheduler');
 
   scheduleCmd
     .command('restart')

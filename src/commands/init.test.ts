@@ -215,7 +215,7 @@ describe('src/commands/init.ts', () => {
       });
     });
 
-    describe('Step 5: install openpowers plugin', () => {
+    describe('Step 5: install furina plugin', () => {
       it('should show completion all succeed when plugin installs successfully', async () => {
         vi.mocked(execSync)
           .mockReturnValueOnce(Buffer.from('')) // claude
@@ -324,7 +324,7 @@ describe('src/commands/init.ts', () => {
     });
 
     describe('Post-init workflow reminder', () => {
-      const reminderMessage = 'Next steps: Open Claude Code and run /openpowers:workflow to start';
+      const reminderMessage = 'Next steps: Open Claude Code and run /furina:workflow to start';
 
       it('should print UI starting message via process.stdout.write on successful init', async () => {
         const writeSpy = vi.spyOn(process.stdout, 'write');
@@ -338,7 +338,7 @@ describe('src/commands/init.ts', () => {
 
         await runInit();
 
-        expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('OpenPowers UI is starting'));
+        expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Furina UI is starting'));
       });
 
       it('should NOT print workflow reminder when step 1 (claude check) fails', async () => {
@@ -458,7 +458,7 @@ describe('src/commands/init.ts', () => {
           .map((call) => call[0] as string);
 
         const hasUiMessage = writeCalls.some(
-          (msg) => msg.includes('OpenPowers UI')
+          (msg) => msg.includes('Furina UI')
         );
         const hasOldReminder = writeCalls.some(
           (msg) => msg.includes('Next steps: Open Claude Code')

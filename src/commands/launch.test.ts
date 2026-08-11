@@ -42,7 +42,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   isPortInUseMock.mockResolvedValue(false);
-  startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
+  startBackendServiceMock.mockReturnValue('http://localhost:3939/furina/ui');
 });
 
 // ---- test suites ----
@@ -60,12 +60,12 @@ describe('registerLaunchCommand', () => {
     expect(subcommands).toContain('launch');
   });
 
-  it('should have description "Start the OpenPowers backend server"', () => {
+  it('should have description "Start the Furina backend server"', () => {
     const program = new Command();
     registerLaunchCommand(program);
     const launchCmd = program.commands.find((cmd) => cmd.name() === 'launch');
     expect(launchCmd).toBeDefined();
-    expect(launchCmd!.description()).toBe('Start the OpenPowers backend server');
+    expect(launchCmd!.description()).toBe('Start the Furina backend server');
   });
 });
 
@@ -85,7 +85,7 @@ describe('runLaunch', () => {
     expect(startBackendServiceMock).toHaveBeenCalledWith(3939);
   });
 
-  it('should output "OpenPowers server is already running" when port is occupied', async () => {
+  it('should output "Furina server is already running" when port is occupied', async () => {
     isPortInUseMock.mockResolvedValue(true);
     const writeSpy = vi.spyOn(process.stdout, 'write');
 
@@ -93,7 +93,7 @@ describe('runLaunch', () => {
 
     expect(startBackendServiceMock).not.toHaveBeenCalled();
     const output = writeSpy.mock.calls.map((c) => c[0]).join('');
-    expect(output).toContain('OpenPowers server is already running');
+    expect(output).toContain('Furina server is already running');
     writeSpy.mockRestore();
   });
 

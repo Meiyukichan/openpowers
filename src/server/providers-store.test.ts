@@ -75,7 +75,7 @@ beforeAll(async () => {
 
 // ---- constants ----
 
-const PROVIDERS_FILE = path.join('/mock/home', '.openpowers', 'providers.json');
+const PROVIDERS_FILE = path.join('/mock/home', '.furina', 'providers.json');
 
 // ---- helpers ----
 
@@ -111,7 +111,7 @@ describe('ensureProvidersFile', () => {
 
     mod.ensureProvidersFile();
 
-    expect(mkdirSyncMock).toHaveBeenCalledWith(path.join('/mock/home', '.openpowers'), { recursive: true });
+    expect(mkdirSyncMock).toHaveBeenCalledWith(path.join('/mock/home', '.furina'), { recursive: true });
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
     const [filePath, content] = writeFileSyncMock.mock.calls[0];
     expect(filePath).toBe(PROVIDERS_FILE);

@@ -125,8 +125,8 @@ vi.mock('os', () => ({
 }));
 
 describe('src/commands/change/archive.ts', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
-  const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
+  const ARCHIVE_DIR = path.join(process.cwd(), 'furina', 'archive');
   const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
   const NORM_ARCHIVE_DIR = ARCHIVE_DIR.replace(/\\/g, '/');
 
@@ -340,18 +340,18 @@ describe('src/commands/change/archive.ts', () => {
 
     // Set up global memory changes.json with the change having an archive stage
     const homeDir = '/home/test-user';
-    const flatCwd = 'Memory_D__project-code_llm_openpowers';
-    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const flatCwd = 'Memory_D__project-code_llm_furina';
+    const memoryDir = `${homeDir}/.furina/memory/${flatCwd}`;
     const memoryFile = `${memoryDir}/changes.json`;
 
     const memoryData = {
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [
         {
           name: 'global-sync-change',
-          path: 'openpowers/changes/global-sync-change',
+          path: 'furina/changes/global-sync-change',
           description: 'A change to sync',
           createdAt: '2026-05-20T00:00:00.000Z',
           updateAt: '2026-05-20T00:00:00.000Z',
@@ -412,7 +412,7 @@ describe('src/commands/change/archive.ts', () => {
 
     // Verify the archive still completed successfully (project-level write happened)
     const projectWrites = writeCalls.filter((c: { path: string }) =>
-      c.path.endsWith('openpowers/changes.json') && !c.path.includes('/memory/'),
+      c.path.endsWith('furina/changes.json') && !c.path.includes('/memory/'),
     );
     expect(projectWrites.length).toBeGreaterThan(0);
     const lastProjectWrite = projectWrites[projectWrites.length - 1];
@@ -439,7 +439,7 @@ describe('src/commands/change/archive.ts', () => {
       content: String(c[1]),
     }));
     const projectWrites = writeCalls.filter((c: { path: string }) =>
-      c.path.endsWith('openpowers/changes.json') && !c.path.includes('/memory/'),
+      c.path.endsWith('furina/changes.json') && !c.path.includes('/memory/'),
     );
     expect(projectWrites.length).toBeGreaterThan(0);
     const lastProjectWrite = projectWrites[projectWrites.length - 1];
@@ -461,18 +461,18 @@ describe('src/commands/change/archive.ts', () => {
 
     // Set up global memory changes.json WITHOUT the change being archived
     const homeDir = '/home/test-user';
-    const flatCwd = 'Memory_D__project-code_llm_openpowers';
-    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const flatCwd = 'Memory_D__project-code_llm_furina';
+    const memoryDir = `${homeDir}/.furina/memory/${flatCwd}`;
     const memoryFile = `${memoryDir}/changes.json`;
 
     const memoryData = {
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [
         {
           name: 'some-other-change',
-          path: 'openpowers/changes/some-other-change',
+          path: 'furina/changes/some-other-change',
           description: 'Another change',
           createdAt: '2026-05-20T00:00:00.000Z',
           status: 'active',
@@ -497,7 +497,7 @@ describe('src/commands/change/archive.ts', () => {
       content: String(c[1]),
     }));
     const projectWrites2 = writeCalls2.filter((c: { path: string }) =>
-      c.path.endsWith('openpowers/changes.json'),
+      c.path.endsWith('furina/changes.json'),
     );
     expect(projectWrites2.length).toBeGreaterThan(0);
     const lastProjectWrite2 = projectWrites2[projectWrites2.length - 1];
@@ -519,8 +519,8 @@ describe('src/commands/change/archive.ts', () => {
 
     // Set up global memory changes.json with malformed content
     const homeDir = '/home/test-user';
-    const flatCwd = 'Memory_D__project-code_llm_openpowers';
-    const memoryDir = `${homeDir}/.openpowers/memory/${flatCwd}`;
+    const flatCwd = 'Memory_D__project-code_llm_furina';
+    const memoryDir = `${homeDir}/.furina/memory/${flatCwd}`;
     const memoryFile = `${memoryDir}/changes.json`;
 
     mockFs.setDir(memoryDir);
@@ -537,7 +537,7 @@ describe('src/commands/change/archive.ts', () => {
       content: String(c[1]),
     }));
     const projectWrites3 = writeCalls3.filter((c: { path: string }) =>
-      c.path.endsWith('openpowers/changes.json'),
+      c.path.endsWith('furina/changes.json'),
     );
     expect(projectWrites3.length).toBeGreaterThan(0);
     const lastProjectWrite3 = projectWrites3[projectWrites3.length - 1];

@@ -10,15 +10,15 @@ import { normalizePath } from './common.js';
 
 describe('normalizePath', () => {
   it('should unify backslashes to forward slashes', () => {
-    expect(normalizePath('D:\\project-code\\llm\\openpowers')).toBe('D:/project-code/llm/openpowers');
+    expect(normalizePath('D:\\project-code\\llm\\furina')).toBe('D:/project-code/llm/furina');
   });
 
   it('should collapse doubled backslashes from JSON-encoded paths', () => {
-    expect(normalizePath('D:\\\\project-code\\\\llm\\\\openpowers')).toBe('D:/project-code/llm/openpowers');
+    expect(normalizePath('D:\\\\project-code\\\\llm\\\\furina')).toBe('D:/project-code/llm/furina');
   });
 
   it('should collapse triple or more consecutive slashes', () => {
-    expect(normalizePath('D:///project-code///llm////openpowers')).toBe('D:/project-code/llm/openpowers');
+    expect(normalizePath('D:///project-code///llm////furina')).toBe('D:/project-code/llm/furina');
   });
 
   it('should strip trailing slash', () => {
@@ -30,11 +30,11 @@ describe('normalizePath', () => {
   });
 
   it('should handle already-normal Windows paths (forward slash)', () => {
-    expect(normalizePath('D:/project-code/llm/openpowers')).toBe('D:/project-code/llm/openpowers');
+    expect(normalizePath('D:/project-code/llm/furina')).toBe('D:/project-code/llm/furina');
   });
 
   it('should handle mixed backslash and forward slash', () => {
-    expect(normalizePath('D:\\project-code/llm\\openpowers')).toBe('D:/project-code/llm/openpowers');
+    expect(normalizePath('D:\\project-code/llm\\furina')).toBe('D:/project-code/llm/furina');
   });
 
   it('should preserve drive letter colon', () => {

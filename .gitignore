@@ -13,11 +13,11 @@ openspec/
 dist/
 coverage/
 openpowers/
+furina/
 build/
 CLAUDE.md
 full_coverage.txt
 .playwright-mcp/
 example/
-docs/
 package-lock.json
 coverage*

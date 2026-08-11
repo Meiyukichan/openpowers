@@ -73,11 +73,11 @@ export function runChangeInstruction(name: string, options: { proposal?: boolean
   if (artifactId === 'design' || artifactId === 'specs') {
     const deps: Array<Record<string, unknown>> = result.dependencies as Array<Record<string, unknown>> || [];
     if (deps.length > 0) {
-      const proposalPath = path.join(process.cwd(), 'openpowers', 'changes', name, 'proposal.md');
+      const proposalPath = path.join(process.cwd(), 'furina', 'changes', name, 'proposal.md');
       deps[0].done = fs.existsSync(proposalPath);
     }
     if (artifactId === 'specs' && deps.length > 1) {
-      const designPath = path.join(process.cwd(), 'openpowers', 'changes', name, 'design.md');
+      const designPath = path.join(process.cwd(), 'furina', 'changes', name, 'design.md');
       deps[1].done = fs.existsSync(designPath);
     }
   }

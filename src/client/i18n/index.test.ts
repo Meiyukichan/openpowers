@@ -47,7 +47,7 @@ describe('initI18n', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('fetches language from /openpowers/api/config and initializes i18next', async () => {
+  it('fetches language from /furina/api/config and initializes i18next', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ language: 'english' }),
@@ -56,7 +56,7 @@ describe('initI18n', () => {
 
     const i18n = await initI18n();
 
-    expect(mockFetch).toHaveBeenCalledWith('/openpowers/api/config');
+    expect(mockFetch).toHaveBeenCalledWith('/furina/api/config');
     expect(i18n.language).toBe('en-US');
   });
 
@@ -68,7 +68,7 @@ describe('initI18n', () => {
 
     expect(i18n.language).toBe('zh-CN');
     // Should still have called fetch
-    expect(mockFetch).toHaveBeenCalledWith('/openpowers/api/config');
+    expect(mockFetch).toHaveBeenCalledWith('/furina/api/config');
   });
 
   it('falls back to "zh-CN" when response is not ok', async () => {

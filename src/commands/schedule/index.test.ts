@@ -78,7 +78,7 @@ describe('registerScheduleCommand', () => {
 
   it('should show schedule in program help output', () => {
     const program = new Command();
-    program.name('openpowers');
+    program.name('furina');
     registerScheduleCommand(program);
 
     let helpOutput = '';
@@ -116,8 +116,8 @@ describe('schedule restart subcommand', () => {
       }
 
       const output = writeSpy.mock.calls.map((c) => String(c[0])).join('');
-      expect(output).toContain('OpenPowers server is not running');
-      expect(output).toContain('openpowers launch');
+      expect(output).toContain('Furina server is not running');
+      expect(output).toContain('furina launch');
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = originalExitCode;
@@ -125,7 +125,7 @@ describe('schedule restart subcommand', () => {
     }
   });
 
-  it('should call POST /openpowers/api/schedule/restart when server is running', async () => {
+  it('should call POST /furina/api/schedule/restart when server is running', async () => {
     isPortInUseMock.mockResolvedValue(true);
     const writeSpy = vi.spyOn(process.stdout, 'write');
 
@@ -140,7 +140,7 @@ describe('schedule restart subcommand', () => {
     }
 
     expect(sendApiRequestMock).toHaveBeenCalledTimes(1);
-    expect(sendApiRequestMock).toHaveBeenCalledWith(3939, 'POST', '/openpowers/api/schedule/restart');
+    expect(sendApiRequestMock).toHaveBeenCalledWith(3939, 'POST', '/furina/api/schedule/restart');
 
     const output = writeSpy.mock.calls.map((c) => String(c[0])).join('');
     expect(output).toContain('Scheduler restarted');
@@ -198,8 +198,8 @@ describe('schedule stop subcommand', () => {
       }
 
       const output = writeSpy.mock.calls.map((c) => String(c[0])).join('');
-      expect(output).toContain('OpenPowers server is not running');
-      expect(output).toContain('openpowers launch');
+      expect(output).toContain('Furina server is not running');
+      expect(output).toContain('furina launch');
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = originalExitCode;
@@ -207,7 +207,7 @@ describe('schedule stop subcommand', () => {
     }
   });
 
-  it('should call DELETE /openpowers/api/schedule when server is running', async () => {
+  it('should call DELETE /furina/api/schedule when server is running', async () => {
     isPortInUseMock.mockResolvedValue(true);
     const writeSpy = vi.spyOn(process.stdout, 'write');
 
@@ -222,7 +222,7 @@ describe('schedule stop subcommand', () => {
     }
 
     expect(sendApiRequestMock).toHaveBeenCalledTimes(1);
-    expect(sendApiRequestMock).toHaveBeenCalledWith(3939, 'DELETE', '/openpowers/api/schedule');
+    expect(sendApiRequestMock).toHaveBeenCalledWith(3939, 'DELETE', '/furina/api/schedule');
 
     const output = writeSpy.mock.calls.map((c) => String(c[0])).join('');
     expect(output).toContain('Scheduler stopped');

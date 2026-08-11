@@ -1,8 +1,8 @@
-# OpenPowers
+# Furina
 
 > Evolved from [OpenSpec](https://github.com/Fission-AI/OpenSpec) + [SuperPowers](https://github.com/obra/superpowers), built for Claude Code — a plugin system that enables seamless switching between different vendor models within the same session and provides a structured SDD+TDD development workflow.
 
-[OpenPowers](https://github.com/Meiyukichan/openpowers) is a plugin-based development toolkit for **Claude Code**. It provides a complete **SDD (Specification-Driven Development) + TDD (Test-Driven Development)** workflow within Claude Code, and through a built-in **Anthropic API Proxy**, enables the ability to freely switch between multiple AI model vendors **within the same session**.
+[Furina](https://github.com/Meiyukichan/furina) is a plugin-based development toolkit for **Claude Code**. It provides a complete **SDD (Specification-Driven Development) + TDD (Test-Driven Development)** workflow within Claude Code, and through a built-in **Anthropic API Proxy**, enables the ability to freely switch between multiple AI model vendors **within the same session**.
 
 ---
 
@@ -32,16 +32,16 @@
 ### Install
 
 ```bash
-npm i -g @meiyukichan/openpowers
+npm i -g @meiyukichan/furina
 ```
 
 ### Initialize
 
 ```bash
-openpowers init
+furina init
 ```
 
-One command completes the plugin installation. After initialization, open Claude Code and type `/openpowers:workflow` to get started.
+One command completes the plugin installation. After initialization, open Claude Code and type `/furina:workflow` to get started.
 
 ---
 
@@ -50,7 +50,7 @@ One command completes the plugin installation. After initialization, open Claude
 ### Step 1: Open Web UI Management Panel
 
 ```bash
-openpowers ui
+furina ui
 ```
 
 Your browser will automatically open `http://localhost:3939`.
@@ -75,10 +75,10 @@ Click **Enable** on the vendor card to set it as the default call target.
 Click **Enable Proxy** in the Web UI, or use the CLI command:
 
 ```bash
-openpowers enable
+furina enable
 ```
 
-Once enabled, all Claude Code API requests will be automatically routed through the OpenPowers proxy to your selected active vendor.
+Once enabled, all Claude Code API requests will be automatically routed through the Furina proxy to your selected active vendor.
 
 Note: The auto-switching feature across different workflow phases requires the proxy to be **enabled first**.
 
@@ -87,7 +87,7 @@ Note: The auto-switching feature across different workflow phases requires the p
 In Claude Code, type:
 
 ```
-/openpowers:workflow {your requirement}
+/furina:workflow {your requirement}
 ```
 
 The workflow will guide you through the complete development process from exploration to finalization.
@@ -98,34 +98,34 @@ The workflow will guide you through the complete development process from explor
 
 ### 1. Marketplace — Claude Code Plugin
 
-Once installed as a Claude Code plugin, OpenPowers injects **12 Skills**, **Lifecycle Hooks**, and the core **Workflow Command** into Claude Code.
+Once installed as a Claude Code plugin, Furina injects **12 Skills**, **Lifecycle Hooks**, and the core **Workflow Command** into Claude Code.
 
 #### Core Command
 
 | Command | Description |
 |------|------|
-| `/openpowers:workflow` | Launch the 6-phase structured development workflow |
+| `/furina:workflow` | Launch the 6-phase structured development workflow |
 
 #### 12 Skills at a Glance
 
 | Skill | Type | Description |
 |------|------|------|
-| `openpowers-workflow` | Command | Entry point for the 6-phase SDD+TDD workflow |
-| `openpowers-explore` | Explore | Dispatch multiple exploration subagents concurrently to investigate codebases, repositories, references, specs, and more |
-| `openpowers-brainstorm` | Think | Brainstorming partner for refining requirements and exploring solutions |
-| `openpowers-propose` | Propose | One-click generation of proposals, design docs, and specs |
-| `openpowers-plan` | Plan | Supplement technical spec schema docs and generate executable implementation plans based on specs |
-| `openpowers-review` | Review | Dispatch a review subagent to review proposals and plans for completeness and feasibility, with auto-fix |
-| `openpowers-sdd` | Implement | Subagent-driven development — dispatch implementation subagents per feature in topological order with two-phase review |
-| `openpowers-tdd` | Test | TDD enforcement — write tests first, then implement |
-| `openpowers-finalize` | Finalize | Auto Git commit, push, and sync Codebase documentation |
-| `openpowers-codebase` | Documentation | Codebase integration with three instructions: explore, generate, synchronize |
-| `openpowers-cleancode` | Quality | Query coding standards and output focused guidelines before generating code |
-| `openpowers-commit` | Tool | Auto-stage changes, generate Conventional Commits messages, and push safely |
+| `furina-workflow` | Command | Entry point for the 6-phase SDD+TDD workflow |
+| `furina-explore` | Explore | Dispatch multiple exploration subagents concurrently to investigate codebases, repositories, references, specs, and more |
+| `furina-brainstorm` | Think | Brainstorming partner for refining requirements and exploring solutions |
+| `furina-propose` | Propose | One-click generation of proposals, design docs, and specs |
+| `furina-plan` | Plan | Supplement technical spec schema docs and generate executable implementation plans based on specs |
+| `furina-review` | Review | Dispatch a review subagent to review proposals and plans for completeness and feasibility, with auto-fix |
+| `furina-sdd` | Implement | Subagent-driven development — dispatch implementation subagents per feature in topological order with two-phase review |
+| `furina-tdd` | Test | TDD enforcement — write tests first, then implement |
+| `furina-finalize` | Finalize | Auto Git commit, push, and sync Codebase documentation |
+| `furina-codebase` | Documentation | Codebase integration with three instructions: explore, generate, synchronize |
+| `furina-cleancode` | Quality | Query coding standards and output focused guidelines before generating code |
+| `furina-commit` | Tool | Auto-stage changes, generate Conventional Commits messages, and push safely |
 
-#### openpowers-codebase in Detail
+#### furina-codebase in Detail
 
-`openpowers-codebase` organizes the project's source code into a hierarchically structured **code-document tree** (Codebase), enabling LLMs to navigate and retrieve information by level. The document tree structure:
+`furina-codebase` organizes the project's source code into a hierarchically structured **code-document tree** (Codebase), enabling LLMs to navigate and retrieve information by level. The document tree structure:
 
 ```
 {codebaseDir}/
@@ -156,7 +156,7 @@ Three operations via the `instruction` parameter:
 
 #### Hooks — Lifecycle Hooks
 
-OpenPowers leverages Claude Code's Hook mechanism to automatically intervene before and after Agent tool calls:
+Furina leverages Claude Code's Hook mechanism to automatically intervene before and after Agent tool calls:
 
 - **PreToolUse**: Before a subagent starts, automatically switches to the configured model vendor for the current workflow phase
 - **PostToolUse**: After a subagent completes, captures output and records logs
@@ -168,48 +168,48 @@ This means **you never need to manually switch models** — the workflow automat
 
 ### 2. CLI Command System
 
-The `openpowers` CLI is the command-line support system for the workflow, providing initialization, configuration management, change tracking, session scheduling, and other tools.
+The `furina` CLI is the command-line support system for the workflow, providing initialization, configuration management, change tracking, session scheduling, and other tools.
 
 ```bash
-openpowers [command] [options]
+furina [command] [options]
 ```
 
 #### Command Overview
 
 | Command | Description |
 |------|------|
-| `openpowers init` | Initialize the OpenPowers plugin; auto-starts the UI service after installation |
-| `openpowers ui [--restart]` | Start the Web UI management panel and open in browser |
-| `openpowers launch` | Start the backend service (without opening the browser) |
-| `openpowers active` | Probe the backend service status; auto-start if not running (self-healing) |
-| `openpowers enable` | Enable the Anthropic API proxy, routing Claude Code requests to the active vendor |
-| `openpowers disable` | Disable the proxy, restore original Claude Code settings |
-| `openpowers remove [-y]` | Uninstall the OpenPowers plugin and all its configurations |
-| `openpowers recover` | Restore default settings when Claude Code configuration is broken |
-| `openpowers config list` | List the complete merged configuration (JSON format) |
-| `openpowers config show <key...>` | Query config values by dot-path keys (supports `codebases` virtual key) |
-| `openpowers config mode <lite\|standard\|max>` | Apply a preset for experimental feature flags in one step |
-| `openpowers config set <key> <value> [--global]` | Write a single config entry (auto-infers type) |
-| `openpowers agents list [--session <id>]` | List vendor models or session stage-model mappings |
-| `openpowers agents show <stage> --session <id>` | Show the model name for a given workflow stage |
-| `openpowers agents switch <name> [--session <id>]` | Switch model vendor globally or at session level |
-| `openpowers agents init --session <id> --cwd <path>` | Initialize session configuration file |
-| `openpowers change list` | List all active changes and their progress |
-| `openpowers change new <name> --desc <description>` | Create a new change directory |
-| `openpowers change status <name>` | View change artifact pipeline status (JSON) |
-| `openpowers change archive <name>` | Archive a completed change |
-| `openpowers change instruction <name> --proposal\|--design\|--specs` | Get artifact generation instructions |
-| `openpowers change feature <name> --status\|--next\|--start\|--complete` | Feature lifecycle management |
-| `openpowers change stage <name> --session <id> --status <st> [--title\|--input\|--output]` | Update stage progress of a change |
-| `openpowers schedule restart` | Restart the cron scheduler |
-| `openpowers schedule stop` | Stop the cron scheduler |
+| `furina init` | Initialize the Furina plugin; auto-starts the UI service after installation |
+| `furina ui [--restart]` | Start the Web UI management panel and open in browser |
+| `furina launch` | Start the backend service (without opening the browser) |
+| `furina active` | Probe the backend service status; auto-start if not running (self-healing) |
+| `furina enable` | Enable the Anthropic API proxy, routing Claude Code requests to the active vendor |
+| `furina disable` | Disable the proxy, restore original Claude Code settings |
+| `furina remove [-y]` | Uninstall the Furina plugin and all its configurations |
+| `furina recover` | Restore default settings when Claude Code configuration is broken |
+| `furina config list` | List the complete merged configuration (JSON format) |
+| `furina config show <key...>` | Query config values by dot-path keys (supports `codebases` virtual key) |
+| `furina config mode <lite\|standard\|max>` | Apply a preset for experimental feature flags in one step |
+| `furina config set <key> <value> [--global]` | Write a single config entry (auto-infers type) |
+| `furina agents list [--session <id>]` | List vendor models or session stage-model mappings |
+| `furina agents show <stage> --session <id>` | Show the model name for a given workflow stage |
+| `furina agents switch <name> [--session <id>]` | Switch model vendor globally or at session level |
+| `furina agents init --session <id> --cwd <path>` | Initialize session configuration file |
+| `furina change list` | List all active changes and their progress |
+| `furina change new <name> --desc <description>` | Create a new change directory |
+| `furina change status <name>` | View change artifact pipeline status (JSON) |
+| `furina change archive <name>` | Archive a completed change |
+| `furina change instruction <name> --proposal\|--design\|--specs` | Get artifact generation instructions |
+| `furina change feature <name> --status\|--next\|--start\|--complete` | Feature lifecycle management |
+| `furina change stage <name> --session <id> --status <st> [--title\|--input\|--output]` | Update stage progress of a change |
+| `furina schedule restart` | Restart the cron scheduler |
+| `furina schedule stop` | Stop the cron scheduler |
 
 ---
 
 ### 3. Web UI Management Panel
 
 ```bash
-openpowers ui [--restart]
+furina ui [--restart]
 ```
 
 A visual web-based management interface running at `http://localhost:3939`, providing:
@@ -224,11 +224,11 @@ A visual web-based management interface running at `http://localhost:3939`, prov
 
 ### 4. Multi-Vendor Model Proxy
 
-This is OpenPowers' core capability — a **true multi-vendor multi-agent collaboration architecture** within **the same Claude Code session**.
+This is Furina' core capability — a **true multi-vendor multi-agent collaboration architecture** within **the same Claude Code session**.
 
 #### How It Works for You
 
-During the `/openpowers:workflow` workflow, different phases automatically switch to your pre-configured model vendors. For example:
+During the `/furina:workflow` workflow, different phases automatically switch to your pre-configured model vendors. For example:
 
 - **Explore phase**: Use a cost-effective model (e.g., DeepSeek)
 - **Propose / Review phase**: Switch to the strongest reasoning model (e.g., Claude Opus)
@@ -260,125 +260,125 @@ Simply pre-configure which vendor you want for each phase in the Web UI and conf
 ```
 
 - Model names come from the vendor models configured in the Web UI; `"default"` means using the active vendor's default model
-- Configuration file path: `{project}/.claude/openpowers.json`
+- Configuration file path: `{project}/.claude/furina.json`
 
 ---
 
 ## CLI Command Reference
 
-### `openpowers init`
+### `furina init`
 
 ```bash
-openpowers init
+furina init
 ```
 
-Initializes the OpenPowers plugin. Automatically completes plugin installation and UI service startup. After installation, `/openpowers:workflow` can be used directly.
+Initializes the Furina plugin. Automatically completes plugin installation and UI service startup. After installation, `/furina:workflow` can be used directly.
 
 ---
 
-### `openpowers ui`
+### `furina ui`
 
 ```bash
 # Start the UI management panel
-openpowers ui
+furina ui
 
 # Restart the UI management panel
-openpowers ui --restart
+furina ui --restart
 ```
 
-Starts the Web management panel at `http://localhost:3939/openpowers/ui`. `--restart` terminates any existing process before restarting.
+Starts the Web management panel at `http://localhost:3939/furina/ui`. `--restart` terminates any existing process before restarting.
 
 ---
 
-### `openpowers launch`
+### `furina launch`
 
 ```bash
-openpowers launch
+furina launch
 ```
 
-Starts the OpenPowers backend service in the background without opening the browser. Prints a message if the service is already running.
+Starts the Furina backend service in the background without opening the browser. Prints a message if the service is already running.
 
 ---
 
-### `openpowers active`
+### `furina active`
 
 ```bash
-openpowers active
+furina active
 ```
 
 Probes the backend service status. Outputs "active" if the service is running; automatically starts the service if not (self-healing mechanism).
 
 ---
 
-### `openpowers enable`
+### `furina enable`
 
 ```bash
-openpowers enable
+furina enable
 ```
 
 Enables the Anthropic API proxy. Automatically syncs Claude Code settings, routing all API requests to the local proxy.
 
 ---
 
-### `openpowers disable`
+### `furina disable`
 
 ```bash
-openpowers disable
+furina disable
 ```
 
 Disables the proxy, restoring original Claude Code settings or falling back to direct vendor configuration.
 
 ---
 
-### `openpowers remove`
+### `furina remove`
 
 ```bash
 # Interactive uninstall
-openpowers remove
+furina remove
 
 # Skip confirmation
-openpowers remove -y
+furina remove -y
 ```
 
-Uninstalls the OpenPowers plugin and all its configurations.
+Uninstalls the Furina plugin and all its configurations.
 
 ---
 
-### `openpowers recover`
+### `furina recover`
 
 ```bash
-openpowers recover
+furina recover
 ```
 
 Restores default settings when Claude Code configuration is broken.
 
 ---
 
-### `openpowers config`
+### `furina config`
 
 ```bash
 # View complete config (merged: defaults + project override)
-openpowers config list
+furina config list
 
 # Query by path
-openpowers config show language
-openpowers config show project.sourcecode
-openpowers config show project.codebase
-openpowers config show exploration.repository
-openpowers config show codebases
+furina config show language
+furina config show project.sourcecode
+furina config show project.codebase
+furina config show exploration.repository
+furina config show codebases
 
 # Apply a feature preset (lite / standard / max)
-openpowers config mode standard
+furina config mode standard
 
 # Write config (auto-infers type: string, number, boolean)
-openpowers config set experimental.review.code true
-openpowers config set language english --global
+furina config set experimental.review.code true
+furina config set language english --global
 ```
 
 `config show codebases` is a virtual key that automatically assembles `project.codebase.path` and `exploration.codebase` into a unified list.
 
 `config mode` presets:
-| Mode | explore | openpowers review | specs review | code review |
+| Mode | explore | furina review | specs review | code review |
 |------|---------|-------------------|--------------|-------------|
 | `lite` | Off | Off | Off | Off |
 | `standard` | On | Off | Off | On |
@@ -386,78 +386,78 @@ openpowers config set language english --global
 
 ---
 
-### `openpowers agents`
+### `furina agents`
 
 ```bash
 # List all model vendors (table)
-openpowers agents list
+furina agents list
 
 # View session stage-model mappings
-openpowers agents list --session <session-id>
+furina agents list --session <session-id>
 
 # View the model for a specific stage
-openpowers agents show plan --session <session-id>
+furina agents show plan --session <session-id>
 
 # Switch vendor globally (by vendor name or model name)
-openpowers agents switch DeepSeek
+furina agents switch DeepSeek
 
 # Switch at session level
-openpowers agents switch kimi2.6 --session <session-id>
+furina agents switch kimi2.6 --session <session-id>
 
 # Initialize session settings
-openpowers agents init --session <session-id> --cwd /path/to/project
+furina agents init --session <session-id> --cwd /path/to/project
   [--change <change-name>] [--prompt <text>]
 ```
 
 ---
 
-### `openpowers change`
+### `furina change`
 
 ```bash
 # List all active changes and their progress
-openpowers change list
+furina change list
 
 # Create a new change
-openpowers change new my-feature --desc "Add user login feature"
+furina change new my-feature --desc "Add user login feature"
 
 # View change status
-openpowers change status my-feature
+furina change status my-feature
 
 # Get artifact generation instructions
-openpowers change instruction my-feature --proposal
+furina change instruction my-feature --proposal
 
 # Manage feature lifecycle
-openpowers change feature my-feature --status
-openpowers change feature my-feature --next
-openpowers change feature my-feature --start feat-1
-openpowers change feature my-feature --complete feat-1
+furina change feature my-feature --status
+furina change feature my-feature --next
+furina change feature my-feature --start feat-1
+furina change feature my-feature --complete feat-1
 
 # Update stage progress (called by Hooks)
-openpowers change stage explore --session <id> --status done --title "Exploration complete"
+furina change stage explore --session <id> --status done --title "Exploration complete"
 
 # Archive a completed change
-openpowers change archive my-feature
+furina change archive my-feature
 ```
 
 ---
 
-### `openpowers schedule`
+### `furina schedule`
 
 ```bash
 # Restart the cron scheduler
-openpowers schedule restart
+furina schedule restart
 
 # Stop the cron scheduler
-openpowers schedule stop
+furina schedule stop
 ```
 
-Requires the OpenPowers backend service to be running.
+Requires the Furina backend service to be running.
 
 ---
 
 ## Workflow Details
 
-`/openpowers:workflow` provides a complete 6-phase development process from idea to delivery:
+`/furina:workflow` provides a complete 6-phase development process from idea to delivery:
 
 ```
 Idea → 1.Explore → 2.Propose → 3.Plan → 4.Review → 5.SDD → 6.Finalize
@@ -465,7 +465,7 @@ Idea → 1.Explore → 2.Propose → 3.Plan → 4.Review → 5.SDD → 6.Finaliz
 
 ### Phase 1: Explore
 
-Uses the `openpowers-explore` skill to concurrently dispatch multiple exploration subagents based on `exploreType`, deeply investigating the project's code structure, reference documents, repository materials, existing specs, etc.
+Uses the `furina-explore` skill to concurrently dispatch multiple exploration subagents based on `exploreType`, deeply investigating the project's code structure, reference documents, repository materials, existing specs, etc.
 
 **Output**: Exploration results written to the `explore-design/` directory
 
@@ -475,7 +475,7 @@ Uses the `openpowers-explore` skill to concurrently dispatch multiple exploratio
 
 ### Phase 2: Propose
 
-First uses `openpowers-brainstorm` for requirement brainstorming and alignment, then uses `openpowers-propose` to generate a complete proposal in one step:
+First uses `furina-brainstorm` for requirement brainstorming and alignment, then uses `furina-propose` to generate a complete proposal in one step:
 - `proposal.md` — Purpose, scope, and impact of the change
 - `design.md` — Technical design decisions
 - `specs/**/*.md` — Detailed feature specifications
@@ -498,9 +498,9 @@ Dispatches a planning subagent to generate an executable implementation plan `pl
 
 ---
 
-### Phase 4: Review OpenPowers Artifacts
+### Phase 4: Review Furina Artifacts
 
-Uses the `openpowers-review` skill to review the completeness and feasibility of the proposal, design, specs, and plan.
+Uses the `furina-review` skill to review the completeness and feasibility of the proposal, design, specs, and plan.
 
 **Output**: Review feedback and modification suggestions
 
@@ -510,7 +510,7 @@ Uses the `openpowers-review` skill to review the completeness and feasibility of
 
 ### Phase 5: SDD — Subagent-Driven Development
 
-Uses the `openpowers-sdd` skill to process features from `plan.json` in topological order, dispatching a fresh implementation subagent for each feature. Each subagent enforces `openpowers-tdd` internally (write tests first, then implement), followed by two-phase review: **spec compliance review** and **code quality review**.
+Uses the `furina-sdd` skill to process features from `plan.json` in topological order, dispatching a fresh implementation subagent for each feature. Each subagent enforces `furina-tdd` internally (write tests first, then implement), followed by two-phase review: **spec compliance review** and **code quality review**.
 
 **Output**: Test cases + implementation code + review approval reports
 
@@ -520,7 +520,7 @@ Uses the `openpowers-sdd` skill to process features from `plan.json` in topologi
 
 ### Phase 6: Finalize
 
-Uses the `openpowers-finalize` skill to automatically complete:
+Uses the `furina-finalize` skill to automatically complete:
 - Integration testing
 - Codebase documentation synchronization
 - Change archiving
@@ -538,9 +538,9 @@ The workflow supports resuming from interruption. On startup, it automatically d
 
 ## Configuration System
 
-OpenPowers supports global default configuration and project-level override configuration:
+Furina supports global default configuration and project-level override configuration:
 
-- **Project config**: Written in `.claude/openpowers.json` at the project root; applies only to the current project
+- **Project config**: Written in `.claude/furina.json` at the project root; applies only to the current project
 - **Default config**: Items not overridden in the project config automatically use global defaults
 
 ### Configuration Reference
@@ -576,8 +576,8 @@ OpenPowers supports global default configuration and project-level override conf
     "repository": [                // Project repositories to reference during exploration
       {
         "type": "directory",
-        "path": "./openpowers/",
-        "description": "OpenPowers artifacts directory for cross-change global historical reference"
+        "path": "./furina/",
+        "description": "Furina artifacts directory for cross-change global historical reference"
       }
     ],
     "reference": [],               // External reference materials for exploration
@@ -590,7 +590,7 @@ OpenPowers supports global default configuration and project-level override conf
     "websearch": true,             // Enable web search
     "context7": true,              // Enable Context7
     "review": {
-      "openpowers": false,         // Review OpenPowers artifacts
+      "furina": false,         // Review Furina artifacts
       "propose": false,            // Review proposal
       "plan": false,               // Review plan
       "specs": false,              // Review specs
@@ -628,4 +628,4 @@ OpenPowers supports global default configuration and project-level override conf
 
 ---
 
-*OpenPowers — Give Claude Code multi-vendor model switching and scheduling within a single session, delivering high-quality code through a structured workflow.*
+*Furina — Give Claude Code multi-vendor model switching and scheduling within a single session, delivering high-quality code through a structured workflow.*

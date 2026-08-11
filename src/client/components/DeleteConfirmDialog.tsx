@@ -1,7 +1,7 @@
 /**
  * DeleteConfirmDialog component renders a confirmation modal before deleting a provider.
  * Shows the provider name in the warning and provides confirm/cancel actions.
- * Confirm calls DELETE /openpowers/api/providers/:id, cancel closes the dialog.
+ * Confirm calls DELETE /furina/api/providers/:id, cancel closes the dialog.
  * Styled with Tailwind CSS following cc-switch patterns.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -58,7 +58,7 @@ export function DeleteConfirmDialog({ isOpen, provider, onClose, onSuccess, show
 
     setDeleting(true);
     try {
-      const response = await fetch(`/openpowers/api/providers/${provider.id}`, {
+      const response = await fetch(`/furina/api/providers/${provider.id}`, {
         method: 'DELETE',
       });
       if (!response.ok) {

@@ -2,7 +2,7 @@
  * AddProviderDialog component renders a modal dialog for creating a new provider.
  * Includes a preset selector grid above form fields (name, notes, websiteUrl,
  * apiKey with visibility toggle, baseUrl). Validates required fields before
- * submitting via POST /openpowers/api/providers.
+ * submitting via POST /furina/api/providers.
  * Styled with Tailwind CSS following cc-switch patterns: backdrop overlay,
  * rounded-xl, shadows, smooth transitions.
  * @author Meiyuki <meiyukichan@163.com>
@@ -142,7 +142,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
   // Fetch provider templates from API on mount
   useEffect(() => {
     if (!isOpen) return;
-    fetch('/openpowers/api/providers/templates')
+    fetch('/furina/api/providers/templates')
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -217,7 +217,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
 
   const handleDeleteTemplate = async (preset: ProviderPreset) => {
     try {
-      const response = await fetch(`/openpowers/api/providers/templates/${encodeURIComponent(preset.name)}`, {
+      const response = await fetch(`/furina/api/providers/templates/${encodeURIComponent(preset.name)}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -252,7 +252,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
         haikuModel: form.haikuModel.trim() || undefined,
       };
 
-      const response = await fetch('/openpowers/api/providers/templates', {
+      const response = await fetch('/furina/api/providers/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -288,7 +288,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
 
     setSubmitting(true);
     try {
-      const response = await fetch('/openpowers/api/providers', {
+      const response = await fetch('/furina/api/providers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +323,7 @@ export function AddProviderDialog({ isOpen, onClose, onSuccess, showToast }: Add
     setValidating(true);
     setValidationResult(null);
     try {
-      const response = await fetch('/openpowers/api/providers/validate', {
+      const response = await fetch('/furina/api/providers/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

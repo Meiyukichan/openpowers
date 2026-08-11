@@ -48,7 +48,7 @@ vi.mock('../server/providers-store.js', () => ({
   loadProviders: vi.fn(),
   getDefaultProvider: vi.fn(),
   getProviderByModels: vi.fn(),
-  getEnableOpenpowersProxy: vi.fn(),
+  getEnableFurinaProxy: vi.fn(),
   setActiveProviderId: vi.fn(),
 }));
 
@@ -217,11 +217,11 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents list --session <id> should output stage/model table', async () => {
-    const { loadProviders, getDefaultProvider, getProviderByModels, getEnableOpenpowersProxy } = await import('../server/providers-store.js');
+    const { loadProviders, getDefaultProvider, getProviderByModels, getEnableFurinaProxy } = await import('../server/providers-store.js');
     const { loadConfig } = await import('../utils/config.js');
     vi.mocked(loadProviders).mockReturnValue(mockProviders);
     vi.mocked(getDefaultProvider).mockReturnValue(mockDefaultProvider);
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({
       'claude-sonnet-4-20250514': mockDefaultProvider,
@@ -391,9 +391,9 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents switch <name> --session <id> should update currentProvider and output success', async () => {
-    const { getProviderByModels, getEnableOpenpowersProxy } = await import('../server/providers-store.js');
+    const { getProviderByModels, getEnableFurinaProxy } = await import('../server/providers-store.js');
     const { loadConfig } = await import('../utils/config.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({
       'claude-sonnet-4-20250514': mockDefaultProvider,
@@ -418,7 +418,7 @@ describe('src/commands/agents.ts', () => {
     } as unknown as ReturnType<typeof loadConfig>);
 
     mockReadSessionSettings.mockReturnValue({ ...sessionSettings });
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/test-session/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/test-session/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -662,12 +662,12 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init with proxy disabled should succeed and create settings', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(false);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(false);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
-    const filePath = '/home/user/.openpowers/sessions/abc/settings.json';
+    const filePath = '/home/user/.furina/sessions/abc/settings.json';
     mockGetSessionFilePath.mockReturnValue(filePath);
 
     const mod = await import('./agents.js');
@@ -704,12 +704,12 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init --prompt should include prompt field in settings', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -717,7 +717,7 @@ describe('src/commands/agents.ts', () => {
     registerAgentsCommand(program);
 
     try {
-      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid', '--prompt', '/openpowers:workflow explore'], { from: 'user' });
+      await program.parseAsync(['agents', 'init', '--session', 'abc', '--cwd', '/valid', '--prompt', '/furina:workflow explore'], { from: 'user' });
     } catch {
       // ignore exit
     }
@@ -729,18 +729,18 @@ describe('src/commands/agents.ts', () => {
         cwd: '/valid',
         currentProvider: 'default',
         change: '',
-        prompt: '/openpowers:workflow explore',
+        prompt: '/furina:workflow explore',
       }),
     );
   });
 
   it('agents init without --prompt should not include prompt in settings', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -770,8 +770,8 @@ describe('src/commands/agents.ts', () => {
   });
 
   it('agents init without --prompt should preserve existing prompt field in settings', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
@@ -781,10 +781,10 @@ describe('src/commands/agents.ts', () => {
       cwd: '/valid',
       currentProvider: 'default',
       switchProviders: {},
-      prompt: '/openpowers:workflow explore',
+      prompt: '/furina:workflow explore',
     });
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -806,18 +806,18 @@ describe('src/commands/agents.ts', () => {
         cwd: '/valid',
         currentProvider: 'default',
         change: '',
-        prompt: '/openpowers:workflow explore',
+        prompt: '/furina:workflow explore',
       }),
     );
   });
 
   it('agents init should create settings.json and output success with file path', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
-    const filePath = '/home/user/.openpowers/sessions/abc/settings.json';
+    const filePath = '/home/user/.furina/sessions/abc/settings.json';
     mockGetSessionFilePath.mockReturnValue(filePath);
 
     const mod = await import('./agents.js');
@@ -850,10 +850,10 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init should replace model names not in providers with default', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
     const { loadConfig } = await import('../utils/config.js');
 
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
     // Override loadConfig to return switchProviders with:
@@ -878,7 +878,7 @@ describe('src/commands/agents.ts', () => {
       'invalid-model': null,
     });
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -920,12 +920,12 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init --change <name> should set change field in settings', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -954,8 +954,8 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init without --change should preserve existing change value', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
@@ -968,7 +968,7 @@ describe('src/commands/agents.ts', () => {
       change: 'existing-change',
     });
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;
@@ -997,15 +997,15 @@ describe('src/commands/agents.ts', () => {
   // -----------------------------------------------------------------------
 
   it('agents init without --change and no existing value should set change to empty string', async () => {
-    const { getEnableOpenpowersProxy, getProviderByModels } = await import('../server/providers-store.js');
-    vi.mocked(getEnableOpenpowersProxy).mockReturnValue(true);
+    const { getEnableFurinaProxy, getProviderByModels } = await import('../server/providers-store.js');
+    vi.mocked(getEnableFurinaProxy).mockReturnValue(true);
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(getProviderByModels).mockReturnValue({});
 
     // No existing settings
     mockReadSessionSettings.mockReturnValue(null);
 
-    mockGetSessionFilePath.mockReturnValue('/home/user/.openpowers/sessions/abc/settings.json');
+    mockGetSessionFilePath.mockReturnValue('/home/user/.furina/sessions/abc/settings.json');
 
     const mod = await import('./agents.js');
     registerAgentsCommand = mod.registerAgentsCommand;

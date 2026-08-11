@@ -10,15 +10,15 @@ import { Command } from 'commander';
 // ---- hoisted mocks ----
 
 const {
-  mockSetEnableOpenpowersProxy,
+  mockSetEnableFurinaProxy,
   mockGetActiveProvider,
 } = vi.hoisted(() => ({
-  mockSetEnableOpenpowersProxy: vi.fn(),
+  mockSetEnableFurinaProxy: vi.fn(),
   mockGetActiveProvider: vi.fn(() => null),
 }));
 
 vi.mock('../server/providers-store.js', () => ({
-  setEnableOpenpowersProxy: mockSetEnableOpenpowersProxy,
+  setEnableFurinaProxy: mockSetEnableFurinaProxy,
   getActiveProvider: mockGetActiveProvider,
 }));
 
@@ -110,10 +110,10 @@ describe('src/commands/disable.ts', () => {
   });
 
   describe('runDisable', () => {
-    it('should call setEnableOpenpowersProxy with false', () => {
+    it('should call setEnableFurinaProxy with false', () => {
       runDisable();
-      expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(false);
-      expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledTimes(1);
+      expect(mockSetEnableFurinaProxy).toHaveBeenCalledWith(false);
+      expect(mockSetEnableFurinaProxy).toHaveBeenCalledTimes(1);
     });
 
     it('should output a success message via process.stdout.write', () => {
@@ -123,17 +123,17 @@ describe('src/commands/disable.ts', () => {
       );
     });
 
-    it('should call process.exit(1) when setEnableOpenpowersProxy throws', () => {
-      mockSetEnableOpenpowersProxy.mockImplementationOnce(() => {
+    it('should call process.exit(1) when setEnableFurinaProxy throws', () => {
+      mockSetEnableFurinaProxy.mockImplementationOnce(() => {
         throw new Error('file system error');
       });
 
       expect(() => runDisable()).toThrow('process.exit called with code 1');
     });
 
-    it('should output error message when setEnableOpenpowersProxy throws', () => {
+    it('should output error message when setEnableFurinaProxy throws', () => {
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      mockSetEnableOpenpowersProxy.mockImplementationOnce(() => {
+      mockSetEnableFurinaProxy.mockImplementationOnce(() => {
         throw new Error('disk full');
       });
 

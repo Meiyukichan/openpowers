@@ -1,13 +1,13 @@
 {
-    "name": "openpowers-plugins",
-    "description": "Development marketplace for Openpowers core skills library",
+    "name": "furina-plugins",
+    "description": "Development marketplace for Furina core skills library",
     "owner": {
         "name": "Meiyukichan",
         "email": "Meiyukichan@163.com"
     },
     "plugins": [
         {
-            "name": "openpowers",
+            "name": "furina",
             "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques",
             "version": "1.0.0",
             "source": "./",

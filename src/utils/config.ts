@@ -54,7 +54,7 @@ const ReviewSchema = z.object({
   specs: z.boolean(),
   code: z.boolean(),
   acceptance: z.boolean(),
-  openpowers: z.boolean(),
+  furina: z.boolean(),
 });
 
 const PromptSchema = z.object({
@@ -89,10 +89,10 @@ const EnhancementSchema = z.object({
 });
 
 /**
- * Zod schema for the OpenPowers configuration. Known top-level fields are
+ * Zod schema for the Furina configuration. Known top-level fields are
  * validated; extra fields from project override configs pass through.
  */
-export const OpenPowersConfigSchema = z.object({
+export const FurinaConfigSchema = z.object({
   language: z.string(),
   switchProviders: ProviderSwitchSchema,
   project: ProjectSchema,
@@ -102,7 +102,7 @@ export const OpenPowersConfigSchema = z.object({
 }).loose();
 
 /** Inferred TypeScript type for the validated config. */
-export type OpenPowersConfig = z.infer<typeof OpenPowersConfigSchema>;
+export type FurinaConfig = z.infer<typeof FurinaConfigSchema>;
 
 /**
  * Recursively makes all properties optional, including nested objects.
@@ -151,8 +151,8 @@ export function deepMerge<T extends Record<string, unknown>>(
 
 /**
  * Loads the merged configuration by reading the default config from
- * resources/openpowers.json and merging with the project override from
- * {cwd}/.claude/openpowers.json. Silently skips missing override files;
+ * resources/furina.json and merging with the project override from
+ * {cwd}/.claude/furina.json. Silently skips missing override files;
  * logs a warning and falls back to defaults on invalid JSON.
  *
  * Every call re-reads both JSON files from disk — no caching, no memoization.
@@ -168,11 +168,11 @@ export function deepMerge<T extends Record<string, unknown>>(
  *   (defaults to process.cwd())
  * @returns The merged configuration object (validated but always returned)
  */
-export function loadConfig(cwd?: string): OpenPowersConfig {
+export function loadConfig(cwd?: string): FurinaConfig {
   const moduleDirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const defaultConfigPath = path.join(moduleDirname, '..', '..', 'resources', 'openpowers.json');
+  const defaultConfigPath = path.join(moduleDirname, '..', '..', 'resources', 'furina.json');
   const workspace = cwd ?? process.cwd();
-  const overrideConfigPath = path.join(workspace, '.claude', 'openpowers.json');
+  const overrideConfigPath = path.join(workspace, '.claude', 'furina.json');
 
   const config: Record<string, unknown> = {};
 
@@ -195,7 +195,7 @@ export function loadConfig(cwd?: string): OpenPowersConfig {
   }
 
   // Validate known fields with Zod (resilient — always returns config)
-  const parsed = OpenPowersConfigSchema.safeParse(config);
+  const parsed = FurinaConfigSchema.safeParse(config);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       logger.warn(`Config validation: ${issue.path.join('.')} — ${issue.message}`);
@@ -205,7 +205,7 @@ export function loadConfig(cwd?: string): OpenPowersConfig {
       // the schema are removed.
       deleteByPath(config, issue.path as (string | number)[]);
     }
-    return config as OpenPowersConfig;
+    return config as FurinaConfig;
   }
 
   return parsed.data;
@@ -260,14 +260,14 @@ export function queryConfig(config: Record<string, unknown>, keyPath: string): u
 /**
  * Resolves the user override config file path under a workspace directory.
  * @param cwd - The workspace directory
- * @returns Absolute path to {cwd}/.claude/openpowers.json
+ * @returns Absolute path to {cwd}/.claude/furina.json
  */
 function getUserConfigPath(cwd: string): string {
-  return path.join(cwd, '.claude', 'openpowers.json');
+  return path.join(cwd, '.claude', 'furina.json');
 }
 
 /**
- * Reads and parses the user override config file at {cwd}/.claude/openpowers.json.
+ * Reads and parses the user override config file at {cwd}/.claude/furina.json.
  * Never throws — returns an empty object for any failure (missing file,
  * permission denied, invalid JSON, or any other I/O error). Callers can
  * rely on this function to always succeed.
@@ -290,7 +290,7 @@ export function readUserConfig(cwd: string): Record<string, unknown> {
 
 /**
  * Writes the given data to the user override config file at
- * {cwd}/.claude/openpowers.json. Creates the parent .claude directory
+ * {cwd}/.claude/furina.json. Creates the parent .claude directory
  * recursively when missing. Serializes JSON with 2-space indentation
  * and a single trailing newline, encoded as UTF-8.
  * @param cwd - The workspace directory
@@ -311,7 +311,7 @@ export function writeUserConfig(cwd: string, data: Record<string, unknown>): voi
  * tree, then persists it via writeUserConfig. Unrelated top-level keys
  * are preserved. Returns the final value written at the key path.
  * @param cwd - The workspace directory
- * @param keyPath - Dot-separated key path (e.g. 'experimental.review.openpowers')
+ * @param keyPath - Dot-separated key path (e.g. 'experimental.review.furina')
  * @param value - The value to write at the key path
  * @returns The value written at the leaf
  */
@@ -334,7 +334,7 @@ export function setUserConfigValue(cwd: string, keyPath: string, value: unknown)
 
 /**
  * Sets a nested value in the global default config file
- * (resources/openpowers.json). Reads the current file, mutates the
+ * (resources/furina.json). Reads the current file, mutates the
  * in-memory tree, and writes back with 2-space indentation + trailing
  * newline. Creates intermediate plain objects as needed. Unrelated
  * keys are preserved. Returns the final value written at the key path.
@@ -345,7 +345,7 @@ export function setUserConfigValue(cwd: string, keyPath: string, value: unknown)
  */
 export function setDefaultConfigValue(keyPath: string, value: unknown): unknown {
   const moduleDirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const configPath = path.join(moduleDirname, '..', '..', 'resources', 'openpowers.json');
+  const configPath = path.join(moduleDirname, '..', '..', 'resources', 'furina.json');
   const raw = fs.readFileSync(configPath, 'utf-8');
   const data = JSON.parse(raw) as Record<string, unknown>;
   const parts = keyPath.split('.');

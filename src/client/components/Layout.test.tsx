@@ -22,7 +22,7 @@ const defaultProps = {
   onAddProvider: vi.fn(),
   onReset: vi.fn(),
   showToast: vi.fn(),
-  enableOpenpowersProxy: false,
+  enableFurinaProxy: false,
   onToggleProxy: vi.fn(),
   activeView: 'providers' as const,
   onViewChange: vi.fn(),
@@ -58,9 +58,9 @@ describe('Layout', () => {
     });
   });
 
-  it('renders the brand name OpenPowers', () => {
+  it('renders the brand name Furina', () => {
     renderLayout();
-    expect(screen.getByText('OpenPowers')).toBeInTheDocument();
+    expect(screen.getByText('Furina')).toBeInTheDocument();
   });
 
   it('renders session management icon-only button (no text label)', () => {
@@ -176,8 +176,8 @@ describe('Layout', () => {
     expect(onToggleProxy).toHaveBeenCalledOnce();
   });
 
-  it('toggle switch reflects enableOpenpowersProxy prop', () => {
-    const { rerender } = renderLayout({ enableOpenpowersProxy: true });
+  it('toggle switch reflects enableFurinaProxy prop', () => {
+    const { rerender } = renderLayout({ enableFurinaProxy: true });
     const toggle = screen.getByRole('switch', { name: '切换 Anthropic API 代理' });
     expect(toggle.getAttribute('aria-checked')).toBe('true');
 
@@ -187,7 +187,7 @@ describe('Layout', () => {
         { i18n: i18nInstance },
         React.createElement(Layout, {
           ...defaultProps,
-          enableOpenpowersProxy: false,
+          enableFurinaProxy: false,
           children: React.createElement('div', null, 'content'),
         }),
       ),
@@ -203,11 +203,11 @@ describe('Layout', () => {
     expect(resetBtn.nextElementSibling).toBe(toggle.parentElement);
   });
 
-  it('renders Claude brand SVG icon to the left of OpenPowers title', () => {
+  it('renders Claude brand SVG icon to the left of Furina title', () => {
     renderLayout();
     const claudeIcon = document.querySelector('img[alt="Claude"]');
     expect(claudeIcon).toBeInTheDocument();
-    const title = screen.getByText('OpenPowers');
+    const title = screen.getByText('Furina');
     // Claude icon should be positioned immediately before the title
     expect(title.previousElementSibling).toBe(claudeIcon);
   });

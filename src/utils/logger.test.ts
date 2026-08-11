@@ -53,8 +53,8 @@ vi.mock('os', () => ({
 
 createLoggerMock.mockReturnValue(mockWinstonLogger);
 
-const LOG_DIR = path.join('/mock/home', '.openpowers', 'logs');
-const LOG_FILE = path.join(LOG_DIR, 'openpowers.log');
+const LOG_DIR = path.join('/mock/home', '.furina', 'logs');
+const LOG_FILE = path.join(LOG_DIR, 'furina.log');
 
 describe('src/utils/logger.ts', () => {
   beforeEach(() => {
@@ -96,9 +96,9 @@ describe('src/utils/logger.ts', () => {
     expect(typeof logger.debug).toBe('function');
   });
 
-  // ---- Chunk 2: Logger writes to openpowers.log ----
+  // ---- Chunk 2: Logger writes to furina.log ----
 
-  it('should create logger with File transport pointing to openpowers.log', async () => {
+  it('should create logger with File transport pointing to furina.log', async () => {
     await import('./logger.js');
 
     expect(createLoggerMock).toHaveBeenCalledTimes(1);
@@ -128,7 +128,7 @@ describe('src/utils/logger.ts', () => {
 
     await import('./logger.js');
 
-    const expectedDir = path.join('/mock/home', '.openpowers', 'logs');
+    const expectedDir = path.join('/mock/home', '.furina', 'logs');
     expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
   });
 
@@ -142,7 +142,7 @@ describe('src/utils/logger.ts', () => {
 
   // ---- Chunk 4: Day-boundary log rotation ----
 
-  it('should not rotate when openpowers.log does not exist', async () => {
+  it('should not rotate when furina.log does not exist', async () => {
     existsSyncMock.mockImplementation((p: string) => p === LOG_DIR);
 
     await import('./logger.js');
@@ -151,7 +151,7 @@ describe('src/utils/logger.ts', () => {
     expect(renameSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should not rotate when openpowers.log is from today', async () => {
+  it('should not rotate when furina.log is from today', async () => {
     existsSyncMock.mockImplementation((p: string) => p === LOG_DIR || p === LOG_FILE);
     statSyncMock.mockReturnValue({ mtime: new Date() });
 
@@ -160,13 +160,13 @@ describe('src/utils/logger.ts', () => {
     expect(renameSyncMock).not.toHaveBeenCalled();
   });
 
-  it('should rotate openpowers.log to dated archive when last modified on a previous day', async () => {
+  it('should rotate furina.log to dated archive when last modified on a previous day', async () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const y = yesterday.getFullYear();
     const m = String(yesterday.getMonth() + 1).padStart(2, '0');
     const d = String(yesterday.getDate()).padStart(2, '0');
-    const expectedArchive = path.join(LOG_DIR, `openpowers-${y}-${m}-${d}.log`);
+    const expectedArchive = path.join(LOG_DIR, `furina-${y}-${m}-${d}.log`);
 
     existsSyncMock.mockImplementation((p: string) => p === LOG_DIR || p === LOG_FILE);
     statSyncMock.mockReturnValue({ mtime: yesterday });
@@ -182,7 +182,7 @@ describe('src/utils/logger.ts', () => {
     const y = yesterday.getFullYear();
     const m = String(yesterday.getMonth() + 1).padStart(2, '0');
     const d = String(yesterday.getDate()).padStart(2, '0');
-    const archivePath = path.join(LOG_DIR, `openpowers-${y}-${m}-${d}.log`);
+    const archivePath = path.join(LOG_DIR, `furina-${y}-${m}-${d}.log`);
 
     // Both log file and archive already exist
     existsSyncMock.mockImplementation(

@@ -17,7 +17,7 @@ export async function runLaunch(): Promise<void> {
 
   const portInUse = await isPortInUse(port);
   if (portInUse) {
-    process.stdout.write('OpenPowers server is already running\n');
+    process.stdout.write('Furina server is already running\n');
     return;
   }
 
@@ -31,7 +31,7 @@ export async function runLaunch(): Promise<void> {
 export function registerLaunchCommand(program: Command): void {
   program
     .command('launch')
-    .description('Start the OpenPowers backend server')
+    .description('Start the Furina backend server')
     .action(async () => {
       try {
         await runLaunch();

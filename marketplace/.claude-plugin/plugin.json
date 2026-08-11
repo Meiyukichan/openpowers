@@ -1,5 +1,5 @@
 {
-    "name": "openpowers",
+    "name": "furina",
     "version": "1.0.0",
     "description": "Brief plugin description",
     "author": {
@@ -7,13 +7,13 @@
         "email": "Meiyukichan@163.com",
         "url": "https://github.com/Meiyukichan"
     },
-    "homepage": "https://github.com/Meiyukichan/openpowers",
-    "repository": "https://github.com/Meiyukichan/openpowers",
+    "homepage": "https://github.com/Meiyukichan/furina",
+    "repository": "https://github.com/Meiyukichan/furina",
     "license": "MIT",
     "mcpServers": {
-        "openpowers-mcp-server": {
+        "furina-mcp-server": {
             "type": "http",
-            "url": "http://localhost:3939/openpowers/mcp"
+            "url": "http://localhost:3939/furina/mcp"
         }
     }
 }

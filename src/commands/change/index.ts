@@ -24,7 +24,7 @@ import { runChangeStage } from './stage.js';
 export function registerChangeCommand(program: Command): void {
   const changeCmd = program
     .command('change')
-    .description('Manage OpenPowers change artifacts');
+    .description('Manage Furina change artifacts');
 
   changeCmd
     .command('list')

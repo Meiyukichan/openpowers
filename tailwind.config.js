@@ -1,5 +1,5 @@
 /**
- * Tailwind CSS configuration for the OpenPowers React frontend.
+ * Tailwind CSS configuration for the Furina React frontend.
  * Uses shadcn/ui-inspired CSS variable theme tokens via hsl() values.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki

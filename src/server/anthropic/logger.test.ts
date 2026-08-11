@@ -50,7 +50,7 @@ vi.mock('os', () => ({
 
 createLoggerMock.mockReturnValue(mockWinstonLogger);
 
-const PROXY_LOG_DIR = path.join('/mock/home', '.openpowers', 'logs');
+const PROXY_LOG_DIR = path.join('/mock/home', '.furina', 'logs');
 const PROXY_LOG_FILE = path.join(PROXY_LOG_DIR, 'anthropic.log');
 
 describe('src/server/anthropic/logger.ts', () => {
@@ -158,7 +158,7 @@ describe('src/server/anthropic/logger.ts', () => {
     const { createSessionLogger } = await import('./logger.js');
     createSessionLogger('test-session-1');
 
-    const expectedDir = path.join('/mock/home', '.openpowers', 'sessions', 'test-session-1');
+    const expectedDir = path.join('/mock/home', '.furina', 'sessions', 'test-session-1');
     expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
   });
 
@@ -166,7 +166,7 @@ describe('src/server/anthropic/logger.ts', () => {
     const { createSessionLogger } = await import('./logger.js');
     createSessionLogger('test-session-2');
 
-    const expectedFile = path.join('/mock/home', '.openpowers', 'sessions', 'test-session-2', 'anthropic.log');
+    const expectedFile = path.join('/mock/home', '.furina', 'sessions', 'test-session-2', 'anthropic.log');
     const { transports } = await import('winston');
     const fileMock = transports.File as unknown as { mock: { calls: Array<Array<{ filename: string }>> } };
     const fileCalls = fileMock.mock.calls;

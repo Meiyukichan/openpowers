@@ -1,8 +1,8 @@
-# OpenPowers
+# Furina
 
 > 从 [OpenSpec](https://github.com/Fission-AI/OpenSpec) + [SuperPowers](https://github.com/obra/superpowers) 演进而来，专为 Claude Code 打造，在同一个会话中自由切换不同供应商模型，并提供结构化 SDD+TDD 开发工作流的插件系统。
 
-[OpenPowers](https://github.com/Meiyukichan/openpowers) 是一个面向 **Claude Code** 的插件化开发工具包。它在 Claude Code 中提供一套完整的 **SDD（规范驱动开发）+ TDD（测试驱动开发）** 工作流，并通过内置的 **Anthropic API 代理**，实现在**同一个会话**中自由切换多个 AI 模型供应商的能力。
+[Furina](https://github.com/Meiyukichan/furina) 是一个面向 **Claude Code** 的插件化开发工具包。它在 Claude Code 中提供一套完整的 **SDD（规范驱动开发）+ TDD（测试驱动开发）** 工作流，并通过内置的 **Anthropic API 代理**，实现在**同一个会话**中自由切换多个 AI 模型供应商的能力。
 
 ---
 
@@ -32,16 +32,16 @@
 ### 安装
 
 ```bash
-npm i -g @meiyukichan/openpowers
+npm i -g @meiyukichan/furina
 ```
 
 ### 初始化
 
 ```bash
-openpowers init
+furina init
 ```
 
-一行命令即可完成插件安装。初始化完成后，打开 Claude Code，输入 `/openpowers:workflow` 即可开始使用。
+一行命令即可完成插件安装。初始化完成后，打开 Claude Code，输入 `/furina:workflow` 即可开始使用。
 
 ---
 
@@ -50,7 +50,7 @@ openpowers init
 ### 第 1 步：打开 Web UI 管理面板
 
 ```bash
-openpowers ui
+furina ui
 ```
 
 浏览器将自动打开 `http://localhost:3939`。
@@ -75,19 +75,19 @@ openpowers ui
 在 Web UI 中点击 **开启代理**，或者使用下面的CLI命令：
 
 ```bash
-openpowers enable
+furina enable
 ```
 
-启用后，Claude Code 的所有 API 请求将通过 OpenPowers 代理自动转发到你选择的活跃供应商。
+启用后，Claude Code 的所有 API 请求将通过 Furina 代理自动转发到你选择的活跃供应商。
 
-注意！OpenPowers 不同阶段自动切换模型功能，必须**先开启**代理。
+注意！Furina 不同阶段自动切换模型功能，必须**先开启**代理。
 
 ### 第 5 步：启动工作流
 
 在 Claude Code 中输入：
 
 ```
-/openpowers:workflow {你的需求}
+/furina:workflow {你的需求}
 ```
 
 然后工作流将引导你完成从探索到归档的完整开发流程。
@@ -98,34 +98,34 @@ openpowers enable
 
 ### 1. Marketplace — Claude Code 插件
 
-OpenPowers 作为一个 Claude Code 插件安装后，会向 Claude Code 注入 **12 个技能（Skills）**、**生命周期钩子（Hooks）** 以及核心的 **工作流命令**。
+Furina 作为一个 Claude Code 插件安装后，会向 Claude Code 注入 **12 个技能（Skills）**、**生命周期钩子（Hooks）** 以及核心的 **工作流命令**。
 
 #### 核心命令
 
 | 命令 | 说明 |
 |------|------|
-| `/openpowers:workflow` | 启动 6 阶段结构化开发工作流 |
+| `/furina:workflow` | 启动 6 阶段结构化开发工作流 |
 
 #### 12 个技能一览
 
 | 技能 | 类型 | 说明 |
 |------|------|------|
-| `openpowers-workflow` | 命令 | 6 阶段 SDD+TDD 工作流入口 |
-| `openpowers-explore` | 探索 | 并发分派多个探索子代理，深入调查代码库、仓库资料、参考文档、已有规格等 |
-| `openpowers-brainstorm` | 思考 | 头脑风暴助手，梳理需求与方案思路 |
-| `openpowers-propose` | 提案 | 一键生成提案、设计文档与规格说明 |
-| `openpowers-plan` | 规划 | 补充技术规格 Schema 文档，基于规格生成可执行实施计划 |
-| `openpowers-review` | 审查 | 分派审查子代理，依次审查提案和计划的完整性与可行性，自动修复问题 |
-| `openpowers-sdd` | 实现 | 子代理驱动开发，按拓扑顺序逐个派发实现子代理并经过两阶段复审 |
-| `openpowers-tdd` | 测试 | TDD 强制执行，先写测试再写实现 |
-| `openpowers-finalize` | 收尾 | 自动 Git 提交、推送并同步 Codebase 文档 |
-| `openpowers-codebase` | 文档 | Codebase 集成，提供 explore、generate、synchronize 三大指令 |
-| `openpowers-cleancode` | 质量 | 查询编码规范，在生成代码前输出聚焦的规范指南 |
-| `openpowers-commit` | 工具 | 自动暂存、生成 Conventional Commits 消息并安全推送 |
+| `furina-workflow` | 命令 | 6 阶段 SDD+TDD 工作流入口 |
+| `furina-explore` | 探索 | 并发分派多个探索子代理，深入调查代码库、仓库资料、参考文档、已有规格等 |
+| `furina-brainstorm` | 思考 | 头脑风暴助手，梳理需求与方案思路 |
+| `furina-propose` | 提案 | 一键生成提案、设计文档与规格说明 |
+| `furina-plan` | 规划 | 补充技术规格 Schema 文档，基于规格生成可执行实施计划 |
+| `furina-review` | 审查 | 分派审查子代理，依次审查提案和计划的完整性与可行性，自动修复问题 |
+| `furina-sdd` | 实现 | 子代理驱动开发，按拓扑顺序逐个派发实现子代理并经过两阶段复审 |
+| `furina-tdd` | 测试 | TDD 强制执行，先写测试再写实现 |
+| `furina-finalize` | 收尾 | 自动 Git 提交、推送并同步 Codebase 文档 |
+| `furina-codebase` | 文档 | Codebase 集成，提供 explore、generate、synchronize 三大指令 |
+| `furina-cleancode` | 质量 | 查询编码规范，在生成代码前输出聚焦的规范指南 |
+| `furina-commit` | 工具 | 自动暂存、生成 Conventional Commits 消息并安全推送 |
 
-#### openpowers-codebase 详解
+#### furina-codebase 详解
 
-`openpowers-codebase` 将项目的源代码组织为分层结构化的**代码文档树**（Codebase），支持大模型按层级导航检索。文档树结构如下：
+`furina-codebase` 将项目的源代码组织为分层结构化的**代码文档树**（Codebase），支持大模型按层级导航检索。文档树结构如下：
 
 ```
 {codebaseDir}/
@@ -156,7 +156,7 @@ OpenPowers 作为一个 Claude Code 插件安装后，会向 Claude Code 注入 
 
 #### Hooks 生命周期钩子
 
-OpenPowers 通过 Claude Code 的 Hook 机制，在 Agent 工具调用前后自动干预：
+Furina 通过 Claude Code 的 Hook 机制，在 Agent 工具调用前后自动干预：
 
 - **PreToolUse**：在子代理启动前，根据当前工作流阶段自动切换对应的模型供应商
 - **PostToolUse**：在子代理完成后，捕获输出并记录日志
@@ -168,48 +168,48 @@ OpenPowers 通过 Claude Code 的 Hook 机制，在 Agent 工具调用前后自�
 
 ### 2. CLI 命令行系统
 
-`openpowers` CLI 是工作流的命令行支撑系统，提供初始化、配置管理、变更追踪、会话调度等全套工具。
+`furina` CLI 是工作流的命令行支撑系统，提供初始化、配置管理、变更追踪、会话调度等全套工具。
 
 ```bash
-openpowers [command] [options]
+furina [command] [options]
 ```
 
 #### 命令总览
 
 | 命令 | 说明 |
 |------|------|
-| `openpowers init` | 初始化 OpenPowers 插件，安装完成后自动启动 UI 服务 |
-| `openpowers ui [--restart]` | 启动 Web UI 管理面板并在浏览器中打开 |
-| `openpowers launch` | 启动后端服务（不打开浏览器） |
-| `openpowers active` | 探测后端服务状态，若未运行则自动启动（自愈） |
-| `openpowers enable` | 开启 Anthropic API 代理，将 Claude Code 请求路由至活跃供应商 |
-| `openpowers disable` | 关闭代理，恢复原始 Claude Code 设置 |
-| `openpowers remove [-y]` | 卸载 OpenPowers 插件及其所有配置 |
-| `openpowers recover` | 当 Claude Code 配置出现问题时，恢复默认设置 |
-| `openpowers config list` | 列出当前完整合并配置（JSON 格式） |
-| `openpowers config show <key...>` | 按路径查询配置项（支持 `codebases` 虚拟键） |
-| `openpowers config mode <lite\|standard\|max>` | 一键应用实验性功能预设 |
-| `openpowers config set <key> <value> [--global]` | 写入单键配置（自动推断类型） |
-| `openpowers agents list [--session <id>]` | 列出模型供应商表格或会话阶段-模型映射 |
-| `openpowers agents show <stage> --session <id>` | 查看某阶段的模型名称 |
-| `openpowers agents switch <name> [--session <id>]` | 全局/会话级切换模型供应商 |
-| `openpowers agents init --session <id> --cwd <path>` | 初始化会话配置文件 |
-| `openpowers change list` | 列出所有活跃变更及其进度 |
-| `openpowers change new <name> --desc <描述>` | 创建新的变更目录 |
-| `openpowers change status <name>` | 查看变更的制品管线状态（JSON） |
-| `openpowers change archive <name>` | 归档已完成变更 |
-| `openpowers change instruction <name> --proposal\|--design\|--specs` | 获取制品生成指令 |
-| `openpowers change feature <name> --status\|--next\|--start\|--complete` | 功能生命周期管理 |
-| `openpowers change stage <name> --session <id> --status <st> [--title\|--input\|--output]` | 更新变更的阶段进度 |
-| `openpowers schedule restart` | 重启 cron 调度器 |
-| `openpowers schedule stop` | 停止 cron 调度器 |
+| `furina init` | 初始化 Furina 插件，安装完成后自动启动 UI 服务 |
+| `furina ui [--restart]` | 启动 Web UI 管理面板并在浏览器中打开 |
+| `furina launch` | 启动后端服务（不打开浏览器） |
+| `furina active` | 探测后端服务状态，若未运行则自动启动（自愈） |
+| `furina enable` | 开启 Anthropic API 代理，将 Claude Code 请求路由至活跃供应商 |
+| `furina disable` | 关闭代理，恢复原始 Claude Code 设置 |
+| `furina remove [-y]` | 卸载 Furina 插件及其所有配置 |
+| `furina recover` | 当 Claude Code 配置出现问题时，恢复默认设置 |
+| `furina config list` | 列出当前完整合并配置（JSON 格式） |
+| `furina config show <key...>` | 按路径查询配置项（支持 `codebases` 虚拟键） |
+| `furina config mode <lite\|standard\|max>` | 一键应用实验性功能预设 |
+| `furina config set <key> <value> [--global]` | 写入单键配置（自动推断类型） |
+| `furina agents list [--session <id>]` | 列出模型供应商表格或会话阶段-模型映射 |
+| `furina agents show <stage> --session <id>` | 查看某阶段的模型名称 |
+| `furina agents switch <name> [--session <id>]` | 全局/会话级切换模型供应商 |
+| `furina agents init --session <id> --cwd <path>` | 初始化会话配置文件 |
+| `furina change list` | 列出所有活跃变更及其进度 |
+| `furina change new <name> --desc <描述>` | 创建新的变更目录 |
+| `furina change status <name>` | 查看变更的制品管线状态（JSON） |
+| `furina change archive <name>` | 归档已完成变更 |
+| `furina change instruction <name> --proposal\|--design\|--specs` | 获取制品生成指令 |
+| `furina change feature <name> --status\|--next\|--start\|--complete` | 功能生命周期管理 |
+| `furina change stage <name> --session <id> --status <st> [--title\|--input\|--output]` | 更新变更的阶段进度 |
+| `furina schedule restart` | 重启 cron 调度器 |
+| `furina schedule stop` | 停止 cron 调度器 |
 
 ---
 
 ### 3. Web UI 管理面板
 
 ```bash
-openpowers ui [--restart]
+furina ui [--restart]
 ```
 
 一个可视化的 Web 管理界面，运行在 `http://localhost:3939`，提供：
@@ -224,11 +224,11 @@ openpowers ui [--restart]
 
 ### 4. 多模型供应商代理
 
-这是 OpenPowers 最核心的能力 —— 在 Claude Code 的**同一个会话**中实现**真正的多供应商多代理协同**架构。
+这是 Furina 最核心的能力 —— 在 Claude Code 的**同一个会话**中实现**真正的多供应商多代理协同**架构。
 
 #### 它如何为你工作
 
-在 `/openpowers:workflow` 工作流中，不同阶段会自动切换到你预先配置的模型供应商。比如：
+在 `/furina:workflow` 工作流中，不同阶段会自动切换到你预先配置的模型供应商。比如：
 
 - **探索阶段**：可使用性价比高的模型（如 DeepSeek）
 - **提案 / 审查阶段**：可切换到最强的推理模型（如 Claude Opus）
@@ -260,125 +260,125 @@ openpowers ui [--restart]
 ```
 
 - 模型名来自你在Web UI配置的供应商的模型名，默认为default，使用启用供应商的默认模型
-- 配置文件路径为 `{当前项目}/.claude/openpowers.json`
+- 配置文件路径为 `{当前项目}/.claude/furina.json`
 
 ---
 
 ## CLI 命令参考
 
-### `openpowers init`
+### `furina init`
 
 ```bash
-openpowers init
+furina init
 ```
 
-初始化 OpenPowers 插件。自动完成插件安装和 UI 服务启动，安装后可直接使用 `/openpowers:workflow`。
+初始化 Furina 插件。自动完成插件安装和 UI 服务启动，安装后可直接使用 `/furina:workflow`。
 
 ---
 
-### `openpowers ui`
+### `furina ui`
 
 ```bash
 # 启动 UI 管理面板
-openpowers ui
+furina ui
 
 # 重启 UI 管理面板
-openpowers ui --restart
+furina ui --restart
 ```
 
-在 `http://localhost:3939/openpowers/ui` 启动 Web 管理面板。`--restart` 会先终止已有进程再重新启动。
+在 `http://localhost:3939/furina/ui` 启动 Web 管理面板。`--restart` 会先终止已有进程再重新启动。
 
 ---
 
-### `openpowers launch`
+### `furina launch`
 
 ```bash
-openpowers launch
+furina launch
 ```
 
-在后台启动 OpenPowers 后端服务，不打开浏览器。若服务已在运行则提示。
+在后台启动 Furina 后端服务，不打开浏览器。若服务已在运行则提示。
 
 ---
 
-### `openpowers active`
+### `furina active`
 
 ```bash
-openpowers active
+furina active
 ```
 
 探测后端服务状态。若服务已在运行，输出 "active"；若未运行，自动启动服务（自愈机制）。
 
 ---
 
-### `openpowers enable`
+### `furina enable`
 
 ```bash
-openpowers enable
+furina enable
 ```
 
 启用 Anthropic API 代理。自动同步 Claude Code 设置，将所有 API 请求路由至本地代理。
 
 ---
 
-### `openpowers disable`
+### `furina disable`
 
 ```bash
-openpowers disable
+furina disable
 ```
 
 禁用代理，恢复原始 Claude Code 设置或回退至直接供应商配置。
 
 ---
 
-### `openpowers remove`
+### `furina remove`
 
 ```bash
 # 交互式卸载
-openpowers remove
+furina remove
 
 # 跳过确认
-openpowers remove -y
+furina remove -y
 ```
 
-卸载 OpenPowers 插件及其所有配置。
+卸载 Furina 插件及其所有配置。
 
 ---
 
-### `openpowers recover`
+### `furina recover`
 
 ```bash
-openpowers recover
+furina recover
 ```
 
 当 Claude Code 配置出现问题时，恢复默认设置。
 
 ---
 
-### `openpowers config`
+### `furina config`
 
 ```bash
 # 查看完整配置（合并默认+项目覆盖）
-openpowers config list
+furina config list
 
 # 按路径查询
-openpowers config show language
-openpowers config show project.sourcecode
-openpowers config show project.codebase
-openpowers config show exploration.repository
-openpowers config show codebases
+furina config show language
+furina config show project.sourcecode
+furina config show project.codebase
+furina config show exploration.repository
+furina config show codebases
 
 # 一键应用功能预设（lite / standard / max）
-openpowers config mode standard
+furina config mode standard
 
 # 写入配置（自动推断类型：字符串、数字、布尔）
-openpowers config set experimental.review.code true
-openpowers config set language english --global
+furina config set experimental.review.code true
+furina config set language english --global
 ```
 
 `config show codebases` 是虚拟键，自动将 `project.codebase.path` 和 `exploration.codebase` 合并为一个统一列表。
 
 `config mode` 预设：
-| 模式 | explore | openpowers review | specs review | code review |
+| 模式 | explore | furina review | specs review | code review |
 |------|---------|-------------------|--------------|-------------|
 | `lite` | 关闭 | 关闭 | 关闭 | 关闭 |
 | `standard` | 开启 | 关闭 | 关闭 | 开启 |
@@ -386,78 +386,78 @@ openpowers config set language english --global
 
 ---
 
-### `openpowers agents`
+### `furina agents`
 
 ```bash
 # 列出所有模型供应商（表格）
-openpowers agents list
+furina agents list
 
 # 查看会话的阶段-模型映射
-openpowers agents list --session <session-id>
+furina agents list --session <session-id>
 
 # 查看某阶段使用的模型
-openpowers agents show plan --session <session-id>
+furina agents show plan --session <session-id>
 
 # 全局切换供应商（按供应商名或模型名）
-openpowers agents switch DeepSeek
+furina agents switch DeepSeek
 
 # 会话级切换
-openpowers agents switch kimi2.6 --session <session-id>
+furina agents switch kimi2.6 --session <session-id>
 
 # 初始化会话设置
-openpowers agents init --session <session-id> --cwd /path/to/project
+furina agents init --session <session-id> --cwd /path/to/project
   [--change <change-name>] [--prompt <text>]
 ```
 
 ---
 
-### `openpowers change`
+### `furina change`
 
 ```bash
 # 列出所有活跃变更及其进度
-openpowers change list
+furina change list
 
 # 创建新变更
-openpowers change new my-feature --desc "添加用户登录功能"
+furina change new my-feature --desc "添加用户登录功能"
 
 # 查看变更状态
-openpowers change status my-feature
+furina change status my-feature
 
 # 获取制品生成指令
-openpowers change instruction my-feature --proposal
+furina change instruction my-feature --proposal
 
 # 管理功能生命周期
-openpowers change feature my-feature --status
-openpowers change feature my-feature --next
-openpowers change feature my-feature --start feat-1
-openpowers change feature my-feature --complete feat-1
+furina change feature my-feature --status
+furina change feature my-feature --next
+furina change feature my-feature --start feat-1
+furina change feature my-feature --complete feat-1
 
 # 更新阶段进度（由 Hook 调用）
-openpowers change stage explore --session <id> --status done --title "探索结果"
+furina change stage explore --session <id> --status done --title "探索结果"
 
 # 归档已完成变更
-openpowers change archive my-feature
+furina change archive my-feature
 ```
 
 ---
 
-### `openpowers schedule`
+### `furina schedule`
 
 ```bash
 # 重启 cron 调度器
-openpowers schedule restart
+furina schedule restart
 
 # 停止 cron 调度器
-openpowers schedule stop
+furina schedule stop
 ```
 
-需要在 OpenPowers 后端服务运行的状态下使用。
+需要在 Furina 后端服务运行的状态下使用。
 
 ---
 
 ## 工作流详解
 
-`/openpowers:workflow` 提供从创意到交付的 6 阶段完整开发流程：
+`/furina:workflow` 提供从创意到交付的 6 阶段完整开发流程：
 
 ```
 创意 → 1.Explore → 2.Propose → 3.Plan → 4.Review → 5.SDD → 6.Finalize
@@ -465,7 +465,7 @@ openpowers schedule stop
 
 ### 阶段 1：Explore（探索）
 
-使用 `openpowers-explore` 技能根据 `exploreType` 并发分派多个探索子代理，深入调查项目的代码结构、参考文档、仓库资料、已有规格等。
+使用 `furina-explore` 技能根据 `exploreType` 并发分派多个探索子代理，深入调查项目的代码结构、参考文档、仓库资料、已有规格等。
 
 **产出**：探索结果写入 `explore-design/` 目录
 
@@ -475,7 +475,7 @@ openpowers schedule stop
 
 ### 阶段 2：Propose（提案）
 
-先使用 `openpowers-brainstorm` 进行需求头脑风暴与对齐，然后使用 `openpowers-propose` 一键生成完整提案制品：
+先使用 `furina-brainstorm` 进行需求头脑风暴与对齐，然后使用 `furina-propose` 一键生成完整提案制品：
 - `proposal.md` — 变更的目的、范围和影响
 - `design.md` — 技术设计决策
 - `specs/**/*.md` — 详细功能规格说明
@@ -498,9 +498,9 @@ openpowers schedule stop
 
 ---
 
-### 阶段 4：Review OpenPowers Artifacts（审查制品）
+### 阶段 4：Review Furina Artifacts（审查制品）
 
-使用 `openpowers-review` 技能审查提案、设计、规格和计划的完整性与可行性。
+使用 `furina-review` 技能审查提案、设计、规格和计划的完整性与可行性。
 
 **产出**：审查反馈与修改建议
 
@@ -510,7 +510,7 @@ openpowers schedule stop
 
 ### 阶段 5：SDD — 子代理驱动开发
 
-使用 `openpowers-sdd` 技能，按 `plan.json` 中的特征（Feature）列表，依拓扑顺序为每个特征独立分派实现子代理。每个子代理内部强制执行 `openpowers-tdd`（先写测试再写实现），并经过**规格合规审查**和**代码质量审查**两阶段复审。
+使用 `furina-sdd` 技能，按 `plan.json` 中的特征（Feature）列表，依拓扑顺序为每个特征独立分派实现子代理。每个子代理内部强制执行 `furina-tdd`（先写测试再写实现），并经过**规格合规审查**和**代码质量审查**两阶段复审。
 
 **产出**：测试用例 + 实现代码 + 审查通过报告
 
@@ -520,7 +520,7 @@ openpowers schedule stop
 
 ### 阶段 6：Finalize（收尾）
 
-使用 `openpowers-finalize` 技能自动完成：
+使用 `furina-finalize` 技能自动完成：
 - 集成测试
 - Codebase 文档同步
 - 变更归档
@@ -538,9 +538,9 @@ openpowers schedule stop
 
 ## 配置系统
 
-OpenPowers 支持全局默认配置和项目级覆盖配置：
+Furina 支持全局默认配置和项目级覆盖配置：
 
-- **项目配置**：在项目根目录的 `.claude/openpowers.json` 中编写，仅对当前项目生效
+- **项目配置**：在项目根目录的 `.claude/furina.json` 中编写，仅对当前项目生效
 - **默认配置**：未在项目配置中覆盖的项，自动使用全局默认值
 
 ### 配置项参考
@@ -576,8 +576,8 @@ OpenPowers 支持全局默认配置和项目级覆盖配置：
     "repository": [                // 探索时参考的项目仓库列表
       {
         "type": "directory",
-        "path": "./openpowers/",
-        "description": "OpenPowers 制品目录，用于跨变更全局历史参考"
+        "path": "./furina/",
+        "description": "Furina 制品目录，用于跨变更全局历史参考"
       }
     ],
     "reference": [],               // 探索时参考的外部资料列表
@@ -590,7 +590,7 @@ OpenPowers 支持全局默认配置和项目级覆盖配置：
     "websearch": true,             // 是否开启 Web 搜索
     "context7": true,              // 是否开启 Context7
     "review": {
-      "openpowers": false,         // 是否审查 OpenPowers 制品
+      "furina": false,         // 是否审查 Furina 制品
       "propose": false,            // 是否开启提案审查
       "plan": false,               // 是否开启计划审查
       "specs": false,              // 是否开启规格审查
@@ -628,4 +628,4 @@ OpenPowers 支持全局默认配置和项目级覆盖配置：
 
 ---
 
-*OpenPowers — 让 Claude Code 拥有同一会话多供应商模型切换调度能力，用结构化工作流交付高质量代码。*
+*Furina — 让 Claude Code 拥有同一会话多供应商模型切换调度能力，用结构化工作流交付高质量代码。*

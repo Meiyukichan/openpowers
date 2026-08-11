@@ -42,7 +42,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   isPortInUseMock.mockResolvedValue(false);
-  startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
+  startBackendServiceMock.mockReturnValue('http://localhost:3939/furina/ui');
 });
 
 // ---- test suites ----
@@ -62,7 +62,7 @@ describe('registerActiveCommand', () => {
 
   it('should show active in program help output', () => {
     const program = new Command();
-    program.name('openpowers');
+    program.name('furina');
     registerActiveCommand(program);
 
     // Capture help output and verify it contains "active"
@@ -83,7 +83,7 @@ describe('registerActiveCommand', () => {
 });
 
 describe('runActive', () => {
-  it('should write "OpenPowers service is active" to stdout when port is occupied', async () => {
+  it('should write "Furina service is active" to stdout when port is occupied', async () => {
     isPortInUseMock.mockResolvedValue(true);
 
     const stdoutSpy = vi.spyOn(process.stdout, 'write');
@@ -98,13 +98,13 @@ describe('runActive', () => {
       const stdoutCalls = stdoutSpy.mock.calls
         .map((call) => String(call[0]))
         .join('');
-      expect(stdoutCalls).toContain('OpenPowers service is active');
+      expect(stdoutCalls).toContain('Furina service is active');
 
       // stderr should NOT contain the starting message in this path
       const stderrCalls = stderrSpy.mock.calls
         .map((call) => String(call[0]))
         .join('');
-      expect(stderrCalls).not.toContain('OpenPowers service is starting');
+      expect(stderrCalls).not.toContain('Furina service is starting');
     } finally {
       stdoutSpy.mockRestore();
       stderrSpy.mockRestore();
@@ -131,13 +131,13 @@ describe('runActive', () => {
       const stderrCalls = stderrSpy.mock.calls
         .map((call) => String(call[0]))
         .join('');
-      expect(stderrCalls).toContain('OpenPowers service is starting, please exit the workflow and retry');
+      expect(stderrCalls).toContain('Furina service is starting, please exit the workflow and retry');
 
       // stdout should NOT contain the "active" message in this path
       const stdoutCalls = stdoutSpy.mock.calls
         .map((call) => String(call[0]))
         .join('');
-      expect(stdoutCalls).not.toContain('OpenPowers service is active');
+      expect(stdoutCalls).not.toContain('Furina service is active');
 
       // Restore exitCode
       process.exitCode = originalExitCode;
@@ -189,7 +189,7 @@ describe('runActive', () => {
 
       // Test port free path
       isPortInUseMock.mockResolvedValue(false);
-      startBackendServiceMock.mockReturnValue('http://localhost:3939/openpowers/ui');
+      startBackendServiceMock.mockReturnValue('http://localhost:3939/furina/ui');
       await runActive();
       expect(exitSpy).not.toHaveBeenCalled();
     } finally {

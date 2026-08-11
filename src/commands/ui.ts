@@ -49,7 +49,7 @@ export async function runUi(options: { restart?: boolean }): Promise<void> {
   const portInUse = await isPortInUse(port);
   if (portInUse) {
     logger.info('UI server already running, opening browser');
-    const url = `http://localhost:${port}/openpowers/ui`;
+    const url = `http://localhost:${port}/furina/ui`;
     openBrowser(url);
     process.stdout.write(`UI server is already running at ${url}\n`);
     return;
@@ -66,7 +66,7 @@ export async function runUi(options: { restart?: boolean }): Promise<void> {
 export function registerUiCommand(program: Command): void {
   program
     .command('ui')
-    .description('Start the openpowers UI server and open in browser')
+    .description('Start the furina UI server and open in browser')
     .option('--restart', 'Force restart the UI server, killing any existing process on port 3939')
     .action(async (options: { restart?: boolean }) => {
       try {

@@ -1,6 +1,6 @@
 /**
  * MCP marker service providing propose-phase boundary tools.
- * Mounted at /openpowers/mcp in createApp() before the proxy catch-all.
+ * Mounted at /furina/mcp in createApp() before the proxy catch-all.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -16,11 +16,11 @@ import { logger } from '../../utils/logger.js';
 
 /** Text marker returned by the markBeginPropose tool. */
 export const MARK_BEGIN_PROPOSE_TEXT =
-  "[MARK_OPENPOWERS_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.";
+  "[MARK_FURINA_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.";
 
 /** Text marker returned by the markEndPropose tool. */
 export const MARK_END_PROPOSE_TEXT =
-  "[MARK_OPENPOWERS_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.";
+  "[MARK_FURINA_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.";
 
 // ---------------------------------------------------------------------------
 // Tool handlers
@@ -61,7 +61,7 @@ export function handleMarkEndPropose(): { content: Array<{ type: 'text'; text: s
  */
 function createMcpServer(): McpServer {
   const server = new McpServer({
-    name: 'openpowers-marker-service',
+    name: 'furina-marker-service',
     version: '1.0.0',
   });
 
@@ -93,7 +93,7 @@ export const mcpRouter: express.Router = express.default.Router();
 mcpRouter.all('/', (req, res, next) => {
   if (req.method !== 'POST') {
     res.status(405).json({
-      error: `Method ${req.method} not allowed on /openpowers/mcp. Use POST.`,
+      error: `Method ${req.method} not allowed on /furina/mcp. Use POST.`,
     });
     return;
   }

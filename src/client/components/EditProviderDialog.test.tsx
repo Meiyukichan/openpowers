@@ -187,7 +187,7 @@ describe('EditProviderDialog', () => {
       expect(onSuccess).toHaveBeenCalledOnce();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/openpowers/api/providers/test-id-1',
+      '/furina/api/providers/test-id-1',
       expect.objectContaining({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -274,7 +274,7 @@ describe('EditProviderDialog', () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-a', 'model-b', 'model-c'] }) } as Response;
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
@@ -301,7 +301,7 @@ describe('EditProviderDialog', () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Authentication failed: invalid API key' }) } as Response;
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
@@ -328,7 +328,7 @@ describe('EditProviderDialog', () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-x'] }) } as Response;
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;
@@ -356,7 +356,7 @@ describe('EditProviderDialog', () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         throw new Error('Network error');
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) } as Response;

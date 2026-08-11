@@ -1,6 +1,6 @@
 /**
- * @fileoverview Init command - initializes openpowers by configuring
- * claude plugin marketplace and installing the openpowers plugin
+ * @fileoverview Init command - initializes furina by configuring
+ * claude plugin marketplace and installing the furina plugin
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -15,14 +15,14 @@ import { logger } from '../utils/logger.js';
 import { runUi } from './ui.js';
 
 /**
- * Runs the five-step initialization flow for openpowers and auto-starts the UI.
+ * Runs the five-step initialization flow for furina and auto-starts the UI.
  *
  * Steps:
  * 1. Check claude --version (fatal on failure)
  * 2. Uninstall old plugin (error-tolerant)
  * 3. Remove old marketplace (error-tolerant)
  * 4. Add marketplace as marketplace (fatal on failure)
- * 5. Install openpowers plugin (fatal on failure)
+ * 5. Install furina plugin (fatal on failure)
  * 6. Auto-start the UI server after successful plugin installation
  *
  * Each step displays an ora spinner with chalk status indicators.
@@ -45,9 +45,9 @@ export async function runInit(): Promise<void> {
   }
 
   // Step 2: Uninstall old plugin (error-tolerant)
-  const step2 = ora('Removing old openpowers plugin...').start();
+  const step2 = ora('Removing old furina plugin...').start();
   try {
-    execSync('claude plugin uninstall openpowers@openpowers-plugins', {
+    execSync('claude plugin uninstall furina@furina-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });
@@ -61,7 +61,7 @@ export async function runInit(): Promise<void> {
   // Step 3: Remove old marketplace (error-tolerant)
   const step3 = ora('Removing old marketplace...').start();
   try {
-    execSync('claude plugin marketplace remove openpowers-plugins', {
+    execSync('claude plugin marketplace remove furina-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });
@@ -91,26 +91,26 @@ export async function runInit(): Promise<void> {
     process.exit(1);
   }
 
-  // Step 5: Install openpowers plugin
-  const step5 = ora('Installing openpowers plugin...').start();
+  // Step 5: Install furina plugin
+  const step5 = ora('Installing furina plugin...').start();
   try {
-    execSync('claude plugin install openpowers@openpowers-plugins', {
+    execSync('claude plugin install furina@furina-plugins', {
       stdio: 'pipe',
       cwd: process.cwd(),
     });
-    step5.succeed(chalk.green('OpenPowers initialized successfully!'));
+    step5.succeed(chalk.green('Furina initialized successfully!'));
     logger.info('Plugin installed successfully');
-    process.stdout.write('OpenPowers UI is starting...\n');
+    process.stdout.write('Furina UI is starting...\n');
 
     // Auto-start UI after successful plugin installation
     try {
       await runUi({ restart: true });
     } catch (err) {
       logger.error(`UI auto-start failed after init: ${err instanceof Error ? err.message : String(err)}`);
-      process.stdout.write(`OpenPowers UI failed to start: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.stdout.write(`Furina UI failed to start: ${err instanceof Error ? err.message : String(err)}\n`);
     }
   } catch (err) {
-    step5.fail(chalk.red('Failed to install openpowers plugin'));
+    step5.fail(chalk.red('Failed to install furina plugin'));
     logger.error(`Plugin install failed: ${err}`);
     process.exit(1);
   }
@@ -123,7 +123,7 @@ export async function runInit(): Promise<void> {
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Initialize openpowers in the current project')
+    .description('Initialize furina in the current project')
     .action(async () => {
       try {
         await runInit();

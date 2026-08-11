@@ -22,8 +22,8 @@ const {
   setNeverClaudeSettingsMock,
   getProviderByIdMock,
   getActiveProviderMock,
-  getEnableOpenpowersProxyMock,
-  setEnableOpenpowersProxyMock,
+  getEnableFurinaProxyMock,
+  setEnableFurinaProxyMock,
   clearActiveProviderIdMock,
 } = vi.hoisted(() => ({
   loadProvidersMock: vi.fn(),
@@ -37,8 +37,8 @@ const {
   setNeverClaudeSettingsMock: vi.fn(),
   getProviderByIdMock: vi.fn(),
   getActiveProviderMock: vi.fn(),
-  getEnableOpenpowersProxyMock: vi.fn(),
-  setEnableOpenpowersProxyMock: vi.fn(),
+  getEnableFurinaProxyMock: vi.fn(),
+  setEnableFurinaProxyMock: vi.fn(),
   clearActiveProviderIdMock: vi.fn(),
 }));
 
@@ -105,8 +105,8 @@ vi.mock('../providers-store.js', async (importOriginal) => {
     setNeverClaudeSettings: setNeverClaudeSettingsMock,
     getProviderById: getProviderByIdMock,
     getActiveProvider: getActiveProviderMock,
-    getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
-    setEnableOpenpowersProxy: setEnableOpenpowersProxyMock,
+    getEnableFurinaProxy: getEnableFurinaProxyMock,
+    setEnableFurinaProxy: setEnableFurinaProxyMock,
     clearActiveProviderId: clearActiveProviderIdMock,
   };
 });
@@ -167,7 +167,7 @@ describe('Provider Routes', () => {
     const mod = await import('./providers.js');
     const router = mod.providersRouter;
     app = createApp();
-    app.use('/openpowers/api/providers', router);
+    app.use('/furina/api/providers', router);
   });
 
   beforeEach(() => {
@@ -175,7 +175,7 @@ describe('Provider Routes', () => {
     loadProvidersMock.mockReturnValue([sampleProvider]);
     readProviderTemplatesMock.mockReturnValue([]);
     getNeverClaudeSettingsMock.mockReturnValue(true);
-    getEnableOpenpowersProxyMock.mockReturnValue(false);
+    getEnableFurinaProxyMock.mockReturnValue(false);
     getActiveProviderIdMock.mockReturnValue(null);
     getProviderByIdMock.mockReturnValue(sampleProvider);
     getProviderEnvMock.mockReturnValue(sampleProviderEnv);
@@ -183,13 +183,13 @@ describe('Provider Routes', () => {
     restoreClaudeSettingsMock.mockReturnValue(true);
   });
 
-  // ---- GET /openpowers/api/providers ----
+  // ---- GET /furina/api/providers ----
 
-  describe('GET /openpowers/api/providers', () => {
+  describe('GET /furina/api/providers', () => {
     it('should return JSON array of all providers with 200', async () => {
       loadProvidersMock.mockReturnValue([sampleProvider]);
 
-      const res = await request(app).get('/openpowers/api/providers');
+      const res = await request(app).get('/furina/api/providers');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual([sampleProvider]);
@@ -198,21 +198,21 @@ describe('Provider Routes', () => {
     it('should return empty array when no providers', async () => {
       loadProvidersMock.mockReturnValue([]);
 
-      const res = await request(app).get('/openpowers/api/providers');
+      const res = await request(app).get('/furina/api/providers');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual([]);
     });
   });
 
-  // ---- POST /openpowers/api/providers ----
+  // ---- POST /furina/api/providers ----
 
-  describe('POST /openpowers/api/providers', () => {
+  describe('POST /furina/api/providers', () => {
     it('should create provider with UUID and return 201', async () => {
       createProviderMock.mockReturnValue(sampleProvider);
 
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           name: 'Test',
           apiKey: 'sk-test',
@@ -237,7 +237,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when name is missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           apiKey: 'sk-test',
           defaultModel: 'dm',
@@ -255,7 +255,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when apiKey is missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           name: 'Test',
           defaultModel: 'dm',
@@ -271,7 +271,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when model fields are missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({ name: 'Test', apiKey: 'sk-test' });
 
       expect(res.status).toBe(400);
@@ -285,7 +285,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           name: 'Test Provider',
           apiKey: 'sk-test',
@@ -308,7 +308,7 @@ describe('Provider Routes', () => {
       }));
 
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           name: 'anthropic',
           apiKey: 'sk-test',
@@ -329,7 +329,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers')
+        .post('/furina/api/providers')
         .send({
           name: 'Test',
           apiKey: 'sk-test',
@@ -344,15 +344,15 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- PUT /openpowers/api/providers/:id ----
+  // ---- PUT /furina/api/providers/:id ----
 
-  describe('PUT /openpowers/api/providers/:id', () => {
+  describe('PUT /furina/api/providers/:id', () => {
     it('should update provider and return updated provider', async () => {
       const updated = { ...sampleProvider, name: 'Updated' };
       updateProviderMock.mockReturnValue(updated);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' });
 
       expect(res.status).toBe(200);
@@ -369,7 +369,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .put('/openpowers/api/providers/non-existent')
+        .put('/furina/api/providers/non-existent')
         .send({ name: 'Updated' });
 
       expect(res.status).toBe(404);
@@ -378,7 +378,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when body contains invalid types', async () => {
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 123 });
 
       expect(res.status).toBe(400);
@@ -388,12 +388,12 @@ describe('Provider Routes', () => {
 
     it('should sync Claude settings when editing active provider with proxy disabled', async () => {
       getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const updated = { ...sampleProvider, name: 'Updated' };
       updateProviderMock.mockReturnValue(updated);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' });
 
       expect(res.status).toBe(200);
@@ -404,12 +404,12 @@ describe('Provider Routes', () => {
 
     it('should not sync Claude settings when editing active provider with proxy enabled', async () => {
       getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
       const updated = { ...sampleProvider, name: 'Updated' };
       updateProviderMock.mockReturnValue(updated);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' });
 
       expect(res.status).toBe(200);
@@ -419,12 +419,12 @@ describe('Provider Routes', () => {
 
     it('should not sync Claude settings when editing an inactive provider', async () => {
       getActiveProviderIdMock.mockReturnValue('different-provider-id');
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const updated = { ...sampleProvider, name: 'Updated' };
       updateProviderMock.mockReturnValue(updated);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' });
 
       expect(res.status).toBe(200);
@@ -433,14 +433,14 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- DELETE /openpowers/api/providers/:id ----
+  // ---- DELETE /furina/api/providers/:id ----
 
-  describe('DELETE /openpowers/api/providers/:id', () => {
+  describe('DELETE /furina/api/providers/:id', () => {
     it('should delete provider and return 204', async () => {
       deleteProviderMock.mockReturnValue(true);
 
       const res = await request(app).delete(
-        '/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000',
+        '/furina/api/providers/550e8400-e29b-41d4-a716-446655440000',
       );
 
       expect(res.status).toBe(204);
@@ -450,7 +450,7 @@ describe('Provider Routes', () => {
     it('should return 404 when provider ID does not exist', async () => {
       deleteProviderMock.mockReturnValue(false);
 
-      const res = await request(app).delete('/openpowers/api/providers/non-existent');
+      const res = await request(app).delete('/furina/api/providers/non-existent');
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
@@ -459,10 +459,10 @@ describe('Provider Routes', () => {
     it('should restore Claude settings when deleting active provider with proxy disabled', async () => {
       const providerId = '550e8400-e29b-41d4-a716-446655440000';
       getActiveProviderIdMock.mockReturnValue(providerId);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       deleteProviderMock.mockReturnValue(true);
 
-      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+      const res = await request(app).delete(`/furina/api/providers/${providerId}`);
 
       expect(res.status).toBe(204);
       expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
@@ -471,10 +471,10 @@ describe('Provider Routes', () => {
     it('should not restore Claude settings when deleting active provider with proxy enabled', async () => {
       const providerId = '550e8400-e29b-41d4-a716-446655440000';
       getActiveProviderIdMock.mockReturnValue(providerId);
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
       deleteProviderMock.mockReturnValue(true);
 
-      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+      const res = await request(app).delete(`/furina/api/providers/${providerId}`);
 
       expect(res.status).toBe(204);
       expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
@@ -483,10 +483,10 @@ describe('Provider Routes', () => {
     it('should not restore Claude settings when deleting an inactive provider', async () => {
       const providerId = '550e8400-e29b-41d4-a716-446655440000';
       getActiveProviderIdMock.mockReturnValue('different-provider-id');
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       deleteProviderMock.mockReturnValue(true);
 
-      const res = await request(app).delete(`/openpowers/api/providers/${providerId}`);
+      const res = await request(app).delete(`/furina/api/providers/${providerId}`);
 
       expect(res.status).toBe(204);
       expect(restoreClaudeSettingsMock).not.toHaveBeenCalled();
@@ -494,10 +494,10 @@ describe('Provider Routes', () => {
 
     it('should return 404 without side effects when deleting a non-existent provider', async () => {
       getActiveProviderIdMock.mockReturnValue('550e8400-e29b-41d4-a716-446655440000');
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       deleteProviderMock.mockReturnValue(false);
 
-      const res = await request(app).delete('/openpowers/api/providers/non-existent-id');
+      const res = await request(app).delete('/furina/api/providers/non-existent-id');
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
@@ -505,15 +505,15 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- GET /openpowers/api/providers/active ----
+  // ---- GET /furina/api/providers/active ----
 
-  describe('GET /openpowers/api/providers/active', () => {
+  describe('GET /furina/api/providers/active', () => {
     it('should return activeProviderId when set', async () => {
       getActiveProviderIdMock.mockReturnValue(
         '550e8400-e29b-41d4-a716-446655440000',
       );
 
-      const res = await request(app).get('/openpowers/api/providers/active');
+      const res = await request(app).get('/furina/api/providers/active');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -524,21 +524,21 @@ describe('Provider Routes', () => {
     it('should return null when no active provider is set', async () => {
       getActiveProviderIdMock.mockReturnValue(null);
 
-      const res = await request(app).get('/openpowers/api/providers/active');
+      const res = await request(app).get('/furina/api/providers/active');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ activeProviderId: null });
     });
   });
 
-  // ---- PUT /openpowers/api/providers/active ----
+  // ---- PUT /furina/api/providers/active ----
 
-  describe('PUT /openpowers/api/providers/active', () => {
+  describe('PUT /furina/api/providers/active', () => {
     it('should set active provider and return 200', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(200);
@@ -552,7 +552,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when providerId is missing', async () => {
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({});
 
       expect(res.status).toBe(400);
@@ -565,7 +565,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: 'non-existent' });
 
       expect(res.status).toBe(404);
@@ -575,10 +575,10 @@ describe('Provider Routes', () => {
     it('should write provider env when proxy is off and neverClaudeSettings is true (first write)', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
       getNeverClaudeSettingsMock.mockReturnValue(true);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(200);
@@ -592,10 +592,10 @@ describe('Provider Routes', () => {
     it('should write provider env when proxy is off and neverClaudeSettings is false (subsequent write)', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
       getNeverClaudeSettingsMock.mockReturnValue(false);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(200);
@@ -607,10 +607,10 @@ describe('Provider Routes', () => {
     it('should write proxy env when proxy is on', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
       getNeverClaudeSettingsMock.mockReturnValue(false);
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(200);
@@ -620,10 +620,10 @@ describe('Provider Routes', () => {
     it('should backup and write proxy env on first write when proxy is on', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
       getNeverClaudeSettingsMock.mockReturnValue(true);
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(200);
@@ -635,13 +635,13 @@ describe('Provider Routes', () => {
     it('should return 500 when sync write fails (not 404)', async () => {
       setActiveProviderIdMock.mockReturnValue(undefined);
       getNeverClaudeSettingsMock.mockReturnValue(false);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       writeEnvToClaudeSettingsMock.mockImplementationOnce(() => {
         throw new Error('Disk write failed');
       });
 
       const res = await request(app)
-        .put('/openpowers/api/providers/active')
+        .put('/furina/api/providers/active')
         .send({ providerId: '550e8400-e29b-41d4-a716-446655440000' });
 
       expect(res.status).toBe(500);
@@ -649,19 +649,19 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- PUT /openpowers/api/providers/proxy ----
+  // ---- PUT /furina/api/providers/proxy ----
 
-  describe('PUT /openpowers/api/providers/proxy', () => {
+  describe('PUT /furina/api/providers/proxy', () => {
     it('should enable proxy, backup on first write, and write proxy env', async () => {
       getNeverClaudeSettingsMock.mockReturnValue(true);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
-        .send({ enableOpenpowersProxy: true });
+        .put('/furina/api/providers/proxy')
+        .send({ enableFurinaProxy: true });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ enableOpenpowersProxy: true });
-      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(true);
+      expect(res.body).toEqual({ enableFurinaProxy: true });
+      expect(setEnableFurinaProxyMock).toHaveBeenCalledWith(true);
       expect(backupClaudeSettingsMock).toHaveBeenCalledOnce();
       expect(setNeverClaudeSettingsMock).toHaveBeenCalledWith(false);
       expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
@@ -671,11 +671,11 @@ describe('Provider Routes', () => {
       getNeverClaudeSettingsMock.mockReturnValue(false);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
-        .send({ enableOpenpowersProxy: true });
+        .put('/furina/api/providers/proxy')
+        .send({ enableFurinaProxy: true });
 
       expect(res.status).toBe(200);
-      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(true);
+      expect(setEnableFurinaProxyMock).toHaveBeenCalledWith(true);
       expect(backupClaudeSettingsMock).not.toHaveBeenCalled();
       expect(setNeverClaudeSettingsMock).not.toHaveBeenCalled();
       expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProxyEnv);
@@ -685,12 +685,12 @@ describe('Provider Routes', () => {
       getActiveProviderMock.mockReturnValue(sampleProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
-        .send({ enableOpenpowersProxy: false });
+        .put('/furina/api/providers/proxy')
+        .send({ enableFurinaProxy: false });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ enableOpenpowersProxy: false });
-      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(false);
+      expect(res.body).toEqual({ enableFurinaProxy: false });
+      expect(setEnableFurinaProxyMock).toHaveBeenCalledWith(false);
       expect(getActiveProviderMock).toHaveBeenCalled();
       expect(getProviderEnvMock).toHaveBeenCalledWith(sampleProvider);
       expect(writeEnvToClaudeSettingsMock).toHaveBeenCalledWith(sampleProviderEnv);
@@ -701,18 +701,18 @@ describe('Provider Routes', () => {
       restoreClaudeSettingsMock.mockReturnValue(true);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
-        .send({ enableOpenpowersProxy: false });
+        .put('/furina/api/providers/proxy')
+        .send({ enableFurinaProxy: false });
 
       expect(res.status).toBe(200);
-      expect(setEnableOpenpowersProxyMock).toHaveBeenCalledWith(false);
+      expect(setEnableFurinaProxyMock).toHaveBeenCalledWith(false);
       expect(restoreClaudeSettingsMock).toHaveBeenCalledOnce();
       expect(writeEnvToClaudeSettingsMock).not.toHaveBeenCalled();
     });
 
-    it('should return 400 when enableOpenpowersProxy is missing', async () => {
+    it('should return 400 when enableFurinaProxy is missing', async () => {
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
+        .put('/furina/api/providers/proxy')
         .send({});
 
       expect(res.status).toBe(400);
@@ -726,21 +726,21 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .put('/openpowers/api/providers/proxy')
-        .send({ enableOpenpowersProxy: true });
+        .put('/furina/api/providers/proxy')
+        .send({ enableFurinaProxy: true });
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'Failed to update proxy settings' });
     });
   });
 
-  // ---- POST /openpowers/api/providers/reset ----
+  // ---- POST /furina/api/providers/reset ----
 
-  describe('POST /openpowers/api/providers/reset', () => {
+  describe('POST /furina/api/providers/reset', () => {
     it('should restore backup and clear active provider', async () => {
       restoreClaudeSettingsMock.mockReturnValue(true);
 
-      const res = await request(app).post('/openpowers/api/providers/reset');
+      const res = await request(app).post('/furina/api/providers/reset');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ activeProviderId: null });
@@ -751,7 +751,7 @@ describe('Provider Routes', () => {
     it('should clear active provider even when backup is missing', async () => {
       restoreClaudeSettingsMock.mockReturnValue(false);
 
-      const res = await request(app).post('/openpowers/api/providers/reset');
+      const res = await request(app).post('/furina/api/providers/reset');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ activeProviderId: null });
@@ -764,7 +764,7 @@ describe('Provider Routes', () => {
         throw new Error('Disk read failed');
       });
 
-      const res = await request(app).post('/openpowers/api/providers/reset');
+      const res = await request(app).post('/furina/api/providers/reset');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ activeProviderId: null });
@@ -778,16 +778,16 @@ describe('Provider Routes', () => {
         throw new Error('Config write failed');
       });
 
-      const res = await request(app).post('/openpowers/api/providers/reset');
+      const res = await request(app).post('/furina/api/providers/reset');
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'Failed to clear active provider' });
     });
   });
 
-  // ---- GET /openpowers/api/providers/templates ----
+  // ---- GET /furina/api/providers/templates ----
 
-  describe('GET /openpowers/api/providers/templates', () => {
+  describe('GET /furina/api/providers/templates', () => {
     const sampleTemplate = {
       name: 'Claude Official',
       websiteUrl: 'https://www.anthropic.com/claude-code',
@@ -803,7 +803,7 @@ describe('Provider Routes', () => {
     it('should return template array with 200', async () => {
       readProviderTemplatesMock.mockReturnValue([sampleTemplate]);
 
-      const res = await request(app).get('/openpowers/api/providers/templates');
+      const res = await request(app).get('/furina/api/providers/templates');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual([sampleTemplate]);
@@ -812,16 +812,16 @@ describe('Provider Routes', () => {
     it('should return empty array when no templates exist', async () => {
       readProviderTemplatesMock.mockReturnValue([]);
 
-      const res = await request(app).get('/openpowers/api/providers/templates');
+      const res = await request(app).get('/furina/api/providers/templates');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual([]);
     });
   });
 
-  // ---- POST /openpowers/api/providers/templates ----
+  // ---- POST /furina/api/providers/templates ----
 
-  describe('POST /openpowers/api/providers/templates', () => {
+  describe('POST /furina/api/providers/templates', () => {
     const sampleTemplate = {
       name: 'New Provider',
       websiteUrl: 'https://example.com',
@@ -838,7 +838,7 @@ describe('Provider Routes', () => {
       addProviderTemplateMock.mockReturnValue(sampleTemplate);
 
       const res = await request(app)
-        .post('/openpowers/api/providers/templates')
+        .post('/furina/api/providers/templates')
         .send(sampleTemplate);
 
       expect(res.status).toBe(201);
@@ -853,7 +853,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/templates')
+        .post('/furina/api/providers/templates')
         .send(sampleTemplate);
 
       expect(res.status).toBe(409);
@@ -878,7 +878,7 @@ describe('Provider Routes', () => {
       };
 
       const res = await request(app)
-        .post('/openpowers/api/providers/templates')
+        .post('/furina/api/providers/templates')
         .send({ ...sampleTemplate, apiKey: 'sk-should-be-discarded' });
 
       expect(res.status).toBe(201);
@@ -888,7 +888,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when required fields are missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers/templates')
+        .post('/furina/api/providers/templates')
         .send({ websiteUrl: 'https://example.com' });
 
       expect(res.status).toBe(400);
@@ -897,13 +897,13 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- DELETE /openpowers/api/providers/templates/:name ----
+  // ---- DELETE /furina/api/providers/templates/:name ----
 
-  describe('DELETE /openpowers/api/providers/templates/:name', () => {
+  describe('DELETE /furina/api/providers/templates/:name', () => {
     it('should delete custom template and return 200 with success message', async () => {
       deleteProviderTemplateMock.mockReturnValue(true);
 
-      const res = await request(app).delete('/openpowers/api/providers/templates/MyTemplate');
+      const res = await request(app).delete('/furina/api/providers/templates/MyTemplate');
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('message');
@@ -916,7 +916,7 @@ describe('Provider Routes', () => {
         throw new Error('Cannot delete builtin template: "BuiltinTemplate"');
       });
 
-      const res = await request(app).delete('/openpowers/api/providers/templates/BuiltinTemplate');
+      const res = await request(app).delete('/furina/api/providers/templates/BuiltinTemplate');
 
       expect(res.status).toBe(403);
       expect(res.body).toHaveProperty('error');
@@ -926,7 +926,7 @@ describe('Provider Routes', () => {
     it('should return 404 when template name does not exist', async () => {
       deleteProviderTemplateMock.mockReturnValue(false);
 
-      const res = await request(app).delete('/openpowers/api/providers/templates/NonExistent');
+      const res = await request(app).delete('/furina/api/providers/templates/NonExistent');
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('error');
@@ -934,15 +934,15 @@ describe('Provider Routes', () => {
     });
   });
 
-  // ---- PUT /openpowers/api/providers/:id/enabled ----
+  // ---- PUT /furina/api/providers/:id/enabled ----
 
-  describe('PUT /openpowers/api/providers/:id/enabled', () => {
+  describe('PUT /furina/api/providers/:id/enabled', () => {
     it('should disable provider and return updated provider with 200', async () => {
       const disabledProvider = { ...sampleProvider, enabled: false };
       updateProviderMock.mockReturnValue(disabledProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: false });
 
       expect(res.status).toBe(200);
@@ -958,7 +958,7 @@ describe('Provider Routes', () => {
       updateProviderMock.mockReturnValue(enabledProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: true });
 
       expect(res.status).toBe(200);
@@ -975,7 +975,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .put('/openpowers/api/providers/non-existent/enabled')
+        .put('/furina/api/providers/non-existent/enabled')
         .send({ enabled: false });
 
       expect(res.status).toBe(404);
@@ -984,7 +984,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when enabled field is missing', async () => {
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({});
 
       expect(res.status).toBe(400);
@@ -993,7 +993,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when enabled field is not a boolean', async () => {
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: 'yes' });
 
       expect(res.status).toBe(400);
@@ -1002,13 +1002,13 @@ describe('Provider Routes', () => {
 
     it('should sync Claude settings when disabling active provider with proxy off', async () => {
       getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const disabledProvider = { ...sampleProvider, enabled: false };
       updateProviderMock.mockReturnValue(disabledProvider);
       getActiveProviderMock.mockReturnValue(null); // after disable, no active provider
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: false });
 
       expect(res.status).toBe(200);
@@ -1017,12 +1017,12 @@ describe('Provider Routes', () => {
 
     it('should not sync Claude settings when disabling non-active provider', async () => {
       getActiveProviderIdMock.mockReturnValue('different-provider-id');
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const disabledProvider = { ...sampleProvider, enabled: false };
       updateProviderMock.mockReturnValue(disabledProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: false });
 
       expect(res.status).toBe(200);
@@ -1032,12 +1032,12 @@ describe('Provider Routes', () => {
 
     it('should write provider env when disabling active provider with proxy on', async () => {
       getActiveProviderIdMock.mockReturnValue(sampleProvider.id);
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
       const disabledProvider = { ...sampleProvider, enabled: false };
       updateProviderMock.mockReturnValue(disabledProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: false });
 
       expect(res.status).toBe(200);
@@ -1046,21 +1046,21 @@ describe('Provider Routes', () => {
 
     it('should return 200 when enabling a disabled provider', async () => {
       getActiveProviderIdMock.mockReturnValue(null);
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const enabledProvider = { ...sampleProvider, enabled: true };
       updateProviderMock.mockReturnValue(enabledProvider);
 
       const res = await request(app)
-        .put('/openpowers/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
+        .put('/furina/api/providers/550e8400-e29b-41d4-a716-446655440000/enabled')
         .send({ enabled: true });
 
       expect(res.status).toBe(200);
     });
   });
 
-  // ---- POST /openpowers/api/providers/validate ----
+  // ---- POST /furina/api/providers/validate ----
 
-  describe('POST /openpowers/api/providers/validate', () => {
+  describe('POST /furina/api/providers/validate', () => {
     it('should return 200 with valid:true and models when upstream returns 200', async () => {
       axiosMock.mockResolvedValue({
         status: 200,
@@ -1069,7 +1069,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-valid' });
 
       expect(res.status).toBe(200);
@@ -1091,7 +1091,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.deepseek.com/anthropic', apiKey: 'sk-deepseek-valid' });
 
       expect(res.status).toBe(200);
@@ -1109,7 +1109,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-invalid' });
 
       expect(res.status).toBe(200);
@@ -1129,7 +1129,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.anthropic.com', apiKey: 'sk-ant-forbidden' });
 
       expect(res.status).toBe(200);
@@ -1148,7 +1148,7 @@ describe('Provider Routes', () => {
       });
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
 
       expect(res.status).toBe(200);
@@ -1165,7 +1165,7 @@ describe('Provider Routes', () => {
       axiosMock.mockRejectedValue(error);
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
 
       expect(res.status).toBe(200);
@@ -1181,7 +1181,7 @@ describe('Provider Routes', () => {
       axiosMock.mockRejectedValue(error);
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
 
       expect(res.status).toBe(200);
@@ -1197,7 +1197,7 @@ describe('Provider Routes', () => {
       axiosMock.mockRejectedValue(error);
 
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.example.com', apiKey: 'sk-ant-test' });
 
       expect(res.status).toBe(200);
@@ -1209,7 +1209,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when baseUrl is missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ apiKey: 'sk-ant-test' });
 
       expect(res.status).toBe(400);
@@ -1221,7 +1221,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when apiKey is missing', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.anthropic.com' });
 
       expect(res.status).toBe(400);
@@ -1234,7 +1234,7 @@ describe('Provider Routes', () => {
     it('should return 413 when request body exceeds 1kb', async () => {
       const largeString = 'x'.repeat(1024);
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({ baseUrl: 'https://api.example.com', apiKey: largeString });
 
       expect(res.status).toBe(413);
@@ -1246,7 +1246,7 @@ describe('Provider Routes', () => {
 
     it('should return 400 when body is empty', async () => {
       const res = await request(app)
-        .post('/openpowers/api/providers/validate')
+        .post('/furina/api/providers/validate')
         .send({});
 
       expect(res.status).toBe(400);

@@ -18,6 +18,7 @@ import { registerEnableCommand } from '../commands/enable.js';
 import { registerDisableCommand } from '../commands/disable.js';
 import { registerAgentsCommand } from '../commands/agents.js';
 import { registerScheduleCommand } from '../commands/schedule/index.js';
+import { registerMigrateCommand, registerAutoMigrationHook } from '../commands/migrate.js';
 
 const require = module.createRequire(import.meta.url);
 const pkg = require('../../package.json');
@@ -25,8 +26,8 @@ const pkg = require('../../package.json');
 const program = new Command();
 
 program
-  .name('openpowers')
-  .description('OpenPowers CLI - plugin-based development toolkit')
+  .name('furina')
+  .description('Furina CLI - plugin-based development toolkit')
   .version(pkg.version);
 
 registerInitCommand(program);
@@ -41,5 +42,7 @@ registerEnableCommand(program);
 registerDisableCommand(program);
 registerAgentsCommand(program);
 registerScheduleCommand(program);
+registerMigrateCommand(program);
+registerAutoMigrationHook(program);
 
 export { program };

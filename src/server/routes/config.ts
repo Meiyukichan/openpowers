@@ -1,5 +1,5 @@
 /**
- * Express router for /openpowers/api/config endpoints.
+ * Express router for /furina/api/config endpoints.
  * Provides GET/PUT for reading and updating the language configuration.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -30,8 +30,8 @@ const SetLanguageSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /**
- * GET /openpowers/api/config
- * Returns the current OpenPowers configuration, including the language field.
+ * GET /furina/api/config
+ * Returns the current Furina configuration, including the language field.
  */
 configRouter.get('/', (_req, res) => {
   const language = getLanguage();
@@ -39,7 +39,7 @@ configRouter.get('/', (_req, res) => {
 });
 
 /**
- * PUT /openpowers/api/config
+ * PUT /furina/api/config
  * Updates the language configuration. Requires body: { language: "chinese" | "english" }.
  */
 configRouter.put('/', (req, res) => {

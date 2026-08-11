@@ -92,18 +92,18 @@ describe('src/commands/change/stage.ts', () => {
     mockFs.reset();
 
     // Default setup: an active change with in-progress features
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
-      changes: [{ name: 'my-change', path: 'openpowers/changes/my-change' }],
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
+      changes: [{ name: 'my-change', path: 'furina/changes/my-change' }],
       archive: [],
     }));
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'in_progress' },
     ]));
 
     // Default: no stage field on the entry (explore dispatch will treat as explore)
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{ name: 'my-change' }],
@@ -371,7 +371,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should append integration to existing finalize.integration array when no title match', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -422,7 +422,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should merge integration by title using non-empty overwrite', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -534,7 +534,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should merge codecheck with existing finalize.codecheck using non-empty overwrite', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -612,7 +612,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should merge archive with existing finalize.archive using non-empty overwrite', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -663,7 +663,7 @@ describe('src/commands/change/stage.ts', () => {
   // =========================================================
   it('should route review to reviewArtifacts when all features pending and no reviewArtifacts', () => {
     // Set plan.json with all features pending
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'pending' },
       { featureId: 'feat-2', status: 'pending' },
     ]));
@@ -689,11 +689,11 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should route review to reviewArtifacts when all features pending and reviewArtifacts not done', () => {
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'pending' },
     ]));
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -726,7 +726,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should route review to subAgentDev when reviewArtifacts is done', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -799,8 +799,8 @@ describe('src/commands/change/stage.ts', () => {
   // =========================================================
   it('should block non-end stages when change not in changes.json', () => {
     // Set up changes.json without 'my-change'
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
       changes: [],
       archive: [],
     }));
@@ -818,8 +818,8 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should allow archive stage when change not in changes.json', () => {
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
       changes: [],
       archive: [],
     }));
@@ -835,8 +835,8 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should allow codecheck stage when change not in changes.json', () => {
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
       changes: [],
       archive: [],
     }));
@@ -852,8 +852,8 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should allow integration stage when change not in changes.json', () => {
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
       changes: [],
       archive: [],
     }));
@@ -870,13 +870,13 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should block non-end stages when plan.json features are all done', () => {
     // Set up changes.json WITH 'my-change'
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
-      changes: [{ name: 'my-change', path: 'openpowers/changes/my-change' }],
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
+      changes: [{ name: 'my-change', path: 'furina/changes/my-change' }],
       archive: [],
     }));
     // Set up plan.json with all features done
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'done' },
       { featureId: 'feat-2', status: 'done' },
     ]));
@@ -894,12 +894,12 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should proceed normally when change is active and has in_progress features', () => {
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
-      changes: [{ name: 'my-change', path: 'openpowers/changes/my-change' }],
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
+      changes: [{ name: 'my-change', path: 'furina/changes/my-change' }],
       archive: [],
     }));
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'done' },
       { featureId: 'feat-2', status: 'in_progress' },
     ]));
@@ -954,7 +954,7 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should dispatch explore to explore when only explore has value and status is not done', () => {
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -983,14 +983,14 @@ describe('src/commands/change/stage.ts', () => {
   it('should dispatch explore to explore when plan.json does not exist', () => {
     // Remove plan.json
     mockFs.reset();
-    mockFs.setFile('/test/project/openpowers/changes.json', JSON.stringify({
-      name: 'openpowers',
-      changes: [{ name: 'my-change', path: 'openpowers/changes/my-change' }],
+    mockFs.setFile('/test/project/furina/changes.json', JSON.stringify({
+      name: 'furina',
+      changes: [{ name: 'my-change', path: 'furina/changes/my-change' }],
       archive: [],
     }));
     // Entry has other stages beyond explore
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -1020,7 +1020,7 @@ describe('src/commands/change/stage.ts', () => {
   it('should dispatch explore to coding when plan.json exists and entry has non-explore stages', () => {
     // Entry has stages beyond explore, and plan.json exists
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -1062,11 +1062,11 @@ describe('src/commands/change/stage.ts', () => {
 
   it('should dispatch explore to coding with empty featureId when no in_progress feature', () => {
     // Override plan.json: no in_progress features (skipped is not in_progress and not done-all)
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'skipped' },
     ]));
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{
@@ -1130,7 +1130,7 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should dispatch coding stage with empty featureId when no in_progress feature in plan.json', () => {
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'skipped' },
     ]));
     mockReadSessionSettings.mockReturnValue({
@@ -1156,7 +1156,7 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should route coding to finalize.integration when all features done', () => {
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'done' },
       { featureId: 'feat-2', status: 'done' },
     ]));
@@ -1186,11 +1186,11 @@ describe('src/commands/change/stage.ts', () => {
   });
 
   it('should route coding to finalize.integration and merge by title when all features done', () => {
-    mockFs.setFile('/test/project/openpowers/changes/my-change/plan.json', JSON.stringify([
+    mockFs.setFile('/test/project/furina/changes/my-change/plan.json', JSON.stringify([
       { featureId: 'feat-1', status: 'done' },
     ]));
     mockReadMemoryChangesJson.mockReturnValue({
-      framework: 'openpowers',
+      framework: 'furina',
       version: '1.0.0',
       cwd: '/test/project',
       changes: [{

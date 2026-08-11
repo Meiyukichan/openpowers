@@ -103,7 +103,7 @@ describe('src/commands/change/instruction.ts', () => {
 
   // Helper: set up the change directory so existence check passes
   function setupChangeDir(name: string): void {
-    mockFs.setDir(path.join(process.cwd(), 'openpowers', 'changes', name));
+    mockFs.setDir(path.join(process.cwd(), 'furina', 'changes', name));
   }
 
   it('should exit with error when change directory does not exist', () => {
@@ -116,7 +116,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'proposal',
-      outputPath: 'openpowers/changes/[change-name]/proposal.md',
+      outputPath: 'furina/changes/[change-name]/proposal.md',
       description: 'Initial proposal document outlining the change',
       instruction: 'Create the proposal',
       template: '## Why',
@@ -129,7 +129,7 @@ describe('src/commands/change/instruction.ts', () => {
     const output = stdoutCalls[stdoutCalls.length - 1];
     const parsed = JSON.parse(output);
     expect(parsed.changeName).toBe('my-feature');
-    expect(parsed.outputPath).toBe('openpowers/changes/my-feature/proposal.md');
+    expect(parsed.outputPath).toBe('furina/changes/my-feature/proposal.md');
   });
 
   it('should return proposal instruction with empty dependencies array', () => {
@@ -138,7 +138,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'proposal',
-      outputPath: 'openpowers/changes/[change-name]/proposal.md',
+      outputPath: 'furina/changes/[change-name]/proposal.md',
       description: 'Initial proposal document outlining the change',
       instruction: 'Create the proposal',
       template: '## Why',
@@ -159,7 +159,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'proposal',
-      outputPath: 'openpowers/changes/[change-name]/proposal.md',
+      outputPath: 'furina/changes/[change-name]/proposal.md',
       description: 'Initial proposal document outlining the change',
       instruction: 'Create the proposal',
       template: '## Why',
@@ -182,7 +182,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'design',
-      outputPath: 'openpowers/changes/[change-name]/design.md',
+      outputPath: 'furina/changes/[change-name]/design.md',
       description: 'Technical design document with implementation details',
       instruction: 'Create the design',
       template: '## Context',
@@ -191,7 +191,7 @@ describe('src/commands/change/instruction.ts', () => {
       ],
     }));
     // Set up proposal.md to exist
-    const proposalPath = path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'proposal.md');
+    const proposalPath = path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'proposal.md');
     mockFs.setFile(proposalPath, '');
 
     runChangeInstruction('my-feature', { design: true });
@@ -200,7 +200,7 @@ describe('src/commands/change/instruction.ts', () => {
     const output = stdoutCalls[stdoutCalls.length - 1];
     const parsed = JSON.parse(output);
     expect(parsed.artifactId).toBe('design');
-    expect(parsed.outputPath).toBe('openpowers/changes/my-feature/design.md');
+    expect(parsed.outputPath).toBe('furina/changes/my-feature/design.md');
     expect(parsed.dependencies.length).toBe(1);
     expect(parsed.dependencies[0].id).toBe('proposal');
     expect(parsed.dependencies[0].done).toBe(true);
@@ -212,7 +212,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'design',
-      outputPath: 'openpowers/changes/[change-name]/design.md',
+      outputPath: 'furina/changes/[change-name]/design.md',
       description: 'Technical design document with implementation details',
       instruction: 'Create the design',
       template: '## Context',
@@ -235,7 +235,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'specs',
-      outputPath: 'openpowers/changes/[change-name]/specs/**/*.md',
+      outputPath: 'furina/changes/[change-name]/specs/**/*.md',
       description: 'Detailed specifications for the change',
       instruction: 'Create the specs',
       template: '## ADDED Requirements',
@@ -245,8 +245,8 @@ describe('src/commands/change/instruction.ts', () => {
       ],
     }));
     // Set up both files
-    mockFs.setFile(path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'proposal.md'), '');
-    mockFs.setFile(path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'design.md'), '');
+    mockFs.setFile(path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'proposal.md'), '');
+    mockFs.setFile(path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'design.md'), '');
 
     runChangeInstruction('my-feature', { specs: true });
 
@@ -254,7 +254,7 @@ describe('src/commands/change/instruction.ts', () => {
     const output = stdoutCalls[stdoutCalls.length - 1];
     const parsed = JSON.parse(output);
     expect(parsed.artifactId).toBe('specs');
-    expect(parsed.outputPath).toBe('openpowers/changes/my-feature/specs/**/*.md');
+    expect(parsed.outputPath).toBe('furina/changes/my-feature/specs/**/*.md');
     expect(parsed.dependencies.length).toBe(2);
     expect(parsed.dependencies[0].done).toBe(true);
     expect(parsed.dependencies[1].done).toBe(true);
@@ -265,7 +265,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'specs',
-      outputPath: 'openpowers/changes/[change-name]/specs/**/*.md',
+      outputPath: 'furina/changes/[change-name]/specs/**/*.md',
       description: 'Detailed specifications for the change',
       instruction: 'Create the specs',
       template: '## ADDED Requirements',
@@ -275,7 +275,7 @@ describe('src/commands/change/instruction.ts', () => {
       ],
     }));
     // Only set up proposal.md, not design.md
-    mockFs.setFile(path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'proposal.md'), '');
+    mockFs.setFile(path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'proposal.md'), '');
 
     runChangeInstruction('my-feature', { specs: true });
 
@@ -291,7 +291,7 @@ describe('src/commands/change/instruction.ts', () => {
     mockFs.setFile(templatePath, JSON.stringify({
       changeName: '[change-name]',
       artifactId: 'specs',
-      outputPath: 'openpowers/changes/[change-name]/specs/**/*.md',
+      outputPath: 'furina/changes/[change-name]/specs/**/*.md',
       description: 'Detailed specifications for the change',
       instruction: 'Create the specs',
       template: '## ADDED Requirements',
@@ -300,8 +300,8 @@ describe('src/commands/change/instruction.ts', () => {
         { id: 'design', done: false, path: 'design.md', description: 'Technical design document with implementation details' },
       ],
     }));
-    mockFs.setFile(path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'proposal.md'), '');
-    mockFs.setFile(path.join(process.cwd(), 'openpowers', 'changes', 'my-feature', 'design.md'), '');
+    mockFs.setFile(path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'proposal.md'), '');
+    mockFs.setFile(path.join(process.cwd(), 'furina', 'changes', 'my-feature', 'design.md'), '');
 
     runChangeInstruction('my-feature', { specs: true });
 

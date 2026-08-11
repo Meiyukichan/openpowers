@@ -89,9 +89,9 @@ type ToRelativePathFn = (absolutePath: string) => string;
 
 describe('src/commands/change/shared.ts', () => {
   // Path constants matching the source module's absolute paths
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
-  const ARCHIVE_DIR = path.join(process.cwd(), 'openpowers', 'archive');
-  const CHANGES_JSON_PATH = path.join(process.cwd(), 'openpowers', 'changes.json');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
+  const ARCHIVE_DIR = path.join(process.cwd(), 'furina', 'archive');
+  const CHANGES_JSON_PATH = path.join(process.cwd(), 'furina', 'changes.json');
   // Normalized versions for mock FS comparisons (backslashes to forward slashes)
   const NORM_CHANGES_DIR = CHANGES_DIR.replace(/\\/g, '/');
   const NORM_ARCHIVE_DIR = ARCHIVE_DIR.replace(/\\/g, '/');
@@ -119,32 +119,32 @@ describe('src/commands/change/shared.ts', () => {
 
     it('should convert absolute path to relative path with forward slashes', () => {
       const cwd = process.cwd();
-      const absolutePath = path.join(cwd, 'openpowers', 'changes', 'my-feature');
+      const absolutePath = path.join(cwd, 'furina', 'changes', 'my-feature');
       const result = toRelativePath(absolutePath);
-      expect(result).toBe('openpowers/changes/my-feature');
+      expect(result).toBe('furina/changes/my-feature');
     });
 
     it('should handle nested paths correctly', () => {
       const cwd = process.cwd();
-      const absolutePath = path.join(cwd, 'openpowers', 'changes', 'my-feature', 'proposal.md');
+      const absolutePath = path.join(cwd, 'furina', 'changes', 'my-feature', 'proposal.md');
       const result = toRelativePath(absolutePath);
-      expect(result).toBe('openpowers/changes/my-feature/proposal.md');
+      expect(result).toBe('furina/changes/my-feature/proposal.md');
     });
 
     it('should convert backslashes to forward slashes', () => {
       // Simulate a Windows-style absolute path
       const cwd = process.cwd().replace(/\//g, '\\');
-      const absolutePath = `${cwd}\\openpowers\\changes\\my-feature`;
+      const absolutePath = `${cwd}\\furina\\changes\\my-feature`;
       const result = toRelativePath(absolutePath);
-      expect(result).toBe('openpowers/changes/my-feature');
+      expect(result).toBe('furina/changes/my-feature');
       expect(result).not.toContain('\\');
     });
 
     it('should handle archive paths correctly', () => {
       const cwd = process.cwd();
-      const absolutePath = path.join(cwd, 'openpowers', 'archive', '2026-05-17-old-feature');
+      const absolutePath = path.join(cwd, 'furina', 'archive', '2026-05-17-old-feature');
       const result = toRelativePath(absolutePath);
-      expect(result).toBe('openpowers/archive/2026-05-17-old-feature');
+      expect(result).toBe('furina/archive/2026-05-17-old-feature');
     });
   });
 
@@ -396,7 +396,7 @@ describe('src/commands/change/shared.ts', () => {
       const { loadOrCreateChangesJson } = mod;
       const data = loadOrCreateChangesJson();
       expect(data).toEqual({
-        framework: '@meiyukichan/openpowers',
+        framework: '@meiyukichan/furina',
         version: '1.0.3',
         changes: [],
         archive: [],
@@ -408,13 +408,13 @@ describe('src/commands/change/shared.ts', () => {
     it('should load existing changes.json and fill missing fields', async () => {
       // Mock the module for a "fresh" call with an existing file
       mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-        changes: [{ name: 'existing', path: 'openpowers/changes/existing' }],
+        changes: [{ name: 'existing', path: 'furina/changes/existing' }],
       }));
       // Re-import to get fresh module state
       const mod = await import('./shared.js');
       const { loadOrCreateChangesJson } = mod;
       const data = loadOrCreateChangesJson();
-      expect(data.framework).toBe('@meiyukichan/openpowers');
+      expect(data.framework).toBe('@meiyukichan/furina');
       expect(data.version).toBe('1.0.3');
       expect(data.changes.length).toBe(1);
       expect(data.archive).toEqual([]);
@@ -422,7 +422,7 @@ describe('src/commands/change/shared.ts', () => {
 
     it('should replace null changes and archive fields with empty arrays', async () => {
       mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: null,
         archive: null,
@@ -447,7 +447,7 @@ describe('src/commands/change/shared.ts', () => {
       const { loadOrCreateChangesJson } = mod;
       const data = loadOrCreateChangesJson();
       // Should force-update to current pkg values, not preserve old ones
-      expect(data.framework).toBe('@meiyukichan/openpowers');
+      expect(data.framework).toBe('@meiyukichan/furina');
       expect(data.version).toBe('1.0.3');
       // Should NOT write to disk (only reads, no structural change committed)
       expect(mockFs.writeFileSync).not.toHaveBeenCalled();
@@ -497,7 +497,7 @@ describe('src/commands/change/shared.ts', () => {
       expect(entry.todo).toBe(1);
       expect(entry.artifacts).toBeDefined();
       expect((entry.artifacts as Array<unknown>).length).toBe(1);
-      expect(entry.path).toBe('openpowers/changes/my-feature');
+      expect(entry.path).toBe('furina/changes/my-feature');
     });
 
     it('should sync archived changes with closedAt', async () => {
@@ -526,7 +526,7 @@ describe('src/commands/change/shared.ts', () => {
       expect(data.archive.length).toBe(1);
       expect(data.archive[0].name).toBe('old-feature');
       expect(data.archive[0].closedAt).toBeDefined();
-      expect(data.archive[0].path).toBe('openpowers/archive/2026-05-17-old-feature');
+      expect(data.archive[0].path).toBe('furina/archive/2026-05-17-old-feature');
     });
 
     it('should skip dot-prefixed directories', async () => {
@@ -593,18 +593,18 @@ describe('src/commands/change/shared.ts', () => {
       // Both arrays should be populated
       expect(data.changes.length).toBe(1);
       expect(data.changes[0].name).toBe('my-feature');
-      expect(data.changes[0].path).toBe('openpowers/changes/my-feature');
+      expect(data.changes[0].path).toBe('furina/changes/my-feature');
       expect(data.archive.length).toBe(1);
       expect(data.archive[0].name).toBe('old-feature');
-      expect(data.archive[0].path).toBe('openpowers/archive/2026-05-17-old-feature');
+      expect(data.archive[0].path).toBe('furina/archive/2026-05-17-old-feature');
     });
 
     it('should remove stale entries not present on filesystem', async () => {
       // First create a changes.json with a stale entry
       mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
-        changes: [{ name: 'stale-change', path: 'openpowers/changes/stale-change' }],
+        changes: [{ name: 'stale-change', path: 'furina/changes/stale-change' }],
         archive: [],
       }));
       mockFs.setDir(CHANGES_DIR);
@@ -630,12 +630,12 @@ describe('src/commands/change/shared.ts', () => {
 
     it('should filter out entries with null or undefined name from existing changes.json', async () => {
       mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [
-          { name: 'valid-change', path: 'openpowers/changes/valid-change' },
-          { name: null, path: 'openpowers/changes/null-name' },
-          { path: 'openpowers/changes/no-name' },
+          { name: 'valid-change', path: 'furina/changes/valid-change' },
+          { name: null, path: 'furina/changes/null-name' },
+          { path: 'furina/changes/no-name' },
         ],
         archive: [],
       }));
@@ -674,11 +674,11 @@ describe('src/commands/change/shared.ts', () => {
 
       // Pre-populate changes.json with active change metadata
       mockFs.setFile(CHANGES_JSON_PATH, JSON.stringify({
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [{
           name: 'my-feature',
-          path: 'openpowers/changes/my-feature',
+          path: 'furina/changes/my-feature',
           description: 'Shared feature description',
           createdAt: '2026-01-15T00:00:00.000Z',
         }],

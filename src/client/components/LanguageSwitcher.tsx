@@ -23,7 +23,7 @@ export function LanguageSwitcher(): React.ReactElement {
 
     const backendLang = newLocale === 'zh-CN' ? 'chinese' : 'english';
     try {
-      const response = await fetch('/openpowers/api/config', {
+      const response = await fetch('/furina/api/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: backendLang }),

@@ -94,8 +94,8 @@ describe('startBackendService', () => {
     const spawnArgs = (spawnMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
     expect(String(spawnArgs[1])).toContain('entry.js');
     const spawnOpts = spawnArgs[2] as { env: Record<string, string> };
-    expect(spawnOpts.env.OPENPOWERS_UI_PORT).toBe('8080');
-    expect(uiUrl).toBe('http://localhost:8080/openpowers/ui');
+    expect(spawnOpts.env.FURINA_UI_PORT).toBe('8080');
+    expect(uiUrl).toBe('http://localhost:8080/furina/ui');
   });
 
   it('should warn when dist/client/ does not exist but still spawn and return uiUrl', () => {
@@ -111,7 +111,7 @@ describe('startBackendService', () => {
     // Should still spawn the server
     expect(spawnMock).toHaveBeenCalled();
     // Should still return the URL
-    expect(uiUrl).toBe('http://localhost:3939/openpowers/ui');
+    expect(uiUrl).toBe('http://localhost:3939/furina/ui');
 
     stdoutSpy.mockRestore();
   });
@@ -131,12 +131,12 @@ describe('startBackendService', () => {
 });
 
 describe('spawnServer PID file', () => {
-  it('should write child.pid to ~/.openpowers/.openpowers.pid on spawn', () => {
+  it('should write child.pid to ~/.furina/.furina.pid on spawn', () => {
     startBackendService(3939);
 
     expect(writeFileSyncMock).toHaveBeenCalled();
     const filePath = writeFileSyncMock.mock.calls[0][0] as string;
-    expect(filePath).toContain('.openpowers\\.openpowers.pid');
+    expect(filePath).toContain('.furina\\.furina.pid');
 
     const fileContent = writeFileSyncMock.mock.calls[0][1] as string;
     const parsed = JSON.parse(fileContent);

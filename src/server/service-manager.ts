@@ -19,7 +19,7 @@ const moduleDirname = path.dirname(fileURLToPath(import.meta.url));
 const serverEntryPath = path.join(moduleDirname, '..', '..', 'dist', 'server', 'entry.js');
 
 /** Path to the PID file that records the spawned child process ID and port. */
-const PID_FILE = path.join(os.homedir(), '.openpowers', '.openpowers.pid');
+const PID_FILE = path.join(os.homedir(), '.furina', '.furina.pid');
 
 /**
  * Spawns the backend server in a detached background child process.
@@ -30,7 +30,7 @@ function spawnServer(port: number): void {
   const child = spawn(process.execPath, [serverEntryPath], {
     detached: true,
     stdio: ['ignore', 'inherit', 'inherit'],
-    env: { ...process.env, OPENPOWERS_UI_PORT: String(port) },
+    env: { ...process.env, FURINA_UI_PORT: String(port) },
     windowsHide: true,
   });
 
@@ -58,7 +58,7 @@ export function startBackendService(port: number): string {
 
   spawnServer(port);
   logger.info(`UI server spawned on port ${port}`);
-  const uiUrl = `http://localhost:${port}/openpowers/ui`;
+  const uiUrl = `http://localhost:${port}/furina/ui`;
   process.stdout.write(`UI server started at ${uiUrl}\n`);
   return uiUrl;
 }

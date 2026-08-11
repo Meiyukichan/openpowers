@@ -1,7 +1,7 @@
 /**
  * JSON file store for provider configurations.
  * Stores provider data and active provider state in a single JSON file
- * at ~/.openpowers/providers.json with sync file operations.
+ * at ~/.furina/providers.json with sync file operations.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -18,7 +18,7 @@ import { logger } from '../utils/logger.js';
 // ---------------------------------------------------------------------------
 
 // Data directory and providers file path under user's home directory
-const DATA_DIR = path.join(os.homedir(), '.openpowers');
+const DATA_DIR = path.join(os.homedir(), '.furina');
 const PROVIDERS_FILE = path.join(DATA_DIR, 'providers.json');
 
 // ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ export type Provider = z.infer<typeof ProviderSchema>;
 /** Zod schema for the combined store file. */
 const StoreDataSchema = z.object({
   activeProviderId: z.string().nullable(),
-  enableOpenpowersProxy: z.boolean().nullable().default(false),
+  enableFurinaProxy: z.boolean().nullable().default(false),
   neverClaudeSettings: z.boolean().nullable().default(true),
   language: z.enum(['chinese', 'english']).nullable().default('chinese'),
   providers: z.array(ProviderSchema),
@@ -106,7 +106,7 @@ export type ProviderUpdate = z.infer<typeof ProviderUpdateSchema>;
 /** Default store data when providers.json does not exist. */
 const DEFAULT_STORE_DATA: StoreData = {
   activeProviderId: null,
-  enableOpenpowersProxy: false,
+  enableFurinaProxy: false,
   neverClaudeSettings: true,
   language: 'chinese',
   providers: [],
@@ -347,26 +347,26 @@ export function clearActiveProviderId(): void {
 }
 
 // ---------------------------------------------------------------------------
-// OpenPowers proxy operations
+// Furina proxy operations
 // ---------------------------------------------------------------------------
 
 /**
- * Reads the enableOpenpowersProxy flag from the store.
+ * Reads the enableFurinaProxy flag from the store.
  * @returns The current proxy enabled state, or false if not set
  */
-export function getEnableOpenpowersProxy(): boolean {
-  return readStoreData().enableOpenpowersProxy ?? false;
+export function getEnableFurinaProxy(): boolean {
+  return readStoreData().enableFurinaProxy ?? false;
 }
 
 /**
- * Sets the enableOpenpowersProxy flag.
+ * Sets the enableFurinaProxy flag.
  * @param enabled - The new enabled state
  */
-export function setEnableOpenpowersProxy(enabled: boolean): void {
+export function setEnableFurinaProxy(enabled: boolean): void {
   const data = readStoreData();
-  data.enableOpenpowersProxy = enabled;
+  data.enableFurinaProxy = enabled;
   writeStoreData(data);
-  logger.info(`OpenPowers proxy ${enabled ? 'enabled' : 'disabled'}`);
+  logger.info(`Furina proxy ${enabled ? 'enabled' : 'disabled'}`);
 }
 
 // ---------------------------------------------------------------------------

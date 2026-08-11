@@ -1,5 +1,5 @@
 /**
- * Express router for /openpowers/api/schedule endpoint.
+ * Express router for /furina/api/schedule endpoint.
  * Provides PUT route to check and start the scheduler.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -21,7 +21,7 @@ export const scheduleRouter = express.default.Router();
 // ---------------------------------------------------------------------------
 
 /**
- * PUT /openpowers/api/schedule
+ * PUT /furina/api/schedule
  * Checks if the scheduler is running and starts it if not.
  * Returns { ok: true, started: true } if scheduler was started by this request,
  * or { ok: true, started: false } if it was already running.
@@ -39,7 +39,7 @@ scheduleRouter.put('/', (_req, res) => {
 });
 
 /**
- * DELETE /openpowers/api/schedule
+ * DELETE /furina/api/schedule
  * Stops the scheduler if it is running.
  * Returns { ok: true, stopped: true } if scheduler was stopped by this request,
  * or { ok: true, stopped: false } if it was not running.
@@ -57,7 +57,7 @@ scheduleRouter.delete('/', (_req, res) => {
 });
 
 /**
- * POST /openpowers/api/schedule/restart
+ * POST /furina/api/schedule/restart
  * Stops the scheduler first, then starts it again.
  * Returns { ok: true, restarted: true }.
  */

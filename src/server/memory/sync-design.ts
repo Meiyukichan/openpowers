@@ -20,7 +20,7 @@ export { flattenCwdPath };
  * Called from runFeatureStatus after validating the change name.
  *
  * Steps:
- * 1. Copy design.md to ~/.openpowers/memory/{flatCwd}/designs/{changeName}.md
+ * 1. Copy design.md to ~/.furina/memory/{flatCwd}/designs/{changeName}.md
  * 2. HTTP PUT to schedule API (silently skip on failure)
  *
  * If design.md does not exist, the function returns immediately without
@@ -33,7 +33,7 @@ export function syncDesignToMemory(changeName: string, cwd: string): void {
   const flatCwd = flattenCwdPath(cwd);
 
   // Resolve design path
-  const CHANGES_DIR = path.join(cwd, 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(cwd, 'furina', 'changes');
   const designPath = path.join(CHANGES_DIR, changeName, 'design.md');
 
   // If design.md does not exist, skip entirely
@@ -43,7 +43,7 @@ export function syncDesignToMemory(changeName: string, cwd: string): void {
   }
 
   // Step 1: Copy design.md to designs/ subdirectory under memory path
-  const memoryDesignDir = path.join(os.homedir(), '.openpowers', 'memory', flatCwd);
+  const memoryDesignDir = path.join(os.homedir(), '.furina', 'memory', flatCwd);
   const designsDir = path.join(memoryDesignDir, 'designs');
   try {
     if (!fs.existsSync(designsDir)) {
@@ -57,8 +57,8 @@ export function syncDesignToMemory(changeName: string, cwd: string): void {
   }
 
   // Step 2: Call schedule API to ensure scheduler is running
-  const port = process.env.OPENPOWERS_UI_PORT ?? 3939;
-  const scheduleUrl = `http://localhost:${port}/openpowers/api/schedule`;
+  const port = process.env.FURINA_UI_PORT ?? 3939;
+  const scheduleUrl = `http://localhost:${port}/furina/api/schedule`;
 
   try {
     const req = http.request(scheduleUrl, { method: 'PUT', timeout: 5000 }, (res) => {

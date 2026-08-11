@@ -6,7 +6,7 @@
 
 import path from 'path';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import type { OpenPowersConfig } from './config.js';
+import type { FurinaConfig } from './config.js';
 
 // ---- mocks for loadConfig file I/O ----
 
@@ -81,7 +81,7 @@ const defaultConfigFixture = {
       specs: false,
       code: true,
       acceptance: true,
-      openpowers: false,
+      furina: false,
     },
     prompt: {
       reviewCode: null as string | null,
@@ -240,7 +240,7 @@ describe('queryConfig', () => {
 });
 
 describe('loadConfig', () => {
-  let loadConfig: (cwd?: string) => OpenPowersConfig;
+  let loadConfig: (cwd?: string) => FurinaConfig;
 
   beforeAll(async () => {
     const mod = await import('./config.js');
@@ -253,7 +253,7 @@ describe('loadConfig', () => {
     existsSyncMock.mockReturnValue(false);
   });
 
-  it('should return default config as-is when only resources/openpowers.json exists', () => {
+  it('should return default config as-is when only resources/furina.json exists', () => {
     existsSyncMock.mockImplementation((p: string) => {
       // Only the default config file exists
       return !p.includes('.claude');
@@ -289,7 +289,7 @@ describe('loadConfig', () => {
     expect(result.exploration.repository).toEqual([{ path: '/custom', description: 'custom repo' }]);
   });
 
-  it('should silently skip override when .claude/openpowers.json does not exist', () => {
+  it('should silently skip override when .claude/furina.json does not exist', () => {
     existsSyncMock.mockImplementation((p: string) => {
       // Default exists, override does not
       return !p.includes('.claude');
@@ -423,7 +423,7 @@ describe('readUserConfig', () => {
     const result = readUserConfig('/mock/cwd');
 
     expect(result).toEqual(userOverride);
-    const expectedPath = path.join('/mock/cwd', '.claude', 'openpowers.json');
+    const expectedPath = path.join('/mock/cwd', '.claude', 'furina.json');
     expect(readFileSyncMock).toHaveBeenCalledWith(expectedPath, 'utf-8');
   });
 
@@ -474,7 +474,7 @@ describe('writeUserConfig', () => {
     writeUserConfig('/mock/cwd', data);
 
     const expectedDir = path.join('/mock/cwd', '.claude');
-    const expectedPath = path.join(expectedDir, 'openpowers.json');
+    const expectedPath = path.join(expectedDir, 'furina.json');
 
     expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
@@ -518,7 +518,7 @@ describe('setUserConfigValue', () => {
     enoent.code = 'ENOENT';
     readFileSyncMock.mockImplementation(() => { throw enoent; });
 
-    const result = setUserConfigValue('/mock/cwd', 'experimental.review.openpowers', true);
+    const result = setUserConfigValue('/mock/cwd', 'experimental.review.furina', true);
 
     expect(result).toBe(true);
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
@@ -527,7 +527,7 @@ describe('setUserConfigValue', () => {
     expect(parsed).toEqual({
       experimental: {
         review: {
-          openpowers: true,
+          furina: true,
         },
       },
     });
@@ -568,7 +568,7 @@ describe('setUserConfigValue', () => {
     expect(parsed.experimental.websearch).toBe(true);
   });
 
-  it('should write the file to {cwd}/.claude/openpowers.json with proper formatting', () => {
+  it('should write the file to {cwd}/.claude/furina.json with proper formatting', () => {
     const enoent = new Error('ENOENT') as NodeJS.ErrnoException;
     enoent.code = 'ENOENT';
     readFileSyncMock.mockImplementation(() => { throw enoent; });
@@ -576,7 +576,7 @@ describe('setUserConfigValue', () => {
     setUserConfigValue('/mock/cwd', 'experimental.factor', 2);
 
     const expectedDir = path.join('/mock/cwd', '.claude');
-    const expectedPath = path.join(expectedDir, 'openpowers.json');
+    const expectedPath = path.join(expectedDir, 'furina.json');
 
     expect(mkdirSyncMock).toHaveBeenCalledWith(expectedDir, { recursive: true });
     const [actualPath, , encoding] = writeFileSyncMock.mock.calls[0];
@@ -597,16 +597,16 @@ describe('setDefaultConfigValue', () => {
     vi.clearAllMocks();
   });
 
-  it('should write to the default config path (resources/openpowers.json)', () => {
+  it('should write to the default config path (resources/furina.json)', () => {
     const existing = { language: 'chinese', enhancement: { memory: { schedule: '0 2 * * *' } } };
     readFileSyncMock.mockReturnValue(JSON.stringify(existing));
 
     const result = setDefaultConfigValue('enhancement.memory.schedule', '0 3 * * *');
 
     expect(result).toBe('0 3 * * *');
-    // Verify write path: should be resources/openpowers.json (not .claude/)
+    // Verify write path: should be resources/furina.json (not .claude/)
     const actualPath = writeFileSyncMock.mock.calls[0][0] as string;
-    expect(actualPath.replace(/\\/g, '/')).toContain('resources/openpowers.json');
+    expect(actualPath.replace(/\\/g, '/')).toContain('resources/furina.json');
     expect(actualPath).not.toContain('.claude');
 
     const body = writeFileSyncMock.mock.calls[0][1] as string;

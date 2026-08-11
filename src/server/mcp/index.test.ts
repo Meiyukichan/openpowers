@@ -74,13 +74,13 @@ beforeEach(async () => {
 describe('Marker text constants', () => {
   it('should have the correct begin marker text', () => {
     expect(MARK_BEGIN_PROPOSE_TEXT).toBe(
-      "[MARK_OPENPOWERS_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs."
+      "[MARK_FURINA_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs."
     );
   });
 
   it('should have the correct end marker text', () => {
     expect(MARK_END_PROPOSE_TEXT).toBe(
-      "[MARK_OPENPOWERS_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs."
+      "[MARK_FURINA_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs."
     );
   });
 });
@@ -97,7 +97,7 @@ describe('Tool handlers', () => {
         content: [
           {
             type: 'text',
-            text: "[MARK_OPENPOWERS_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.",
+            text: "[MARK_FURINA_PROPOSE_BEGIN]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.",
           },
         ],
       });
@@ -115,7 +115,7 @@ describe('Tool handlers', () => {
         content: [
           {
             type: 'text',
-            text: "[MARK_OPENPOWERS_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.",
+            text: "[MARK_FURINA_PROPOSE_END]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs.",
           },
         ],
       });
@@ -165,7 +165,7 @@ describe('mcpRouter', () => {
     const res = await request(app).get('/');
 
     expect(res.status).toBe(405);
-    expect(res.body).toEqual({ error: 'Method GET not allowed on /openpowers/mcp. Use POST.' });
+    expect(res.body).toEqual({ error: 'Method GET not allowed on /furina/mcp. Use POST.' });
   });
 
   it('should return 405 for DELETE /', async () => {
@@ -175,7 +175,7 @@ describe('mcpRouter', () => {
     const res = await request(app).delete('/');
 
     expect(res.status).toBe(405);
-    expect(res.body).toEqual({ error: 'Method DELETE not allowed on /openpowers/mcp. Use POST.' });
+    expect(res.body).toEqual({ error: 'Method DELETE not allowed on /furina/mcp. Use POST.' });
   });
 
   it('should return 405 for PUT /', async () => {
@@ -185,7 +185,7 @@ describe('mcpRouter', () => {
     const res = await request(app).put('/');
 
     expect(res.status).toBe(405);
-    expect(res.body).toEqual({ error: 'Method PUT not allowed on /openpowers/mcp. Use POST.' });
+    expect(res.body).toEqual({ error: 'Method PUT not allowed on /furina/mcp. Use POST.' });
   });
 });
 
@@ -198,14 +198,14 @@ describe('Marker text content format', () => {
     expect(MARK_BEGIN_PROPOSE_TEXT).not.toBe(MARK_END_PROPOSE_TEXT);
   });
 
-  it('should both contain the MARK_OPENPOWERS_PROPOSE prefix', () => {
-    expect(MARK_BEGIN_PROPOSE_TEXT).toContain('MARK_OPENPOWERS_PROPOSE_');
-    expect(MARK_END_PROPOSE_TEXT).toContain('MARK_OPENPOWERS_PROPOSE_');
+  it('should both contain the MARK_FURINA_PROPOSE prefix', () => {
+    expect(MARK_BEGIN_PROPOSE_TEXT).toContain('MARK_FURINA_PROPOSE_');
+    expect(MARK_END_PROPOSE_TEXT).toContain('MARK_FURINA_PROPOSE_');
   });
 
   it('should match the exact content format from spec', () => {
-    // Both markers must follow the pattern: [MARK_OPENPOWERS_PROPOSE_{BEGIN|END}]: ignore this message...
-    const pattern = /^\[MARK_OPENPOWERS_PROPOSE_(BEGIN|END)\]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs\.$/;
+    // Both markers must follow the pattern: [MARK_FURINA_PROPOSE_{BEGIN|END}]: ignore this message...
+    const pattern = /^\[MARK_FURINA_PROPOSE_(BEGIN|END)\]: ignore this message, this is just an MCP marker and has nothing to do with the user's needs\.$/;
     expect(pattern.test(MARK_BEGIN_PROPOSE_TEXT)).toBe(true);
     expect(pattern.test(MARK_END_PROPOSE_TEXT)).toBe(true);
   });

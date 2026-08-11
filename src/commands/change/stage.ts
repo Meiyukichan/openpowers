@@ -34,7 +34,7 @@ const ENDED_ALLOWED_STAGES: string[] = ['integration', 'codecheck', 'archive'];
 /**
  * Checks whether the change has ended.
  * A change is considered ended if:
- * 1. The change name is not found in the project-level openpowers/changes.json, or
+ * 1. The change name is not found in the project-level furina/changes.json, or
  * 2. The plan.json file exists and all features have status 'done'.
  *
  * @param cwd - The working directory
@@ -43,7 +43,7 @@ const ENDED_ALLOWED_STAGES: string[] = ['integration', 'codecheck', 'archive'];
  */
 function isChangeEnded(cwd: string, changeName: string): boolean {
   // Check project-level changes.json for the change name
-  const projectChangesPath = path.join(cwd, 'openpowers', 'changes.json');
+  const projectChangesPath = path.join(cwd, 'furina', 'changes.json');
   if (!fs.existsSync(projectChangesPath)) {
     return true;
   }
@@ -61,7 +61,7 @@ function isChangeEnded(cwd: string, changeName: string): boolean {
   }
 
   // Check plan.json features
-  const planPath = path.join(cwd, 'openpowers', 'changes', changeName, 'plan.json');
+  const planPath = path.join(cwd, 'furina', 'changes', changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {
     return false; // No plan.json means the change hasn't reached feature stage yet
   }
@@ -88,7 +88,7 @@ function isChangeEnded(cwd: string, changeName: string): boolean {
  * @returns The featureId or empty string
  */
 function inferFeatureId(cwd: string, changeName: string): string {
-  const planPath = path.join(cwd, 'openpowers', 'changes', changeName, 'plan.json');
+  const planPath = path.join(cwd, 'furina', 'changes', changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {
     return '';
   }
@@ -200,7 +200,7 @@ function handleExploreStageDispatch(
   }
 
   // Condition 2: plan.json doesn't exist → actual is explore
-  const planPath = path.join(cwd, 'openpowers', 'changes', changeName, 'plan.json');
+  const planPath = path.join(cwd, 'furina', 'changes', changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {
     createOrUpdateChange(cwd, changeName, undefined, { explore: stageData });
     process.stdout.write(`Stage 'explore' updated to '${stageData.status}' for change '${changeName}'\n`);
@@ -256,7 +256,7 @@ function handlePlanStageDispatch(
  * @returns Array of features from plan.json
  */
 function readPlanFeatures(cwd: string, changeName: string): Array<{ featureId?: string; id?: string; status?: string }> {
-  const planPath = path.join(cwd, 'openpowers', 'changes', changeName, 'plan.json');
+  const planPath = path.join(cwd, 'furina', 'changes', changeName, 'plan.json');
   if (!fs.existsSync(planPath)) {
     return [];
   }

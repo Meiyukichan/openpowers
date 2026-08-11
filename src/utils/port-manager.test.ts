@@ -605,7 +605,7 @@ describe('gracefulShutdown', () => {
     const requestOptions = httpRequestMock.mock.calls[0][0] as { hostname: string; port: number; path: string; method: string };
     expect(requestOptions.hostname).toBe('localhost');
     expect(requestOptions.port).toBe(3939);
-    expect(requestOptions.path).toBe('/openpowers/api/shutdown');
+    expect(requestOptions.path).toBe('/furina/api/shutdown');
     expect(requestOptions.method).toBe('POST');
 
     vi.useRealTimers();

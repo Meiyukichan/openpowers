@@ -253,7 +253,7 @@ function sendShutdownRequest(port: number): Promise<void> {
     const options: http.RequestOptions = {
       hostname: 'localhost',
       port,
-      path: '/openpowers/api/shutdown',
+      path: '/furina/api/shutdown',
       method: 'POST',
       timeout: 2000,
       headers: {

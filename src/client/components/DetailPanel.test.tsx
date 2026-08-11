@@ -31,7 +31,7 @@ function renderPanel(change?: ChangeEntryWithCwd | null) {
 
 const changeWithStage: ChangeEntryWithCwd = {
   name: 'ui-changes-page',
-  path: 'openpowers/changes/ui-changes-page',
+  path: 'furina/changes/ui-changes-page',
   description: '实现变更列表UI页面',
   createdAt: '2026-06-08T10:00:00Z',
   updateAt: '2026-06-08T12:30:00Z',
@@ -39,7 +39,7 @@ const changeWithStage: ChangeEntryWithCwd = {
   features: 0,
   todo: 0,
   artifacts: [],
-  cwd: 'D:\\project-code\\llm\\openpowers',
+  cwd: 'D:\\project-code\\llm\\furina',
   stage: {
     explore: { title: '探索需求', from: '2026-01-01', to: '2026-01-02', status: 'done', inputPath: '', outputPath: '' },
     brainstorm: { title: '头脑风暴', from: '', to: '', status: 'done', inputPath: '', outputPath: '' },

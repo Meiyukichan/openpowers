@@ -32,7 +32,7 @@ function renderProjectSidebar(props?: { onChangeClick?: (change: ChangeEntryWith
 const mockActiveChanges = [
   {
     name: 'ui-changes-page',
-    path: 'openpowers/changes/ui-changes-page',
+    path: 'furina/changes/ui-changes-page',
     description: '实现变更列表UI页面',
     createdAt: '2026-06-08T10:00:00Z',
     updateAt: '2026-06-08T12:30:00Z',
@@ -40,11 +40,11 @@ const mockActiveChanges = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
   {
     name: 'fe-002',
-    path: 'openpowers/changes/fe-002',
+    path: 'furina/changes/fe-002',
     description: 'Another feature',
     createdAt: '2026-06-08T09:00:00Z',
     updateAt: '2026-06-08T11:00:00Z',
@@ -52,7 +52,7 @@ const mockActiveChanges = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
 ];
 
@@ -60,7 +60,7 @@ const mockAllChanges = [
   ...mockActiveChanges,
   {
     name: 'archived-feature',
-    path: 'openpowers/archive/archived',
+    path: 'furina/archive/archived',
     description: 'An archived feature',
     createdAt: '2026-06-07T08:00:00Z',
     updateAt: '2026-06-07T14:00:00Z',
@@ -68,11 +68,11 @@ const mockAllChanges = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
   {
     name: 'removed-feature',
-    path: 'openpowers/archive/removed',
+    path: 'furina/archive/removed',
     description: 'A removed feature',
     createdAt: '2026-06-06T10:00:00Z',
     status: 'removed' as const,
@@ -221,7 +221,7 @@ describe('ProjectSidebar', () => {
 
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        expect.stringContaining('/openpowers/api/changes/all?status=active'),
+        expect.stringContaining('/furina/api/changes/all?status=active'),
       );
     });
   });

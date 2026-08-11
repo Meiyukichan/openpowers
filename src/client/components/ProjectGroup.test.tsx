@@ -32,7 +32,7 @@ function renderProjectGroup(cwd: string, changes: ChangeEntryWithCwd[], props?: 
 const changes: ChangeEntryWithCwd[] = [
   {
     name: 'ui-changes-page',
-    path: 'openpowers/changes/ui-changes-page',
+    path: 'furina/changes/ui-changes-page',
     description: '实现变更列表UI页面',
     createdAt: '2026-06-08T10:00:00Z',
     updateAt: '2026-06-08T12:30:00Z',
@@ -40,11 +40,11 @@ const changes: ChangeEntryWithCwd[] = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
   {
     name: 'brainstorm-mode',
-    path: 'openpowers/archive/brainstorm-mode',
+    path: 'furina/archive/brainstorm-mode',
     description: '补全 brainstorm mode hooks',
     createdAt: '2026-06-07T08:00:00Z',
     updateAt: '2026-06-07T14:00:00Z',
@@ -52,11 +52,11 @@ const changes: ChangeEntryWithCwd[] = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
   {
     name: 'older-change',
-    path: 'openpowers/changes/older',
+    path: 'furina/changes/older',
     description: 'An older change',
     createdAt: '2026-06-05T10:00:00Z',
     updateAt: '2026-06-06T10:00:00Z',
@@ -64,7 +64,7 @@ const changes: ChangeEntryWithCwd[] = [
     features: 0,
     todo: 0,
     artifacts: [],
-    cwd: 'D:\\project-code\\llm\\openpowers',
+    cwd: 'D:\\project-code\\llm\\furina',
   },
 ];
 
@@ -87,28 +87,28 @@ describe('ProjectGroup', () => {
   });
 
   it('renders cwd path in group header', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     // The cwd appears in both header and cards; verify at least one instance
-    const cwdElements = screen.getAllByText(/D:\\project-code\\llm\\openpowers/);
+    const cwdElements = screen.getAllByText(/D:\\project-code\\llm\\furina/);
     expect(cwdElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders active and archived counts in group header', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     // 2 active + 1 archived = 3 total shown as individual badges
     expect(screen.getByText('2')).toBeInTheDocument(); // active count
     expect(screen.getByText('1')).toBeInTheDocument(); // archived count
   });
 
   it('is collapsed by default', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     expect(screen.queryByText('ui-changes-page')).not.toBeInTheDocument();
     expect(screen.queryByText('brainstorm-mode')).not.toBeInTheDocument();
     expect(screen.queryByText('older-change')).not.toBeInTheDocument();
   });
 
   it('expands group when header is clicked', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     const header = document.querySelector('.cursor-pointer');
     expect(header).toBeInTheDocument();
 
@@ -119,7 +119,7 @@ describe('ProjectGroup', () => {
   });
 
   it('collapses group again when clicked after expand', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     const header = document.querySelector('.cursor-pointer');
 
     // Expand
@@ -132,7 +132,7 @@ describe('ProjectGroup', () => {
   });
 
   it('renders changes sorted by updateAt descending', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes);
     fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     const nameElements = document.querySelectorAll('.rounded-xl h3');
@@ -147,7 +147,7 @@ describe('ProjectGroup', () => {
     const changesWithMissingUpdateAt: ChangeEntryWithCwd[] = [
       {
         name: 'no-update-at',
-        path: 'openpowers/changes/no-update',
+        path: 'furina/changes/no-update',
         description: 'Change without updateAt',
         createdAt: '2026-06-08T10:00:00Z',
         updateAt: undefined,
@@ -155,11 +155,11 @@ describe('ProjectGroup', () => {
         features: 0,
         todo: 0,
         artifacts: [],
-        cwd: 'D:\\project-code\\llm\\openpowers',
+        cwd: 'D:\\project-code\\llm\\furina',
       },
       {
         name: 'has-update-at',
-        path: 'openpowers/changes/has-update',
+        path: 'furina/changes/has-update',
         description: 'Change with updateAt',
         createdAt: '2026-06-07T08:00:00Z',
         updateAt: '2026-06-07T14:00:00Z',
@@ -167,11 +167,11 @@ describe('ProjectGroup', () => {
         features: 0,
         todo: 0,
         artifacts: [],
-        cwd: 'D:\\project-code\\llm\\openpowers',
+        cwd: 'D:\\project-code\\llm\\furina',
       },
       {
         name: 'also-no-update',
-        path: 'openpowers/changes/also-no-update',
+        path: 'furina/changes/also-no-update',
         description: 'Another change without updateAt',
         createdAt: '2026-06-06T10:00:00Z',
         updateAt: undefined,
@@ -179,11 +179,11 @@ describe('ProjectGroup', () => {
         features: 0,
         todo: 0,
         artifacts: [],
-        cwd: 'D:\\project-code\\llm\\openpowers',
+        cwd: 'D:\\project-code\\llm\\furina',
       },
     ];
 
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changesWithMissingUpdateAt);
+    renderProjectGroup('D:\\project-code\\llm\\furina', changesWithMissingUpdateAt);
     fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     const nameElements = document.querySelectorAll('.rounded-xl h3');
@@ -198,7 +198,7 @@ describe('ProjectGroup', () => {
 
   it('passes onClick handler to internal ChangeCards', () => {
     const onClick = vi.fn();
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes, { onChangeClick: onClick });
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes, { onChangeClick: onClick });
     fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     // Click a change card
@@ -207,7 +207,7 @@ describe('ProjectGroup', () => {
   });
 
   it('passes isSelected to ChangeCard when selectedChange matches', () => {
-    renderProjectGroup('D:\\project-code\\llm\\openpowers', changes, { selectedChange: changes[0] });
+    renderProjectGroup('D:\\project-code\\llm\\furina', changes, { selectedChange: changes[0] });
     fireEvent.click(document.querySelector('.cursor-pointer')!);
 
     // ui-changes-page is the first change, it should be selected

@@ -45,7 +45,7 @@ export async function initI18n(): Promise<typeof i18next> {
   let backendLang: BackendLang = 'chinese';
 
   try {
-    const response = await fetch('/openpowers/api/config');
+    const response = await fetch('/furina/api/config');
     if (response.ok) {
       const data: { language?: BackendLang } = await response.json();
       if (data.language === 'chinese' || data.language === 'english') {

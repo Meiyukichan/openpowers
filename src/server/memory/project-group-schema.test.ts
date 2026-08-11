@@ -56,7 +56,7 @@ describe('ProjectGroupsSchema.parse', () => {
   it('rejects when members is an object array instead of string array', () => {
     const obj = JSON.parse(validJson);
     obj.groups[0].members = [
-      { id: 'p1', name: 'OpenPowers', techStack: { language: 'TypeScript' } },
+      { id: 'p1', name: 'Furina', techStack: { language: 'TypeScript' } },
     ];
     const result = ProjectGroupsSchema.safeParse(obj);
     expect(result.success).toBe(false);

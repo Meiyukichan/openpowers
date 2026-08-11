@@ -235,7 +235,7 @@ describe('src/utils/memory.ts', () => {
   describe('ChangeEntrySchema', () => {
     const minValidEntry = {
       name: 'my-change',
-      path: 'openpowers/changes/my-change',
+      path: 'furina/changes/my-change',
       description: 'test',
       createdAt: '2026-01-01T00:00:00Z',
       status: 'active' as const,
@@ -297,12 +297,12 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { ChangesJsonSchema } = mod;
       const result = ChangesJsonSchema.parse({
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/home/user/project',
         changes: [],
       });
-      expect(result.framework).toBe('openpowers');
+      expect(result.framework).toBe('furina');
       expect(result.cwd).toBe('/home/user/project');
       expect(result.changes).toEqual([]);
     });
@@ -312,7 +312,7 @@ describe('src/utils/memory.ts', () => {
       const { ChangesJsonSchema } = mod;
       expect(() =>
         ChangesJsonSchema.parse({
-          framework: 'openpowers',
+          framework: 'furina',
           version: '1.0.0',
           changes: [],
         }),
@@ -324,7 +324,7 @@ describe('src/utils/memory.ts', () => {
       const { ChangesJsonSchema } = mod;
       expect(() =>
         ChangesJsonSchema.parse({
-          framework: 'openpowers',
+          framework: 'furina',
           version: '1.0.0',
           cwd: '/project',
           changes: [{ invalid: 'entry' }],
@@ -340,7 +340,7 @@ describe('src/utils/memory.ts', () => {
     it('should flatten Windows path with backslashes and colon', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('D:\\project-code\\llm\\openpowers')).toBe('Memory_D__project-code_llm_openpowers');
+      expect(flattenCwdPath('D:\\project-code\\llm\\furina')).toBe('Memory_D__project-code_llm_furina');
     });
 
     it('should flatten Unix path with forward slashes', async () => {
@@ -358,7 +358,7 @@ describe('src/utils/memory.ts', () => {
     it('should flatten doubled backslashes from JSON-encoded paths', async () => {
       const mod = await import('./memory.js');
       const { flattenCwdPath } = mod;
-      expect(flattenCwdPath('D:\\\\project-code\\\\llm\\\\openpowers')).toBe('Memory_D__project-code_llm_openpowers');
+      expect(flattenCwdPath('D:\\\\project-code\\\\llm\\\\furina')).toBe('Memory_D__project-code_llm_furina');
     });
   });
 
@@ -429,7 +429,7 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { readMemoryChangesJson } = mod;
       const result = readMemoryChangesJson('/test/project');
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.version).toBeDefined();
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toEqual([]);
@@ -437,15 +437,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should return parsed JSON when file exists', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'test',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -465,7 +465,7 @@ describe('src/utils/memory.ts', () => {
 
     it('should return default structure and warn when file contains malformed JSON', async () => {
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       mockFs.setFile(filePath, '{ invalid json content !!!');
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -474,7 +474,7 @@ describe('src/utils/memory.ts', () => {
       const { readMemoryChangesJson } = mod;
       const result = readMemoryChangesJson('/test/project');
 
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toEqual([]);
       expect(warnSpy).toHaveBeenCalled();
@@ -495,13 +495,13 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { writeMemoryChangesJson } = mod;
       const data = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'old-change',
-            path: 'openpowers/changes/old-change',
+            path: 'furina/changes/old-change',
             description: 'old',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-01-01T00:00:00Z',
@@ -512,7 +512,7 @@ describe('src/utils/memory.ts', () => {
           },
           {
             name: 'new-change',
-            path: 'openpowers/changes/new-change',
+            path: 'furina/changes/new-change',
             description: 'new',
             createdAt: '2026-06-01T00:00:00Z',
             updateAt: '2026-06-01T00:00:00Z',
@@ -527,7 +527,7 @@ describe('src/utils/memory.ts', () => {
       writeMemoryChangesJson('/test/project', data);
 
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('new-change');
       expect(written.changes[1].name).toBe('old-change');
@@ -537,13 +537,13 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { writeMemoryChangesJson } = mod;
       const data = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'old-change',
-            path: 'openpowers/changes/old-change',
+            path: 'furina/changes/old-change',
             description: 'old',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-01-01T00:00:00Z',
@@ -554,7 +554,7 @@ describe('src/utils/memory.ts', () => {
           },
           {
             name: 'new-change',
-            path: 'openpowers/changes/new-change',
+            path: 'furina/changes/new-change',
             description: 'new',
             createdAt: '2026-06-01T00:00:00Z',
             updateAt: '2026-06-01T00:00:00Z',
@@ -577,13 +577,13 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { writeMemoryChangesJson } = mod;
       const data = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'alpha-change',
-            path: 'openpowers/changes/alpha-change',
+            path: 'furina/changes/alpha-change',
             description: 'alpha',
             createdAt: '2026-01-01T00:00:00Z',
             status: 'active' as const,
@@ -593,7 +593,7 @@ describe('src/utils/memory.ts', () => {
           },
           {
             name: 'beta-change',
-            path: 'openpowers/changes/beta-change',
+            path: 'furina/changes/beta-change',
             description: 'beta',
             createdAt: '2026-06-01T00:00:00Z',
             status: 'active' as const,
@@ -607,7 +607,7 @@ describe('src/utils/memory.ts', () => {
       writeMemoryChangesJson('/test/project', data);
 
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('alpha-change');
       expect(written.changes[1].name).toBe('beta-change');
@@ -617,13 +617,13 @@ describe('src/utils/memory.ts', () => {
       const mod = await import('./memory.js');
       const { writeMemoryChangesJson } = mod;
       const data = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'no-update',
-            path: 'openpowers/changes/no-update',
+            path: 'furina/changes/no-update',
             description: 'no updateAt',
             createdAt: '2026-01-01T00:00:00Z',
             status: 'active' as const,
@@ -633,7 +633,7 @@ describe('src/utils/memory.ts', () => {
           },
           {
             name: 'with-update',
-            path: 'openpowers/changes/with-update',
+            path: 'furina/changes/with-update',
             description: 'has updateAt',
             createdAt: '2026-06-01T00:00:00Z',
             updateAt: '2026-06-01T00:00:00Z',
@@ -648,7 +648,7 @@ describe('src/utils/memory.ts', () => {
       writeMemoryChangesJson('/test/project', data);
 
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].name).toBe('with-update');
       expect(written.changes[1].name).toBe('no-update');
@@ -663,30 +663,30 @@ describe('src/utils/memory.ts', () => {
       mockFs.reset();
     });
 
-    it('should seed from openpowers/changes.json with changes + archive entries', async () => {
+    it('should seed from furina/changes.json with changes + archive entries', async () => {
       // Arrange: no memory file, but project changes.json exists with changes and archive
-      const projectPath = '/test/project/openpowers/changes.json';
+      const projectPath = '/test/project/furina/changes.json';
       // Set up directories so checkPathsExist doesn't mark entries as 'removed'
-      mockFs.setDir('/test/project/openpowers/changes/active-change');
-      mockFs.setDir('/test/project/openpowers/changes/archived-change');
+      mockFs.setDir('/test/project/furina/changes/active-change');
+      mockFs.setDir('/test/project/furina/changes/archived-change');
       mockFs.setFile(projectPath, JSON.stringify({
-        name: 'openpowers',
+        name: 'furina',
         changes: [
           {
             name: 'active-change',
-            path: 'openpowers/changes/active-change',
+            path: 'furina/changes/active-change',
             description: 'An active change',
             createdAt: '2026-06-01T00:00:00Z',
             updateAt: '2026-06-05T00:00:00Z',
             features: 3,
             todo: 1,
-            artifacts: [{ id: 'proposal', outputPath: 'openpowers/changes/active-change/proposal.md' }],
+            artifacts: [{ id: 'proposal', outputPath: 'furina/changes/active-change/proposal.md' }],
           },
         ],
         archive: [
           {
             name: 'archived-change',
-            path: 'openpowers/changes/archived-change',
+            path: 'furina/changes/archived-change',
             description: 'An archived change',
             createdAt: '2026-05-01T00:00:00Z',
             closedAt: '2026-05-15T00:00:00Z',
@@ -700,7 +700,7 @@ describe('src/utils/memory.ts', () => {
       const { readMemoryChangesJson } = mod;
       const result = readMemoryChangesJson('/test/project');
 
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.version).toBeDefined();
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toHaveLength(2);
@@ -724,7 +724,7 @@ describe('src/utils/memory.ts', () => {
       expect(archived!.updateAt).toBe('2026-05-15T00:00:00Z');
     });
 
-    it('should return default structure when openpowers/changes.json does not exist', async () => {
+    it('should return default structure when furina/changes.json does not exist', async () => {
       // Arrange: no memory file, no project changes.json
       // (mockFs.reset() already clears everything)
 
@@ -732,15 +732,15 @@ describe('src/utils/memory.ts', () => {
       const { readMemoryChangesJson } = mod;
       const result = readMemoryChangesJson('/test/project');
 
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.version).toBeDefined();
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toEqual([]);
     });
 
-    it('should return default structure when openpowers/changes.json exists but contains malformed JSON', async () => {
+    it('should return default structure when furina/changes.json exists but contains malformed JSON', async () => {
       // Arrange: project changes.json exists with corrupted content, no memory file
-      const projectPath = '/test/project/openpowers/changes.json';
+      const projectPath = '/test/project/furina/changes.json';
       mockFs.setFile(projectPath, 'not valid json {{{');
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -749,7 +749,7 @@ describe('src/utils/memory.ts', () => {
       const { readMemoryChangesJson } = mod;
       const result = readMemoryChangesJson('/test/project');
 
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.version).toBeDefined();
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toEqual([]);
@@ -761,7 +761,7 @@ describe('src/utils/memory.ts', () => {
     it('should fallback on malformed JSON parse failure in ensureMemoryChangesJson catch branch', async () => {
       // Arrange: memory file exists with invalid JSON content
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       mockFs.setFile(memoryPath, '{ broken json !!!');
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -771,7 +771,7 @@ describe('src/utils/memory.ts', () => {
       const result = ensureMemoryChangesJson('/test/project');
 
       // Falls back to seedFromProjectChangesJson (no project file either → defaults)
-      expect(result.framework).toBe('@meiyukichan/openpowers');
+      expect(result.framework).toBe('@meiyukichan/furina');
       expect(result.cwd).toBe('/test/project');
       expect(result.changes).toEqual([]);
       expect(warnSpy).toHaveBeenCalled();
@@ -790,17 +790,17 @@ describe('src/utils/memory.ts', () => {
 
     it('should mark entry as archived and update path when change exists in archive directory', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       // Memory has entry pointing to active changes dir
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived change',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -814,12 +814,12 @@ describe('src/utils/memory.ts', () => {
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
 
       // Archive directory exists for this change
-      const archiveDir = '/test/project/openpowers/archive/2026-05-01-my-archived-change';
+      const archiveDir = '/test/project/furina/archive/2026-05-01-my-archived-change';
       mockFs.setDir(archiveDir);
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive');
 
       // Mock readdirSync to return the archive directory entry
-      const normArchiveDir = '/test/project/openpowers/archive';
+      const normArchiveDir = '/test/project/furina/archive';
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
         if (normalized === normArchiveDir) {
@@ -836,21 +836,21 @@ describe('src/utils/memory.ts', () => {
 
       expect(result.changes).toHaveLength(1);
       expect(result.changes[0].status).toBe('archived');
-      expect(result.changes[0].path).toBe('openpowers/archive/2026-05-01-my-archived-change');
+      expect(result.changes[0].path).toBe('furina/archive/2026-05-01-my-archived-change');
     });
 
     it('should normalize stage statuses to done for archived entry', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -875,11 +875,11 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/archive/2026-05-01-my-archived-change');
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive/2026-05-01-my-archived-change');
+      mockFs.setDir('/test/project/furina/archive');
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === '/test/project/openpowers/archive') {
+        if (normalized === '/test/project/furina/archive') {
           return [
             { name: '2026-05-01-my-archived-change', isDirectory: () => true, isFile: () => false },
           ];
@@ -906,16 +906,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should normalize subAgentDev progress statuses to done for archived entry', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -954,11 +954,11 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/archive/2026-05-01-my-archived-change');
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive/2026-05-01-my-archived-change');
+      mockFs.setDir('/test/project/furina/archive');
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === '/test/project/openpowers/archive') {
+        if (normalized === '/test/project/furina/archive') {
           return [
             { name: '2026-05-01-my-archived-change', isDirectory: () => true, isFile: () => false },
           ];
@@ -981,17 +981,17 @@ describe('src/utils/memory.ts', () => {
 
     it('should not modify updateAt when normalizing archived entry', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const originalUpdateAt = '2026-03-01T00:00:00Z';
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: originalUpdateAt,
@@ -1016,11 +1016,11 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/archive/2026-05-01-my-archived-change');
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive/2026-05-01-my-archived-change');
+      mockFs.setDir('/test/project/furina/archive');
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === '/test/project/openpowers/archive') {
+        if (normalized === '/test/project/furina/archive') {
           return [
             { name: '2026-05-01-my-archived-change', isDirectory: () => true, isFile: () => false },
           ];
@@ -1037,16 +1037,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should keep entry as removed when directory does not exist and no archive found', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'deleted-change',
-            path: 'openpowers/changes/deleted-change',
+            path: 'furina/changes/deleted-change',
             description: 'deleted',
             createdAt: '2026-01-01T00:00:00Z',
             status: 'active',
@@ -1070,16 +1070,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should not normalize stage when entry remains active (path exists)', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'active-change',
-            path: 'openpowers/changes/active-change',
+            path: 'furina/changes/active-change',
             description: 'active',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -1105,7 +1105,7 @@ describe('src/utils/memory.ts', () => {
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
       // Path exists - set the directory
-      mockFs.setDir('/test/project/openpowers/changes/active-change');
+      mockFs.setDir('/test/project/furina/changes/active-change');
 
       const mod = await import('./memory.js');
       const { ensureMemoryChangesJson } = mod;
@@ -1122,16 +1122,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should sync features and todo from plan.json for entries with existing path', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'active-change',
-            path: 'openpowers/changes/active-change',
+            path: 'furina/changes/active-change',
             description: 'active',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -1143,9 +1143,9 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/changes/active-change');
+      mockFs.setDir('/test/project/furina/changes/active-change');
       // plan.json with updated features
-      mockFs.setFile('/test/project/openpowers/changes/active-change/plan.json', JSON.stringify([
+      mockFs.setFile('/test/project/furina/changes/active-change/plan.json', JSON.stringify([
         { featureId: 'feat-1', status: 'done' },
         { featureId: 'feat-2', status: 'in_progress' },
         { featureId: 'feat-3', status: 'done' },
@@ -1162,16 +1162,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should sync features and todo from plan.json for archived entries', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -1183,16 +1183,16 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/archive/2026-05-01-my-archived-change');
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive/2026-05-01-my-archived-change');
+      mockFs.setDir('/test/project/furina/archive');
       // plan.json in the archive directory
-      mockFs.setFile('/test/project/openpowers/archive/2026-05-01-my-archived-change/plan.json', JSON.stringify([
+      mockFs.setFile('/test/project/furina/archive/2026-05-01-my-archived-change/plan.json', JSON.stringify([
         { featureId: 'feat-1', status: 'done' },
         { featureId: 'feat-2', status: 'done' },
       ]));
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === '/test/project/openpowers/archive') {
+        if (normalized === '/test/project/furina/archive') {
           return [
             { name: '2026-05-01-my-archived-change', isDirectory: () => true, isFile: () => false },
           ];
@@ -1212,17 +1212,17 @@ describe('src/utils/memory.ts', () => {
 
     it('should not modify updateAt when syncing features/todo', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const originalUpdateAt = '2026-03-01T00:00:00Z';
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'active-change',
-            path: 'openpowers/changes/active-change',
+            path: 'furina/changes/active-change',
             description: 'active',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: originalUpdateAt,
@@ -1234,8 +1234,8 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/changes/active-change');
-      mockFs.setFile('/test/project/openpowers/changes/active-change/plan.json', JSON.stringify([
+      mockFs.setDir('/test/project/furina/changes/active-change');
+      mockFs.setFile('/test/project/furina/changes/active-change/plan.json', JSON.stringify([
         { featureId: 'feat-1', status: 'done' },
       ]));
 
@@ -1249,16 +1249,16 @@ describe('src/utils/memory.ts', () => {
 
     it('should handle archived entry without stage gracefully', async () => {
       const flatCwd = 'Memory__test_project';
-      const memoryPath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const memoryPath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
 
       const memoryData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-archived-change',
-            path: 'openpowers/changes/my-archived-change',
+            path: 'furina/changes/my-archived-change',
             description: 'archived no stage',
             createdAt: '2026-01-01T00:00:00Z',
             updateAt: '2026-03-01T00:00:00Z',
@@ -1270,11 +1270,11 @@ describe('src/utils/memory.ts', () => {
         ],
       };
       mockFs.setFile(memoryPath, JSON.stringify(memoryData));
-      mockFs.setDir('/test/project/openpowers/archive/2026-05-01-my-archived-change');
-      mockFs.setDir('/test/project/openpowers/archive');
+      mockFs.setDir('/test/project/furina/archive/2026-05-01-my-archived-change');
+      mockFs.setDir('/test/project/furina/archive');
       mockFs.readdirSync.mockImplementation((p: string, _options?: unknown) => {
         const normalized = p.replace(/\\/g, '/');
-        if (normalized === '/test/project/openpowers/archive') {
+        if (normalized === '/test/project/furina/archive') {
           return [
             { name: '2026-05-01-my-archived-change', isDirectory: () => true, isFile: () => false },
           ];
@@ -1305,7 +1305,7 @@ describe('src/utils/memory.ts', () => {
       createOrUpdateChange('/test/project', 'my-change', 'test description');
 
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
       expect(written.changes[0].name).toBe('my-change');
@@ -1318,15 +1318,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should append new entry when file exists but change does not exist', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'existing-change',
-            path: 'openpowers/changes/existing-change',
+            path: 'furina/changes/existing-change',
             description: 'existing',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -1351,15 +1351,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should update existing entry when change already exists', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'old description',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -1383,15 +1383,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should write stage field when changeStage parameter is provided', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'old description',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -1419,18 +1419,18 @@ describe('src/utils/memory.ts', () => {
 
     it('should not affect stage field when changeStage is not provided', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingStage = {
         explore: { title: 'Explore', from: '2026-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', status: 'done', inputPath: '/in', outputPath: '/out' },
       };
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'old description',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -1456,15 +1456,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should preserve existing description when desc parameter is undefined', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'original description',
             createdAt: '2026-01-01T00:00:00Z',
             features: 0,
@@ -1491,12 +1491,12 @@ describe('src/utils/memory.ts', () => {
       const { createOrUpdateChange } = mod;
 
       // Set up change directory but no artifact files (proposal.md, design.md, etc.)
-      mockFs.setDir('/test/project/openpowers/changes/my-change');
+      mockFs.setDir('/test/project/furina/changes/my-change');
 
       createOrUpdateChange('/test/project', 'my-change', 'test description');
 
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
       expect(written.changes[0].artifacts).toEqual([]);
@@ -1507,7 +1507,7 @@ describe('src/utils/memory.ts', () => {
       const { createOrUpdateChange } = mod;
 
       // Set up all 6 artifact files in the change directory
-      const changeDir = '/test/project/openpowers/changes/my-change';
+      const changeDir = '/test/project/furina/changes/my-change';
       mockFs.setDir(changeDir);
       mockFs.setFile(`${changeDir}/proposal.md`, '# Proposal');
       mockFs.setFile(`${changeDir}/design.md`, '# Design');
@@ -1519,7 +1519,7 @@ describe('src/utils/memory.ts', () => {
       createOrUpdateChange('/test/project', 'my-change', 'all artifacts');
 
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes).toHaveLength(1);
       expect(written.changes[0].artifacts).toHaveLength(6);
@@ -1554,7 +1554,7 @@ describe('src/utils/memory.ts', () => {
       createOrUpdateChange('/test/project', 'my-change', 'updated description');
 
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].stage).toBeDefined();
       expect(written.changes[0].stage.explore.status).toBe('done');
@@ -1568,14 +1568,14 @@ describe('src/utils/memory.ts', () => {
       const { createOrUpdateChange } = mod;
 
       // Set up plan.json for the change directory (to trigger progress computation)
-      const planJsonPath = '/test/project/openpowers/changes/my-change/plan.json';
+      const planJsonPath = '/test/project/furina/changes/my-change/plan.json';
       mockFs.setFile(planJsonPath, JSON.stringify([
         { featureId: 'feat-1', status: 'in_progress' },
         { featureId: 'feat-2', status: 'done' },
       ]));
 
       // Set up a directory entry for the change path so existsSync returns true
-      mockFs.setDir('/test/project/openpowers/changes/my-change');
+      mockFs.setDir('/test/project/furina/changes/my-change');
 
       const stageData = {
         explore: { title: 'Explore', from: '2026-06-01T00:00:00Z', to: '2026-06-01T00:00:00Z', status: 'in_progress' as const, inputPath: '', outputPath: '' },
@@ -1583,7 +1583,7 @@ describe('src/utils/memory.ts', () => {
       createOrUpdateChange('/test/project', 'my-change', 'with progress', stageData);
 
       const flatCwd = 'Memory__test_project';
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const written = JSON.parse(mockFs.fileSystem[filePath.replace(/\\/g, '/')]);
       expect(written.changes[0].stage).toBeDefined();
       expect(written.changes[0].stage.explore.status).toBe('in_progress');
@@ -1594,15 +1594,15 @@ describe('src/utils/memory.ts', () => {
 
     it('should keep existing features and todo counts when plan.json contains non-array content', async () => {
       const flatCwd = 'Memory__test_project'; // flattenCwdPath('/test/project') = 'Memory__test_project'
-      const filePath = `/home/test-user/.openpowers/memory/${flatCwd}/changes.json`;
+      const filePath = `/home/test-user/.furina/memory/${flatCwd}/changes.json`;
       const existingData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         cwd: '/test/project',
         changes: [
           {
             name: 'my-change',
-            path: 'openpowers/changes/my-change',
+            path: 'furina/changes/my-change',
             description: 'test',
             createdAt: '2026-01-01T00:00:00Z',
             features: 5,
@@ -1614,7 +1614,7 @@ describe('src/utils/memory.ts', () => {
       mockFs.setFile(filePath, JSON.stringify(existingData));
 
       // Set up plan.json with a non-array value (an object)
-      const planJsonPath = '/test/project/openpowers/changes/my-change/plan.json';
+      const planJsonPath = '/test/project/furina/changes/my-change/plan.json';
       mockFs.setFile(planJsonPath, JSON.stringify({ features: 'not-an-array' }));
 
       const mod = await import('./memory.js');
@@ -1638,7 +1638,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1665,7 +1665,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1685,7 +1685,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1710,7 +1710,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1735,7 +1735,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1760,7 +1760,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -1787,7 +1787,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1822,7 +1822,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1835,7 +1835,7 @@ describe('src/utils/memory.ts', () => {
               from: '2026-01-01T00:00:00Z',
               to: '2026-01-01T00:00:00Z',
               status: 'done',
-              inputPath: 'openpowers/changes/x/specs/',
+              inputPath: 'furina/changes/x/specs/',
               outputPath: '',
             },
           },
@@ -1846,7 +1846,7 @@ describe('src/utils/memory.ts', () => {
         });
 
         // inputPath should be preserved (empty string -> keep old)
-        expect((entry.stage as any).propose.inputPath).toBe('openpowers/changes/x/specs/');
+        expect((entry.stage as any).propose.inputPath).toBe('furina/changes/x/specs/');
         // title should be overridden (non-empty new value)
         expect((entry.stage as any).propose.title).toBe('New Title');
       });
@@ -1857,7 +1857,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1892,7 +1892,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1923,7 +1923,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1964,7 +1964,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -1996,7 +1996,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2034,7 +2034,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2073,7 +2073,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2111,7 +2111,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2141,7 +2141,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2166,7 +2166,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2194,7 +2194,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2223,7 +2223,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2250,7 +2250,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2279,7 +2279,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2318,7 +2318,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2356,7 +2356,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2379,7 +2379,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2411,7 +2411,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2453,7 +2453,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2479,7 +2479,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2516,7 +2516,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2560,7 +2560,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2597,7 +2597,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2623,7 +2623,7 @@ describe('src/utils/memory.ts', () => {
 
       const entry: Record<string, unknown> = {
         name: 'test-change',
-        path: 'openpowers/changes/test-change',
+        path: 'furina/changes/test-change',
         description: 'test',
         createdAt: '2026-01-01T00:00:00Z',
         status: 'active',
@@ -2656,7 +2656,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2694,7 +2694,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2730,7 +2730,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2765,7 +2765,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2801,7 +2801,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2834,7 +2834,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2870,7 +2870,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2903,7 +2903,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2939,7 +2939,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -2973,7 +2973,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3005,7 +3005,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3046,7 +3046,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3090,7 +3090,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3128,7 +3128,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3167,7 +3167,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3203,7 +3203,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3241,7 +3241,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3287,7 +3287,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3337,7 +3337,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3385,7 +3385,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3413,7 +3413,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3447,7 +3447,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3482,7 +3482,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',
@@ -3520,7 +3520,7 @@ describe('src/utils/memory.ts', () => {
 
         const entry: Record<string, unknown> = {
           name: 'test-change',
-          path: 'openpowers/changes/test-change',
+          path: 'furina/changes/test-change',
           description: 'test',
           createdAt: '2026-01-01T00:00:00Z',
           status: 'active',

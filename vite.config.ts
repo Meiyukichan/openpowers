@@ -11,7 +11,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/openpowers/ui/',
+  base: '/furina/ui/',
   root: path.resolve(__dirname, 'src', 'client'),
   build: {
     outDir: path.resolve(__dirname, 'dist', 'client'),
@@ -20,7 +20,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/openpowers/api': {
+      '/furina/api': {
         target: 'http://localhost:3939',
         changeOrigin: true,
       },

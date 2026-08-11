@@ -33,14 +33,14 @@ export interface GetAllChangesOptions {
 // ---------------------------------------------------------------------------
 
 /** Root directory for global memory data. */
-const MEMORY_DIR = path.join(os.homedir(), '.openpowers', 'memory');
+const MEMORY_DIR = path.join(os.homedir(), '.furina', 'memory');
 
 // ---------------------------------------------------------------------------
 // Core function
 // ---------------------------------------------------------------------------
 
 /**
- * Scans all Memory_ prefixed directories under ~/.openpowers/memory/,
+ * Scans all Memory_ prefixed directories under ~/.furina/memory/,
  * reads each changes.json asynchronously, extracts the changes array,
  * injects the parent cwd field into each entry, applies optional filters
  * (status/cwd/query), and returns the results sorted by updateAt descending

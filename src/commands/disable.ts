@@ -1,13 +1,13 @@
 /**
- * @fileoverview Disable command - disables the OpenPowers proxy
- * by calling setEnableOpenpowersProxy(false)
+ * @fileoverview Disable command - disables the Furina proxy
+ * by calling setEnableFurinaProxy(false)
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
 
 import { Command } from 'commander';
 import {
-  setEnableOpenpowersProxy,
+  setEnableFurinaProxy,
   getActiveProvider,
 } from '../server/providers-store.js';
 import {
@@ -18,12 +18,12 @@ import {
 import { logger } from '../utils/logger.js';
 
 /**
- * Disables the OpenPowers proxy and outputs a success message.
+ * Disables the Furina proxy and outputs a success message.
  * On failure, logs the error and exits with code 1.
  */
 export function runDisable(): void {
   try {
-    setEnableOpenpowersProxy(false);
+    setEnableFurinaProxy(false);
 
     // Sync Claude settings based on active provider existence
     try {
@@ -37,7 +37,7 @@ export function runDisable(): void {
       logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    process.stdout.write('OpenPowers proxy disabled\n');
+    process.stdout.write('Furina proxy disabled\n');
   } catch (err) {
     process.stderr.write(`Failed to disable proxy: ${err}\n`);
     logger.error(`Failed to disable proxy: ${err}`);
@@ -52,7 +52,7 @@ export function runDisable(): void {
 export function registerDisableCommand(program: Command): void {
   program
     .command('disable')
-    .description('Disable the OpenPowers proxy')
+    .description('Disable the Furina proxy')
     .action(() => {
       runDisable();
     });

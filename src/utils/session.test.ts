@@ -83,7 +83,7 @@ describe('getSessionFilePath', () => {
 
   it('should return the correct cross-platform path for a given session id', () => {
     const result = getSessionFilePath('test-session-001');
-    const expected = path.join(mockHomeDir, '.openpowers', 'sessions', 'test-session-001', 'settings.json');
+    const expected = path.join(mockHomeDir, '.furina', 'sessions', 'test-session-001', 'settings.json');
     expect(result).toBe(expected);
   });
 });
@@ -148,7 +148,7 @@ describe('readSessionSettings', () => {
       currentProvider: 'default',
       switchProviders: {},
       brainstorm: true,
-      prompt: '/openpowers:workflow explore the codebase',
+      prompt: '/furina:workflow explore the codebase',
     };
     readFileSyncMock.mockReturnValue(JSON.stringify(settingsWithBrainstorm));
 
@@ -156,7 +156,7 @@ describe('readSessionSettings', () => {
 
     expect(result).toBeDefined();
     expect(result?.brainstorm).toBe(true);
-    expect(result?.prompt).toBe('/openpowers:workflow explore the codebase');
+    expect(result?.prompt).toBe('/furina:workflow explore the codebase');
   });
 
   it('should treat missing brainstorm as undefined and missing prompt as undefined (backward compatible)', () => {
@@ -193,7 +193,7 @@ describe('writeSessionSettings', () => {
 
     writeSessionSettings('test-session-001', sampleSettings);
 
-    const expectedDir = path.join(mockHomeDir, '.openpowers', 'sessions', 'test-session-001');
+    const expectedDir = path.join(mockHomeDir, '.furina', 'sessions', 'test-session-001');
     const expectedPath = path.join(expectedDir, 'settings.json');
 
     // Directory should be created recursively
@@ -211,7 +211,7 @@ describe('writeSessionSettings', () => {
 
     writeSessionSettings('test-session-001', sampleSettings);
 
-    const expectedDir = path.join(mockHomeDir, '.openpowers', 'sessions', 'test-session-001');
+    const expectedDir = path.join(mockHomeDir, '.furina', 'sessions', 'test-session-001');
     const expectedPath = path.join(expectedDir, 'settings.json');
 
     // Directory already exists, so mkdirSync should NOT be called

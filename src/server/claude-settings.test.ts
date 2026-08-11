@@ -70,8 +70,8 @@ beforeAll(async () => {
 
 const CLAUDE_DIR = path.join('/mock/home', '.claude');
 const SETTINGS_FILE = path.join(CLAUDE_DIR, 'settings.json');
-const OPENPOWERS_DIR = path.join('/mock/home', '.openpowers');
-const BACKUP_FILE = path.join(OPENPOWERS_DIR, 'settings.bak.json');
+const FURINA_DIR = path.join('/mock/home', '.furina');
+const BACKUP_FILE = path.join(FURINA_DIR, 'settings.bak.json');
 
 // ---- helpers ----
 
@@ -180,7 +180,7 @@ describe('backupClaudeSettings', () => {
 
     mod.backupClaudeSettings();
 
-    expect(mkdirSyncMock).toHaveBeenCalledWith(OPENPOWERS_DIR, { recursive: true });
+    expect(mkdirSyncMock).toHaveBeenCalledWith(FURINA_DIR, { recursive: true });
     expect(copyFileSyncMock).toHaveBeenCalledWith(SETTINGS_FILE, BACKUP_FILE);
   });
 

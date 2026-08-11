@@ -14,12 +14,12 @@ import { startBackendService, UI_PORT } from '../server/service-manager.js';
 export async function runActive(): Promise<void> {
   const portInUse = await isPortInUse(UI_PORT);
   if (portInUse) {
-    process.stdout.write('OpenPowers service is active\n');
+    process.stdout.write('Furina service is active\n');
     return;
   }
 
   startBackendService(UI_PORT);
-  process.stderr.write('OpenPowers service is starting, please exit the workflow and retry\n');
+  process.stderr.write('Furina service is starting, please exit the workflow and retry\n');
   process.exitCode = 1;
 }
 

@@ -17,7 +17,7 @@ const {
   isAxiosErrorMock,
   getDefaultProviderMock,
   getProviderBySessionIdMock,
-  getEnableOpenpowersProxyMock,
+  getEnableFurinaProxyMock,
   proxyLoggerMock,
   createSessionLoggerMock,
   writeSessionBodyJsonMock,
@@ -29,7 +29,7 @@ const {
   ),
   getDefaultProviderMock: vi.fn(),
   getProviderBySessionIdMock: vi.fn(),
-  getEnableOpenpowersProxyMock: vi.fn(),
+  getEnableFurinaProxyMock: vi.fn(),
   proxyLoggerMock: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock('axios', () => ({
 
 vi.mock('../providers-store.js', () => ({
   getDefaultProvider: getDefaultProviderMock,
-  getEnableOpenpowersProxy: getEnableOpenpowersProxyMock,
+  getEnableFurinaProxy: getEnableFurinaProxyMock,
 }));
 
 vi.mock('./logger.js', () => ({
@@ -166,7 +166,7 @@ function setupProvider(
   apiKey = 'sk-test-key',
   models?: { defaultModel?: string; sonnetModel?: string; opusModel?: string; haikuModel?: string },
 ) {
-  getEnableOpenpowersProxyMock.mockReturnValue(true);
+  getEnableFurinaProxyMock.mockReturnValue(true);
   getDefaultProviderMock.mockReturnValue({
     id: 'test-provider',
     name: 'Test Provider',
@@ -553,18 +553,18 @@ describe('tryLogLastMessage', () => {
 describe('proxyRequestHandler', () => {
   describe('pre-request validation', () => {
     it('returns 503 when proxy is disabled', async () => {
-      getEnableOpenpowersProxyMock.mockReturnValue(false);
+      getEnableFurinaProxyMock.mockReturnValue(false);
       const req = createMockReq();
       const res = createMockRes();
 
       await proxyRequestHandler(req, res as unknown as Response);
 
       expect(res._status).toBe(503);
-      expect(res.body).toEqual({ error: 'OpenPowers proxy is disabled' });
+      expect(res.body).toEqual({ error: 'Furina proxy is disabled' });
     });
 
     it('returns 503 when no active provider is configured', async () => {
-      getEnableOpenpowersProxyMock.mockReturnValue(true);
+      getEnableFurinaProxyMock.mockReturnValue(true);
       getDefaultProviderMock.mockReturnValue(null);
       const req = createMockReq();
       const res = createMockRes();

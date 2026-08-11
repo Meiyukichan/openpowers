@@ -1,7 +1,7 @@
 /**
  * EditProviderDialog component renders a modal dialog for editing an existing provider.
  * Pre-fills form fields with current provider data (name, notes, websiteUrl, apiKey,
- * baseUrl). Does not show the preset selector. Submits via PUT /openpowers/api/providers/:id.
+ * baseUrl). Does not show the preset selector. Submits via PUT /furina/api/providers/:id.
  * Styled with Tailwind CSS following cc-switch patterns.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -135,7 +135,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess, showT
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/openpowers/api/providers/${provider.id}`, {
+      const response = await fetch(`/furina/api/providers/${provider.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export function EditProviderDialog({ isOpen, provider, onClose, onSuccess, showT
     setValidating(true);
     setValidationResult(null);
     try {
-      const response = await fetch('/openpowers/api/providers/validate', {
+      const response = await fetch('/furina/api/providers/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

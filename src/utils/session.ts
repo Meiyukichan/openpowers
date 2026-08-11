@@ -1,6 +1,6 @@
 /**
  * Session settings read/write utilities.
- * Reads and writes session configuration from ~/.openpowers/sessions/<id>/settings.json.
+ * Reads and writes session configuration from ~/.furina/sessions/<id>/settings.json.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -13,10 +13,10 @@ import { getDefaultProvider, getProviderByModels } from '../server/providers-sto
 import type { Provider } from '../server/providers-store.js';
 
 // Session settings directory under user home
-const SESSIONS_DIR = path.join(os.homedir(), '.openpowers', 'sessions');
+const SESSIONS_DIR = path.join(os.homedir(), '.furina', 'sessions');
 
 /**
- * Session settings stored per session under ~/.openpowers/sessions/<id>/settings.json.
+ * Session settings stored per session under ~/.furina/sessions/<id>/settings.json.
  */
 export interface SessionSettings {
   /** Unique session identifier */

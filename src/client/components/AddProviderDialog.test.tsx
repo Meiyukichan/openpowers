@@ -53,10 +53,10 @@ describe('AddProviderDialog', () => {
     // Default mock: return templates for GET /templates, success for everything else
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+      if (urlStr === '/furina/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/templates' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/templates' && init?.method === 'POST') {
         return { ok: true, status: 201, json: () => Promise.resolve({}) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -110,7 +110,7 @@ describe('AddProviderDialog', () => {
     expect(screen.getByPlaceholderText('Haiku 模型')).toBeInTheDocument();
   });
 
-  it('fetches template list from GET /openpowers/api/providers/templates on mount', async () => {
+  it('fetches template list from GET /furina/api/providers/templates on mount', async () => {
     renderDialog({
         isOpen: true,
         onClose: vi.fn(),
@@ -118,7 +118,7 @@ describe('AddProviderDialog', () => {
         showToast: vi.fn(),
     });
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/openpowers/api/providers/templates');
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/furina/api/providers/templates');
     });
   });
 
@@ -225,7 +225,7 @@ describe('AddProviderDialog', () => {
     // Override fetch for this test: templates call succeeds first, then POST
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates') {
+      if (urlStr === '/furina/api/providers/templates') {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -257,7 +257,7 @@ describe('AddProviderDialog', () => {
       expect(onSuccess).toHaveBeenCalledOnce();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/openpowers/api/providers',
+      '/furina/api/providers',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -384,7 +384,7 @@ describe('AddProviderDialog', () => {
   });
 
   // pt-002: "添加为模板" button sends POST to templates endpoint
-  it('sends POST to /openpowers/api/providers/templates with form data excluding apiKey', async () => {
+  it('sends POST to /furina/api/providers/templates with form data excluding apiKey', async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
     renderDialog({
@@ -413,7 +413,7 @@ describe('AddProviderDialog', () => {
 
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        '/openpowers/api/providers/templates',
+        '/furina/api/providers/templates',
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -424,7 +424,7 @@ describe('AddProviderDialog', () => {
     // Verify the call body does not include apiKey or notes (provider-specific fields)
     const fetchCalls = vi.mocked(fetch).mock.calls;
     const postCall = fetchCalls.find((call) =>
-      typeof call[0] === 'string' && call[0] === '/openpowers/api/providers/templates'
+      typeof call[0] === 'string' && call[0] === '/furina/api/providers/templates'
       && call[1] && (call[1] as RequestInit).method === 'POST'
     );
     expect(postCall).toBeDefined();
@@ -476,10 +476,10 @@ describe('AddProviderDialog', () => {
     // Override fetch to return 409 for POST /templates
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+      if (urlStr === '/furina/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/templates' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/templates' && init?.method === 'POST') {
         return {
           ok: false,
           status: 409,
@@ -520,10 +520,10 @@ describe('AddProviderDialog', () => {
     // Override fetch to return 500 for POST /templates
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+      if (urlStr === '/furina/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/templates' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/templates' && init?.method === 'POST') {
         return {
           ok: false,
           status: 500,
@@ -567,7 +567,7 @@ describe('AddProviderDialog', () => {
     ];
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+      if (urlStr === '/furina/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
         return { ok: true, status: 200, json: () => Promise.resolve(customTemplates) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -669,10 +669,10 @@ describe('AddProviderDialog', () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates') {
+      if (urlStr === '/furina/api/providers/templates') {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-a', 'model-b', 'model-c'] }) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -703,10 +703,10 @@ describe('AddProviderDialog', () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates') {
+      if (urlStr === '/furina/api/providers/templates') {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Authentication failed: invalid API key' }) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -737,10 +737,10 @@ describe('AddProviderDialog', () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates') {
+      if (urlStr === '/furina/api/providers/templates') {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: false, error: 'Validation timeout: upstream did not respond within 5s' }) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -771,10 +771,10 @@ describe('AddProviderDialog', () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates') {
+      if (urlStr === '/furina/api/providers/templates') {
         return { ok: true, status: 200, json: () => Promise.resolve(mockTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/validate' && init?.method === 'POST') {
+      if (urlStr === '/furina/api/providers/validate' && init?.method === 'POST') {
         return { ok: true, status: 200, json: () => Promise.resolve({ valid: true, models: ['model-x'] }) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -810,10 +810,10 @@ describe('AddProviderDialog', () => {
     ];
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
-      if (urlStr === '/openpowers/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
+      if (urlStr === '/furina/api/providers/templates' && (!init || init.method === undefined || init.method === 'GET')) {
         return { ok: true, status: 200, json: () => Promise.resolve(customTemplates) };
       }
-      if (urlStr === '/openpowers/api/providers/templates/Deletable' && init?.method === 'DELETE') {
+      if (urlStr === '/furina/api/providers/templates/Deletable' && init?.method === 'DELETE') {
         return { ok: true, status: 200, json: () => Promise.resolve({ message: 'Template "Deletable" deleted successfully' }) };
       }
       return { ok: true, status: 200, json: () => Promise.resolve({}) };
@@ -839,7 +839,7 @@ describe('AddProviderDialog', () => {
 
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        '/openpowers/api/providers/templates/Deletable',
+        '/furina/api/providers/templates/Deletable',
         expect.objectContaining({ method: 'DELETE' }),
       );
     });

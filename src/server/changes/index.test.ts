@@ -43,21 +43,21 @@ describe('changesRouter', () => {
     expect(typeof mod.changesRouter).toBe('function');
   });
 
-  describe('GET / (mounted at /openpowers/api/changes)', () => {
+  describe('GET / (mounted at /furina/api/changes)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/changes', mod.changesRouter);
+      app.use('/furina/api/changes', mod.changesRouter);
       return app;
     }
 
     it('should return 200 with changes.json data', async () => {
       const mockData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [
-          { name: 'test-change', path: 'openpowers/changes/test-change', description: 'Test change' },
+          { name: 'test-change', path: 'furina/changes/test-change', description: 'Test change' },
         ],
         archive: [],
       };
@@ -66,7 +66,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes');
+        .get('/furina/api/changes');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -78,7 +78,7 @@ describe('changesRouter', () => {
 
     it('should return 200 with empty changes and archive when changes.json does not exist', async () => {
       const defaultData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [],
         archive: [],
@@ -88,7 +88,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes');
+        .get('/furina/api/changes');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -100,12 +100,12 @@ describe('changesRouter', () => {
     });
   });
 
-  describe('GET /all (mounted at /openpowers/api/changes/all)', () => {
+  describe('GET /all (mounted at /furina/api/changes/all)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/changes', mod.changesRouter);
+      app.use('/furina/api/changes', mod.changesRouter);
       return app;
     }
 
@@ -119,7 +119,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all');
+        .get('/furina/api/changes/all');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -139,7 +139,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all?status=active');
+        .get('/furina/api/changes/all?status=active');
 
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual(mockChanges);
@@ -152,7 +152,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all?cwd=D%3A%5Cproject');
+        .get('/furina/api/changes/all?cwd=D%3A%5Cproject');
 
       expect(res.status).toBe(200);
       expect(getAllChangesMock).toHaveBeenCalledWith({ cwd: 'D:\\project' });
@@ -167,7 +167,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all?query=ui');
+        .get('/furina/api/changes/all?query=ui');
 
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual(mockChanges);
@@ -180,7 +180,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all?status=active&cwd=D%3A%5Cproject&query=ui');
+        .get('/furina/api/changes/all?status=active&cwd=D%3A%5Cproject&query=ui');
 
       expect(res.status).toBe(200);
       expect(getAllChangesMock).toHaveBeenCalledWith({
@@ -196,7 +196,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all');
+        .get('/furina/api/changes/all');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -211,7 +211,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all?status=&cwd=&query=');
+        .get('/furina/api/changes/all?status=&cwd=&query=');
 
       expect(res.status).toBe(200);
       // Empty string params should be treated as absent
@@ -219,19 +219,19 @@ describe('changesRouter', () => {
     });
   });
 
-  describe('GET /:name (mounted at /openpowers/api/changes/:name)', () => {
+  describe('GET /:name (mounted at /furina/api/changes/:name)', () => {
     async function createTestApp() {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/changes', mod.changesRouter);
+      app.use('/furina/api/changes', mod.changesRouter);
       return app;
     }
 
     it('should return 200 with change details when found in changes array', async () => {
-      const changeEntry = { name: 'my-change', path: 'openpowers/changes/my-change', description: 'My change' };
+      const changeEntry = { name: 'my-change', path: 'furina/changes/my-change', description: 'My change' };
       const mockData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [changeEntry],
         archive: [],
@@ -241,7 +241,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/my-change');
+        .get('/furina/api/changes/my-change');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -251,9 +251,9 @@ describe('changesRouter', () => {
     });
 
     it('should return 200 with change details when found in archive array', async () => {
-      const archiveEntry = { name: 'old-change', path: 'openpowers/archive/2026-01-01-old-change', description: 'Old change' };
+      const archiveEntry = { name: 'old-change', path: 'furina/archive/2026-01-01-old-change', description: 'Old change' };
       const mockData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [],
         archive: [archiveEntry],
@@ -263,7 +263,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/old-change');
+        .get('/furina/api/changes/old-change');
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -274,7 +274,7 @@ describe('changesRouter', () => {
 
     it('should return 404 when change not found', async () => {
       const mockData = {
-        framework: 'openpowers',
+        framework: 'furina',
         version: '1.0.0',
         changes: [],
         archive: [],
@@ -284,7 +284,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/non-existent');
+        .get('/furina/api/changes/non-existent');
 
       expect(res.status).toBe(404);
       expect(res.body).toEqual({
@@ -299,7 +299,7 @@ describe('changesRouter', () => {
       const mod = await importFresh();
       const app = express.default();
       app.use(express.default.json());
-      app.use('/openpowers/api/changes', mod.changesRouter);
+      app.use('/furina/api/changes', mod.changesRouter);
       return app;
     }
 
@@ -311,7 +311,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes');
+        .get('/furina/api/changes');
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({
@@ -328,7 +328,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/some-change');
+        .get('/furina/api/changes/some-change');
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({
@@ -343,7 +343,7 @@ describe('changesRouter', () => {
       const app = await createTestApp();
 
       const res = await request(app)
-        .get('/openpowers/api/changes/all');
+        .get('/furina/api/changes/all');
 
       expect(res.status).toBe(500);
       expect(res.body).toEqual({

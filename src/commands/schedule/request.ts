@@ -1,6 +1,6 @@
 /**
  * HTTP request helper for schedule CLI commands.
- * Sends an HTTP request to the OpenPowers backend service.
+ * Sends an HTTP request to the Furina backend service.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -8,10 +8,10 @@
 import http from 'http';
 
 /**
- * Sends an HTTP request to the OpenPowers backend on localhost:port.
+ * Sends an HTTP request to the Furina backend on localhost:port.
  * @param port - The port number of the backend service
  * @param method - HTTP method (e.g. POST, DELETE)
- * @param path - API path (e.g. /openpowers/api/schedule/restart)
+ * @param path - API path (e.g. /furina/api/schedule/restart)
  * @returns A promise that resolves when a 2xx response is received
  * @throws Error if the request fails, times out, or returns non-2xx
  */

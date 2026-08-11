@@ -13,7 +13,7 @@ import {
   setUserConfigValue,
   setDefaultConfigValue,
   writeUserConfig,
-  type OpenPowersConfig,
+  type FurinaConfig,
   type DeepPartial,
 } from '../utils/config.js';
 
@@ -22,32 +22,32 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Built-in mode presets. Each value is a `DeepPartial<OpenPowersConfig>` covering
+ * Built-in mode presets. Each value is a `DeepPartial<FurinaConfig>` covering
  * exactly the four target fields:
  *   - experimental.explore
- *   - experimental.review.openpowers
+ *   - experimental.review.furina
  *   - experimental.review.specs
  *   - experimental.review.code
  * `config mode <name>` applies these fields via setUserConfigValue, leaving
  * all other user keys untouched.
  */
-export const MODE_PRESETS: Record<'lite' | 'standard' | 'max', DeepPartial<OpenPowersConfig>> = {
+export const MODE_PRESETS: Record<'lite' | 'standard' | 'max', DeepPartial<FurinaConfig>> = {
   lite: {
     experimental: {
       explore: false,
-      review: { openpowers: false, specs: false, code: false },
+      review: { furina: false, specs: false, code: false },
     },
   },
   standard: {
     experimental: {
       explore: true,
-      review: { openpowers: false, specs: false, code: true },
+      review: { furina: false, specs: false, code: true },
     },
   },
   max: {
     experimental: {
       explore: true,
-      review: { openpowers: true, specs: true, code: true },
+      review: { furina: true, specs: true, code: true },
     },
   },
 };
@@ -70,7 +70,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * the extra read/write cycle, allowing callers to apply multiple writes
  * atomically.
  * @param target - The object to mutate in place
- * @param keyPath - Dot-separated key path (e.g. 'experimental.review.openpowers')
+ * @param keyPath - Dot-separated key path (e.g. 'experimental.review.furina')
  * @param value - The value to assign at the leaf
  */
 function deepSetInPlace(target: Record<string, unknown>, keyPath: string, value: unknown): void {
@@ -133,7 +133,7 @@ function inferValue(raw: string): unknown {
 export function registerConfigCommand(program: Command): void {
   const configCmd = program
     .command('config')
-    .description('Manage OpenPowers configuration');
+    .description('Manage Furina configuration');
 
   configCmd
     .command('list')
@@ -185,23 +185,23 @@ export function registerConfigCommand(program: Command): void {
       const review = preset.experimental?.review;
       const data = readUserConfig(cwd);
       deepSetInPlace(data, 'experimental.explore', preset.experimental?.explore);
-      deepSetInPlace(data, 'experimental.review.openpowers', review?.openpowers);
+      deepSetInPlace(data, 'experimental.review.furina', review?.furina);
       deepSetInPlace(data, 'experimental.review.specs', review?.specs);
       deepSetInPlace(data, 'experimental.review.code', review?.code);
       writeUserConfig(cwd, data);
       process.stdout.write(
         `Applied mode=${mode} (experimental.explore=${preset.experimental?.explore}, `
-          + `experimental.review.openpowers=${review?.openpowers}, `
+          + `experimental.review.furina=${review?.furina}, `
           + `experimental.review.specs=${review?.specs}, `
           + `experimental.review.code=${review?.code}) to `
-          + `${path.join(cwd, '.claude', 'openpowers.json')}\n`,
+          + `${path.join(cwd, '.claude', 'furina.json')}\n`,
       );
     });
 
   configCmd
     .command('set <key> <value>')
     .description('Write a single key=value entry to the user configuration (type inferred)')
-    .option('-g, --global', 'Write to the global default config (resources/openpowers.json) instead of project-level')
+    .option('-g, --global', 'Write to the global default config (resources/furina.json) instead of project-level')
     .action((key: string, value: string, options: { global?: boolean }) => {
       const inferred = inferValue(value);
       if (options.global) {

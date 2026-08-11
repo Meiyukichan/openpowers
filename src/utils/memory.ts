@@ -124,16 +124,16 @@ export type ChangesJson = z.infer<typeof ChangesJsonSchema>;
 /**
  * Returns the memory directory path for a given cwd.
  * @param cwd - The working directory path
- * @returns The full path to ~/.openpowers/memory/{flatCwd}
+ * @returns The full path to ~/.furina/memory/{flatCwd}
  */
 function getMemoryDir(cwd: string): string {
-  return path.join(os.homedir(), '.openpowers', 'memory', flattenCwdPath(cwd));
+  return path.join(os.homedir(), '.furina', 'memory', flattenCwdPath(cwd));
 }
 
 /**
  * Returns the changes.json file path for a given cwd.
  * @param cwd - The working directory path
- * @returns The full path to ~/.openpowers/memory/{flatCwd}/changes.json
+ * @returns The full path to ~/.furina/memory/{flatCwd}/changes.json
  */
 function getMemoryChangesJsonPath(cwd: string): string {
   return path.join(getMemoryDir(cwd), 'changes.json');
@@ -158,7 +158,7 @@ function checkPathsExist(changes: ChangeEntry[], cwd: string): ChangeEntry[] {
 
 /**
  * Reads the global memory changes.json file.
- * If the file does not exist, seeds from the project-local openpowers/changes.json.
+ * If the file does not exist, seeds from the project-local furina/changes.json.
  * @param cwd - The working directory path
  * @returns The parsed ChangesJson object
  */
@@ -177,14 +177,14 @@ export function readMemoryChangesJson(cwd: string): ChangesJson {
 }
 
 /**
- * Scans the openpowers/archive/ directory for a directory matching the pattern
+ * Scans the furina/archive/ directory for a directory matching the pattern
  * YYYY-MM-DD-<changeName>. Returns the relative archive path if found, null otherwise.
  * @param cwd - The working directory path
  * @param changeName - The change name to look for
  * @returns The relative archive path or null
  */
 function tryFindArchiveDir(cwd: string, changeName: string): string | null {
-  const archiveDir = path.join(cwd, 'openpowers', 'archive');
+  const archiveDir = path.join(cwd, 'furina', 'archive');
   if (!fs.existsSync(archiveDir)) {
     return null;
   }
@@ -195,7 +195,7 @@ function tryFindArchiveDir(cwd: string, changeName: string): string | null {
       // Archive dirs use YYYY-MM-DD-<name> format
       const suffix = `-${changeName}`;
       if (entry.name.endsWith(suffix)) {
-        return `openpowers/archive/${entry.name}`;
+        return `furina/archive/${entry.name}`;
       }
     }
   } catch {
@@ -251,9 +251,9 @@ function normalizeStageStatuses(entry: ChangeEntry): void {
 
 /**
  * Ensures the global memory changes.json file exists and syncs path existence.
- * Seeds from project-local openpowers/changes.json if the file does not exist.
+ * Seeds from project-local furina/changes.json if the file does not exist.
  * Validates each entry's path exists on disk; marks missing as 'removed' and writes back.
- * Detects archived changes (moved from openpowers/changes/ to openpowers/archive/).
+ * Detects archived changes (moved from furina/changes/ to furina/archive/).
  * For archived entries, normalizes stage statuses to 'done'.
  * Does NOT modify updateAt field.
  * @param cwd - The working directory path
@@ -297,14 +297,14 @@ export function ensureMemoryChangesJson(cwd: string): ChangesJson {
 }
 
 /**
- * Seeds memory changes.json from the project-local openpowers/changes.json.
+ * Seeds memory changes.json from the project-local furina/changes.json.
  * Merges changes (status='active') and archive (status='archived') into a single array,
  * then writes the result to the memory file.
  * @param cwd - The working directory path
  * @returns The seeded ChangesJson object
  */
 function seedFromProjectChangesJson(cwd: string): ChangesJson {
-  const projectPath = path.join(cwd, 'openpowers', 'changes.json');
+  const projectPath = path.join(cwd, 'furina', 'changes.json');
   const defaults: ChangesJson = {
     framework: pkg.name,
     version: pkg.version,
@@ -407,12 +407,12 @@ export function writeMemoryChangesJson(cwd: string, data: ChangesJson): void {
  */
 function buildArtifactsForEntry(entryPath: string, changeName: string): Array<{ id: string; outputPath: string }> {
   const artifacts: Array<{ id: string; outputPath: string }> = [];
-  if (fs.existsSync(path.join(entryPath, 'proposal.md'))) artifacts.push({ id: 'proposal', outputPath: `openpowers/changes/${changeName}/proposal.md` });
-  if (fs.existsSync(path.join(entryPath, 'design.md'))) artifacts.push({ id: 'design', outputPath: `openpowers/changes/${changeName}/design.md` });
-  if (fs.existsSync(path.join(entryPath, 'specs'))) artifacts.push({ id: 'specs', outputPath: `openpowers/changes/${changeName}/specs/**/*.md` });
-  if (fs.existsSync(path.join(entryPath, 'api.yaml'))) artifacts.push({ id: 'api', outputPath: `openpowers/changes/${changeName}/api.yaml` });
-  if (fs.existsSync(path.join(entryPath, 'database.md'))) artifacts.push({ id: 'database', outputPath: `openpowers/changes/${changeName}/database.md` });
-  if (fs.existsSync(path.join(entryPath, 'plan.json'))) artifacts.push({ id: 'plan', outputPath: `openpowers/changes/${changeName}/plan.json` });
+  if (fs.existsSync(path.join(entryPath, 'proposal.md'))) artifacts.push({ id: 'proposal', outputPath: `furina/changes/${changeName}/proposal.md` });
+  if (fs.existsSync(path.join(entryPath, 'design.md'))) artifacts.push({ id: 'design', outputPath: `furina/changes/${changeName}/design.md` });
+  if (fs.existsSync(path.join(entryPath, 'specs'))) artifacts.push({ id: 'specs', outputPath: `furina/changes/${changeName}/specs/**/*.md` });
+  if (fs.existsSync(path.join(entryPath, 'api.yaml'))) artifacts.push({ id: 'api', outputPath: `furina/changes/${changeName}/api.yaml` });
+  if (fs.existsSync(path.join(entryPath, 'database.md'))) artifacts.push({ id: 'database', outputPath: `furina/changes/${changeName}/database.md` });
+  if (fs.existsSync(path.join(entryPath, 'plan.json'))) artifacts.push({ id: 'plan', outputPath: `furina/changes/${changeName}/plan.json` });
   return artifacts;
 }
 
@@ -449,7 +449,7 @@ function syncEntryFeatures(entry: ChangeEntry, cwd: string): void {
  * @param changeName - The change name
  */
 function syncEntryProgress(entry: ChangeEntry, cwd: string, changeName: string): void {
-  const entryPath = path.join(cwd, 'openpowers', 'changes', changeName);
+  const entryPath = path.join(cwd, 'furina', 'changes', changeName);
   const planPath = path.join(entryPath, 'plan.json');
 
   try {
@@ -875,7 +875,7 @@ export function createOrUpdateChange(
     // Create new entry
     const newChange: ChangeEntry = {
       name: changeName,
-      path: `openpowers/changes/${changeName}`,
+      path: `furina/changes/${changeName}`,
       description: desc ?? '',
       createdAt: new Date().toISOString(),
       updateAt: new Date().toISOString(),

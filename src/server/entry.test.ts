@@ -99,8 +99,8 @@ describe('server entry', () => {
     expect(mockListenFn).toHaveBeenCalledWith(3939, expect.any(Function));
   });
 
-  it('should listen on port from OPENPOWERS_UI_PORT env', async () => {
-    vi.stubEnv('OPENPOWERS_UI_PORT', '8080');
+  it('should listen on port from FURINA_UI_PORT env', async () => {
+    vi.stubEnv('FURINA_UI_PORT', '8080');
     await import('./entry.js');
     expect(mockListenFn).toHaveBeenCalledWith(8080, expect.any(Function));
   });
@@ -153,10 +153,10 @@ describe('server entry', () => {
   });
 });
 
-describe('POST /openpowers/api/shutdown', () => {
+describe('POST /furina/api/shutdown', () => {
   it('should register the shutdown endpoint on the app', async () => {
     await import('./entry.js');
-    expect(appPostMock).toHaveBeenCalledWith('/openpowers/api/shutdown', expect.any(Function));
+    expect(appPostMock).toHaveBeenCalledWith('/furina/api/shutdown', expect.any(Function));
   });
 
   it('should respond with {ok: true} and then trigger server.close', async () => {
@@ -164,7 +164,7 @@ describe('POST /openpowers/api/shutdown', () => {
 
     // Extract the registered route handler
     const handlerCall = appPostMock.mock.calls.find(
-      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
+      (call: unknown[]) => call[0] === '/furina/api/shutdown',
     );
     const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
     const resJson = vi.fn();
@@ -190,7 +190,7 @@ describe('POST /openpowers/api/shutdown', () => {
     await import('./entry.js');
 
     const handlerCall = appPostMock.mock.calls.find(
-      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
+      (call: unknown[]) => call[0] === '/furina/api/shutdown',
     );
     const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
     const resJson = vi.fn();
@@ -209,7 +209,7 @@ describe('POST /openpowers/api/shutdown', () => {
     await import('./entry.js');
 
     const handlerCall = appPostMock.mock.calls.find(
-      (call: unknown[]) => call[0] === '/openpowers/api/shutdown',
+      (call: unknown[]) => call[0] === '/furina/api/shutdown',
     );
     const shutdownHandler = handlerCall?.[1] as (req: unknown, res: { json: ReturnType<typeof vi.fn> }) => void;
     const resJson = vi.fn();

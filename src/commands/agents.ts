@@ -12,7 +12,7 @@ import {
   loadProviders,
   getDefaultProvider,
   getProviderByModels,
-  getEnableOpenpowersProxy,
+  getEnableFurinaProxy,
   setActiveProviderId,
 } from '../server/providers-store.js';
 import {
@@ -76,7 +76,7 @@ function loadAndValidateSessionSettings(sessionId: string): ReturnType<typeof re
   if (!settings) return null;
 
   // Check proxy is enabled
-  if (!getEnableOpenpowersProxy()) {
+  if (!getEnableFurinaProxy()) {
     process.stderr.write('Proxy is not enabled, this feature is not supported\n');
     process.exit(1);
   }

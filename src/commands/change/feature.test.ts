@@ -153,7 +153,7 @@ function makeFeature(overrides: Record<string, unknown> = {}) {
 // status command tests
 // =========================================================
 describe('runFeatureStatus', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>;
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
@@ -268,7 +268,7 @@ describe('runFeatureStatus', () => {
 // next command tests
 // =========================================================
 describe('runFeatureNext', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>;
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
@@ -440,7 +440,7 @@ describe('runFeatureNext', () => {
 // start command tests
 // =========================================================
 describe('runFeatureStart', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>;
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
@@ -581,7 +581,7 @@ describe('runFeatureStart', () => {
 // complete command tests
 // =========================================================
 describe('runFeatureComplete', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   let stdoutWriteSpy: ReturnType<typeof vi.spyOn>;
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
@@ -691,7 +691,7 @@ describe('runFeatureComplete', () => {
 // Internal helper tests
 // =========================================================
 describe('Internal helpers', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -885,7 +885,7 @@ describe('Internal helpers', () => {
 // Sync design to memory tests (mem-01)
 // =========================================================
 describe('syncDesignToMemory', () => {
-  const CHANGES_DIR = path.join(process.cwd(), 'openpowers', 'changes');
+  const CHANGES_DIR = path.join(process.cwd(), 'furina', 'changes');
 
   let syncDesignToMemory: (changeName: string, cwd: string) => void;
 

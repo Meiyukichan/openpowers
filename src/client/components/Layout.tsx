@@ -2,7 +2,7 @@
  * Layout component provides the main application shell.
  * VSCode-style layout with ActivityBar on the far left,
  * optional sidebar area, and main content with header.
- * Header with 'OpenPowers' branding, proxy toggle, session management + add button.
+ * Header with 'Furina' branding, proxy toggle, session management + add button.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
  */
@@ -21,7 +21,7 @@ interface LayoutProps {
   onAddProvider: () => void;
   onReset: () => void;
   showToast: (text: string, type?: 'success' | 'error') => void;
-  enableOpenpowersProxy: boolean;
+  enableFurinaProxy: boolean;
   onToggleProxy: () => void;
   children: React.ReactNode;
   activeView: ActivityBarView;
@@ -33,7 +33,7 @@ interface LayoutProps {
  * Layout renders the application shell with ActivityBar, optional sidebar, and main content.
  * The header contains branding, a placeholder session management button, and an add provider button.
  */
-export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProxy, onToggleProxy, children, activeView, onViewChange, sidebar }: LayoutProps): React.ReactElement {
+export function Layout({ onAddProvider, onReset, showToast, enableFurinaProxy, onToggleProxy, children, activeView, onViewChange, sidebar }: LayoutProps): React.ReactElement {
   const { t } = useTranslation();
   const [showConfirmReset, setShowConfirmReset] = useState(false);
 
@@ -118,30 +118,30 @@ export function Layout({ onAddProvider, onReset, showToast, enableOpenpowersProx
             React.createElement(
               'div',
               {
-                title: enableOpenpowersProxy
+                title: enableFurinaProxy
                   ? t('layout.proxyRunning')
                   : t('layout.proxyOff'),
                 className: 'flex items-center gap-1 px-1.5 h-8 rounded-lg bg-muted/50 transition-all',
               },
               React.createElement(Radio, {
                 size: 14,
-                className: enableOpenpowersProxy ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground',
+                className: enableFurinaProxy ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground',
               }),
               React.createElement(
                 'button',
                 {
                   type: 'button',
                   role: 'switch',
-                  'aria-checked': enableOpenpowersProxy,
+                  'aria-checked': enableFurinaProxy,
                   'aria-label': t('layout.toggleProxyAriaLabel'),
                   onClick: onToggleProxy,
                   className: `relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    enableOpenpowersProxy ? 'bg-emerald-500' : 'bg-gray-200'
+                    enableFurinaProxy ? 'bg-emerald-500' : 'bg-gray-200'
                   }`,
                 },
                 React.createElement('span', {
                   className: `inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                    enableOpenpowersProxy ? 'translate-x-5' : 'translate-x-0.5'
+                    enableFurinaProxy ? 'translate-x-5' : 'translate-x-0.5'
                   }`,
                 }),
               ),

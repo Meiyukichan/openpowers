@@ -8,13 +8,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
 
 const {
-  mockSetEnableOpenpowersProxy,
+  mockSetEnableFurinaProxy,
   mockIsPortInUse,
   mockStartBackendService,
   mockGetNeverClaudeSettings,
   mockSetNeverClaudeSettings,
 } = vi.hoisted(() => ({
-  mockSetEnableOpenpowersProxy: vi.fn(),
+  mockSetEnableFurinaProxy: vi.fn(),
   mockIsPortInUse: vi.fn(),
   mockStartBackendService: vi.fn(),
   mockGetNeverClaudeSettings: vi.fn(),
@@ -22,7 +22,7 @@ const {
 }));
 
 vi.mock('../server/providers-store.js', () => ({
-  setEnableOpenpowersProxy: mockSetEnableOpenpowersProxy,
+  setEnableFurinaProxy: mockSetEnableFurinaProxy,
   getNeverClaudeSettings: mockGetNeverClaudeSettings,
   setNeverClaudeSettings: mockSetNeverClaudeSettings,
 }));
@@ -75,7 +75,7 @@ describe('src/commands/enable.ts', () => {
 
     mockIsPortInUse.mockReset();
     mockStartBackendService.mockReset();
-    mockSetEnableOpenpowersProxy.mockReset();
+    mockSetEnableFurinaProxy.mockReset();
     mockGetNeverClaudeSettings.mockReset();
     mockSetNeverClaudeSettings.mockReset();
     mockGetProxyEnv.mockReset();
@@ -90,7 +90,7 @@ describe('src/commands/enable.ts', () => {
 
     // Default: service already running
     mockIsPortInUse.mockResolvedValue(true);
-    mockStartBackendService.mockReturnValue('http://localhost:3939/openpowers/ui');
+    mockStartBackendService.mockReturnValue('http://localhost:3939/furina/ui');
     // Default: neverClaudeSettings is true (first-time enable)
     mockGetNeverClaudeSettings.mockReturnValue(true);
     // getProxyEnv must return the env object
@@ -121,10 +121,10 @@ describe('src/commands/enable.ts', () => {
 
   describe('runEnable', () => {
     describe('service already running', () => {
-      it('should call setEnableOpenpowersProxy with true', async () => {
+      it('should call setEnableFurinaProxy with true', async () => {
         await runEnable();
-        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
-        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledTimes(1);
+        expect(mockSetEnableFurinaProxy).toHaveBeenCalledWith(true);
+        expect(mockSetEnableFurinaProxy).toHaveBeenCalledTimes(1);
       });
 
       it('should NOT call startBackendService', async () => {
@@ -155,10 +155,10 @@ describe('src/commands/enable.ts', () => {
           .mockResolvedValueOnce(true);  // started successfully
       });
 
-      it('should call startBackendService then setEnableOpenpowersProxy', async () => {
+      it('should call startBackendService then setEnableFurinaProxy', async () => {
         await runEnable();
         expect(mockStartBackendService).toHaveBeenCalledWith(3939);
-        expect(mockSetEnableOpenpowersProxy).toHaveBeenCalledWith(true);
+        expect(mockSetEnableFurinaProxy).toHaveBeenCalledWith(true);
       });
 
       it('should check isPortInUse twice', async () => {
@@ -189,9 +189,9 @@ describe('src/commands/enable.ts', () => {
         expect(process.exit).toHaveBeenCalledWith(1);
       });
 
-      it('should NOT call setEnableOpenpowersProxy', async () => {
+      it('should NOT call setEnableFurinaProxy', async () => {
         await runAndDrainTimers();
-        expect(mockSetEnableOpenpowersProxy).not.toHaveBeenCalled();
+        expect(mockSetEnableFurinaProxy).not.toHaveBeenCalled();
       });
 
       it('should call startBackendService', async () => {
@@ -206,9 +206,9 @@ describe('src/commands/enable.ts', () => {
       });
     });
 
-    describe('setEnableOpenpowersProxy throws', () => {
+    describe('setEnableFurinaProxy throws', () => {
       beforeEach(() => {
-        mockSetEnableOpenpowersProxy.mockImplementation(() => {
+        mockSetEnableFurinaProxy.mockImplementation(() => {
           throw new Error('disk full');
         });
       });

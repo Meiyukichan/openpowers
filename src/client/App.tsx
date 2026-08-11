@@ -34,12 +34,12 @@ export function App(): React.ReactElement {
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null);
-  const [enableOpenpowersProxy, setEnableOpenpowersProxy] = useState(false);
+  const [enableFurinaProxy, setEnableFurinaProxy] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: ToastType } | null>(null);
   const [selectedChange, setSelectedChange] = useState<ChangeEntryWithCwd | null>(null);
   const [activeView, setActiveView] = useState<ActivityBarView>(() => {
     try {
-      const stored = localStorage.getItem('openpowers:activeView');
+      const stored = localStorage.getItem('furina:activeView');
       return stored === 'projects' || stored === 'providers' ? stored : 'providers';
     } catch {
       return 'providers';
@@ -52,7 +52,7 @@ export function App(): React.ReactElement {
    */
   const persistActiveView = (view: ActivityBarView) => {
     try {
-      localStorage.setItem('openpowers:activeView', view);
+      localStorage.setItem('furina:activeView', view);
     } catch {
       // silent fallback - localStorage unavailable
     }
@@ -95,7 +95,7 @@ export function App(): React.ReactElement {
   useEffect(() => {
     const fetchActiveProvider = async () => {
       try {
-        const response = await fetch('/openpowers/api/providers/active');
+        const response = await fetch('/furina/api/providers/active');
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -112,10 +112,10 @@ export function App(): React.ReactElement {
   useEffect(() => {
     const fetchProxyState = async () => {
       try {
-        const response = await fetch('/openpowers/api/providers/proxy');
+        const response = await fetch('/furina/api/providers/proxy');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data: { enableOpenpowersProxy: boolean } = await response.json();
-        setEnableOpenpowersProxy(data.enableOpenpowersProxy);
+        const data: { enableFurinaProxy: boolean } = await response.json();
+        setEnableFurinaProxy(data.enableFurinaProxy);
       } catch (err) {
         logger.error(`Failed to fetch proxy state: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -172,7 +172,7 @@ export function App(): React.ReactElement {
 
   const handleReset = async () => {
     try {
-      const response = await fetch('/openpowers/api/providers/reset', { method: 'POST' });
+      const response = await fetch('/furina/api/providers/reset', { method: 'POST' });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -193,7 +193,7 @@ export function App(): React.ReactElement {
    */
   const handleSetActive = async (provider: Provider) => {
     try {
-      const response = await fetch('/openpowers/api/providers/active', {
+      const response = await fetch('/furina/api/providers/active', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ providerId: provider.id }),
@@ -213,13 +213,13 @@ export function App(): React.ReactElement {
   // --- Toggle enabled handler ---
 
   /**
-   * Toggles the enabled state of a provider via PUT /openpowers/api/providers/:id/enabled,
+   * Toggles the enabled state of a provider via PUT /furina/api/providers/:id/enabled,
    * then refreshes the provider list and active state.
    */
   const handleToggleEnabled = async (provider: Provider) => {
     const nextEnabled = !(provider.enabled ?? true);
     try {
-      const response = await fetch(`/openpowers/api/providers/${provider.id}/enabled`, {
+      const response = await fetch(`/furina/api/providers/${provider.id}/enabled`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: nextEnabled }),
@@ -237,15 +237,15 @@ export function App(): React.ReactElement {
   };
 
   const handleToggleProxy = async () => {
-    const nextState = !enableOpenpowersProxy;
+    const nextState = !enableFurinaProxy;
     try {
-      const response = await fetch('/openpowers/api/providers/proxy', {
+      const response = await fetch('/furina/api/providers/proxy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enableOpenpowersProxy: nextState }),
+        body: JSON.stringify({ enableFurinaProxy: nextState }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      setEnableOpenpowersProxy(nextState);
+      setEnableFurinaProxy(nextState);
       showToast(nextState ? t('toast.proxyEnabled') : t('toast.proxyDisabled'));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -265,7 +265,7 @@ export function App(): React.ReactElement {
         onAddProvider: handleOpenAddDialog,
         onReset: handleReset,
         showToast,
-        enableOpenpowersProxy,
+        enableFurinaProxy,
         onToggleProxy: handleToggleProxy,
         activeView,
         onViewChange: persistActiveView,

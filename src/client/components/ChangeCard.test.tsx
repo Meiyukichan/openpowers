@@ -31,7 +31,7 @@ function renderChangeCard(change: ChangeEntryWithCwd, props?: { onClick?: () => 
 
 const activeChange: ChangeEntryWithCwd = {
   name: 'ui-changes-page',
-  path: 'openpowers/changes/ui-changes-page',
+  path: 'furina/changes/ui-changes-page',
   description: '实现变更列表UI页面',
   createdAt: '2026-06-08T10:00:00Z',
   updateAt: '2026-06-08T12:30:00Z',
@@ -39,12 +39,12 @@ const activeChange: ChangeEntryWithCwd = {
   features: 0,
   todo: 0,
   artifacts: [],
-  cwd: 'D:\\project-code\\llm\\openpowers',
+  cwd: 'D:\\project-code\\llm\\furina',
 };
 
 const archivedChange: ChangeEntryWithCwd = {
   name: 'brainstorm-mode',
-  path: 'openpowers/archive/brainstorm-mode',
+  path: 'furina/archive/brainstorm-mode',
   description: '补全 brainstorm mode hooks',
   createdAt: '2026-06-07T08:00:00Z',
   updateAt: '2026-06-07T14:00:00Z',
@@ -52,19 +52,19 @@ const archivedChange: ChangeEntryWithCwd = {
   features: 0,
   todo: 0,
   artifacts: [],
-  cwd: 'D:\\project-code\\llm\\openpowers',
+  cwd: 'D:\\project-code\\llm\\furina',
 };
 
 const changeMissingDescription: ChangeEntryWithCwd = {
   name: 'minimal-change',
-  path: 'openpowers/changes/minimal',
+  path: 'furina/changes/minimal',
   description: '',
   createdAt: '2026-06-08T10:00:00Z',
   status: 'active',
   features: 0,
   todo: 0,
   artifacts: [],
-  cwd: 'D:\\project-code\\llm\\openpowers',
+  cwd: 'D:\\project-code\\llm\\furina',
 };
 
 describe('ChangeCard', () => {
@@ -93,7 +93,7 @@ describe('ChangeCard', () => {
 
   it('renders cwd path', () => {
     renderChangeCard(activeChange);
-    expect(screen.getByText('D:\\project-code\\llm\\openpowers')).toBeInTheDocument();
+    expect(screen.getByText('D:\\project-code\\llm\\furina')).toBeInTheDocument();
   });
 
   it('displays active status icon for active change', () => {
@@ -136,7 +136,7 @@ describe('ChangeCard', () => {
   it('renders without error when description is missing', () => {
     renderChangeCard(changeMissingDescription);
     expect(screen.getByText('minimal-change')).toBeInTheDocument();
-    expect(screen.getByText('D:\\project-code\\llm\\openpowers')).toBeInTheDocument();
+    expect(screen.getByText('D:\\project-code\\llm\\furina')).toBeInTheDocument();
   });
 
   it('calls onClick when card is clicked', () => {

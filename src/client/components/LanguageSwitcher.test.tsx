@@ -85,7 +85,7 @@ describe('LanguageSwitcher', () => {
     expect(button.getAttribute('aria-label')).toBeTruthy();
   });
 
-  it('persists language change to backend via PUT /openpowers/api/config', async () => {
+  it('persists language change to backend via PUT /furina/api/config', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({}),
@@ -98,7 +98,7 @@ describe('LanguageSwitcher', () => {
     await user.click(button);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/openpowers/api/config',
+      '/furina/api/config',
       expect.objectContaining({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,7 @@ describe('LanguageSwitcher', () => {
 
     // zh-CN -> en-US should send language: 'english'
     expect(mockFetch).toHaveBeenCalledWith(
-      '/openpowers/api/config',
+      '/furina/api/config',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ language: 'english' }),

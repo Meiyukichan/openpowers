@@ -1,5 +1,5 @@
 /**
- * @fileoverview Enable command - enables the OpenPowers proxy
+ * @fileoverview Enable command - enables the Furina proxy
  * by checking port availability, writing config, and starting the backend service
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -7,7 +7,7 @@
 
 import { Command } from 'commander';
 import {
-  setEnableOpenpowersProxy,
+  setEnableFurinaProxy,
   getNeverClaudeSettings,
   setNeverClaudeSettings,
 } from '../server/providers-store.js';
@@ -42,7 +42,7 @@ async function waitForPortInUse(port: number, timeoutMs: number): Promise<boolea
 }
 
 /**
- * Enables the OpenPowers proxy: ensures the backend service is running first,
+ * Enables the Furina proxy: ensures the backend service is running first,
  * writes the proxy configuration flag, and syncs the Claude settings file
  * with the proxy environment configuration (with first-write backup).
  * The proxy handler checks the flag per-request, so no restart is needed.
@@ -68,7 +68,7 @@ export async function runEnable(): Promise<void> {
 
   // Step 2: write the proxy configuration flag
   try {
-    setEnableOpenpowersProxy(true);
+    setEnableFurinaProxy(true);
   } catch (err) {
     process.stderr.write(`Failed to enable proxy: ${err}\n`);
     logger.error(`Failed to enable proxy: ${err}`);
@@ -88,7 +88,7 @@ export async function runEnable(): Promise<void> {
     logger.error(`Failed to sync Claude settings: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  process.stdout.write('OpenPowers proxy enabled\n');
+  process.stdout.write('Furina proxy enabled\n');
 }
 
 /**
@@ -98,7 +98,7 @@ export async function runEnable(): Promise<void> {
 export function registerEnableCommand(program: Command): void {
   program
     .command('enable')
-    .description('Enable the OpenPowers proxy')
+    .description('Enable the Furina proxy')
     .action(() => {
       void runEnable();
     });

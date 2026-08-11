@@ -1,5 +1,5 @@
 /**
- * Express router for /openpowers/api/changes endpoint.
+ * Express router for /furina/api/changes endpoint.
  * Provides GET routes to list all changes and get individual change details.
  * @author Meiyuki <meiyukichan@163.com>
  * @copyright 2026 Meiyuki
@@ -21,7 +21,7 @@ export const changesRouter = express.default.Router();
 // ---------------------------------------------------------------------------
 
 /**
- * GET /openpowers/api/changes
+ * GET /furina/api/changes
  * Returns the complete changes.json data including framework, version, changes, and archive arrays.
  */
 changesRouter.get('/', (_req, res) => {
@@ -34,8 +34,8 @@ changesRouter.get('/', (_req, res) => {
 });
 
 /**
- * GET /openpowers/api/changes/all
- * Aggregates changes from all Memory_ directories under ~/.openpowers/memory/.
+ * GET /furina/api/changes/all
+ * Aggregates changes from all Memory_ directories under ~/.furina/memory/.
  * Accepts optional query parameters: status, cwd, query.
  * Returns a ChangeEntryWithCwd array sorted by updateAt descending.
  */
@@ -56,7 +56,7 @@ changesRouter.get('/all', async (req, res) => {
 });
 
 /**
- * GET /openpowers/api/changes/:name
+ * GET /furina/api/changes/:name
  * Returns the details of a single change by name, searching both changes and archive arrays.
  * Returns 404 if the change is not found.
  */

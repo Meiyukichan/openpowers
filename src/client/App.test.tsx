@@ -42,19 +42,19 @@ const mockProviders = [
 function createMockFetch() {
   return vi.fn((input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url;
-    if (url === '/openpowers/api/providers/active') {
+    if (url === '/furina/api/providers/active') {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ activeProviderId: null }),
       });
     }
-    if (url === '/openpowers/api/providers/proxy') {
+    if (url === '/furina/api/providers/proxy') {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ enableOpenpowersProxy: false }),
+        json: () => Promise.resolve({ enableFurinaProxy: false }),
       });
     }
-    if (url === '/openpowers/api/providers') {
+    if (url === '/furina/api/providers') {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockProviders),
@@ -148,7 +148,7 @@ describe('App - localStorage activeView persistence', () => {
   });
 
   it('should restore activeView from localStorage when stored value is projects', async () => {
-    localStorage.setItem('openpowers:activeView', 'projects');
+    localStorage.setItem('furina:activeView', 'projects');
 
     const { App } = await import('./App.js');
 
@@ -162,7 +162,7 @@ describe('App - localStorage activeView persistence', () => {
 
     // When activeView is 'projects', sidebar (ProjectSidebar) should be shown,
     // and the provider list should NOT be rendered
-    await screen.findByText('OpenPowers');
+    await screen.findByText('Furina');
 
     // ProviderList content should NOT be visible when in projects view
     // The fetch for providers is triggered but the ProviderList component
@@ -171,7 +171,7 @@ describe('App - localStorage activeView persistence', () => {
   });
 
   it('should persist activeView to localStorage when view changes', async () => {
-    localStorage.removeItem('openpowers:activeView');
+    localStorage.removeItem('furina:activeView');
 
     const { App } = await import('./App.js');
 
@@ -183,14 +183,14 @@ describe('App - localStorage activeView persistence', () => {
       ),
     );
 
-    await screen.findByText('OpenPowers');
+    await screen.findByText('Furina');
 
     // Click the projects tab in ActivityBar
     const projectsButton = screen.getByLabelText('项目管理');
     await userEvent.setup().click(projectsButton);
 
     // After clicking, localStorage should have saved 'projects'
-    expect(localStorage.getItem('openpowers:activeView')).toBe('projects');
+    expect(localStorage.getItem('furina:activeView')).toBe('projects');
   });
 
   it('should handle localStorage getItem throwing an error', async () => {
@@ -224,7 +224,7 @@ describe('App - localStorage activeView persistence', () => {
       );
     }).not.toThrow();
 
-    await screen.findByText('OpenPowers');
+    await screen.findByText('Furina');
   });
 
   it('should handle localStorage setItem throwing an error', async () => {
@@ -255,13 +255,13 @@ describe('App - localStorage activeView persistence', () => {
       ),
     );
 
-    await screen.findByText('OpenPowers');
+    await screen.findByText('Furina');
 
     // Click the projects tab - should not crash even though setItem throws
     const projectsButton = screen.getByLabelText('项目管理');
     await userEvent.setup().click(projectsButton);
 
     // App should still be functional (no crash)
-    expect(screen.getByText('OpenPowers')).toBeInTheDocument();
+    expect(screen.getByText('Furina')).toBeInTheDocument();
   });
 });

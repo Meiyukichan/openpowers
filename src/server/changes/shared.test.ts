@@ -20,7 +20,7 @@ function createChangesJson(overrides: {
   changes?: Array<Record<string, unknown>>;
 } = {}): Record<string, unknown> {
   return {
-    framework: 'openpowers',
+    framework: 'furina',
     version: '1.0.0',
     cwd: overrides.cwd ?? 'D:\\test-project',
     changes: overrides.changes ?? [],
@@ -30,7 +30,7 @@ function createChangesJson(overrides: {
 function createChangeEntry(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     name: overrides.name ?? 'test-change',
-    path: overrides.path ?? 'openpowers/changes/test-change',
+    path: overrides.path ?? 'furina/changes/test-change',
     description: overrides.description ?? 'Test change',
     createdAt: overrides.createdAt ?? '2026-06-08T10:00:00Z',
     updateAt: overrides.updateAt ?? '2026-06-08T12:00:00Z',
@@ -56,9 +56,9 @@ async function importFresh() {
 // ---------------------------------------------------------------------------
 
 describe('getAllChanges', () => {
-  const memoryDir = 'D:\\home\\.openpowers\\memory';
-  const memoryDirA = 'D:\\home\\.openpowers\\memory\\Memory_D__project_a';
-  const memoryDirB = 'D:\\home\\.openpowers\\memory\\Memory_D__project_b';
+  const memoryDir = 'D:\\home\\.furina\\memory';
+  const memoryDirA = 'D:\\home\\.furina\\memory\\Memory_D__project_a';
+  const memoryDirB = 'D:\\home\\.furina\\memory\\Memory_D__project_b';
 
   function setupMemoryDir(entries: Array<{ name: string; isDirectory: () => boolean }>) {
     vi.mocked(os.homedir).mockReturnValue('D:\\home');

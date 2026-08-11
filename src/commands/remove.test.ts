@@ -213,7 +213,7 @@ describe('src/commands/remove.ts', () => {
 
         expect(execSync).toHaveBeenNthCalledWith(
           1,
-          'claude plugin uninstall openpowers@openpowers-plugins',
+          'claude plugin uninstall furina@furina-plugins',
           expect.objectContaining({ stdio: 'pipe', cwd: process.cwd() })
         );
         // There should be a succeed call with a string (from chalk)
@@ -249,7 +249,7 @@ describe('src/commands/remove.ts', () => {
 
         expect(execSync).toHaveBeenNthCalledWith(
           2,
-          'claude plugin marketplace remove openpowers-plugins',
+          'claude plugin marketplace remove furina-plugins',
           expect.objectContaining({ stdio: 'pipe', cwd: process.cwd() })
         );
       });

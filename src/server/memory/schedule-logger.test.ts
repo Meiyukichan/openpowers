@@ -67,7 +67,7 @@ describe('appendLog', () => {
     const encoding = callArgs[2] as string;
 
     expect(filePath).toContain('dreamwork.log');
-    expect(filePath).toBe(path.join(mockHomedir, '.openpowers', 'memory', 'dreamwork.log'));
+    expect(filePath).toBe(path.join(mockHomedir, '.furina', 'memory', 'dreamwork.log'));
     expect(encoding).toBe('utf-8');
 
     // Verify ISO timestamp format: [YYYY-MM-DDTHH:mm:ss.sssZ]
@@ -88,7 +88,7 @@ describe('appendLog', () => {
 
     expect(mkdirSyncMock).toHaveBeenCalledTimes(1);
     const dirPath = mkdirSyncMock.mock.calls[0][0] as string;
-    expect(dirPath).toBe(path.join(mockHomedir, '.openpowers', 'memory'));
+    expect(dirPath).toBe(path.join(mockHomedir, '.furina', 'memory'));
     // Verify recursive option
     expect(mkdirSyncMock.mock.calls[0][1]).toEqual({ recursive: true });
   });

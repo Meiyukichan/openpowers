@@ -10,7 +10,7 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import type { Request, Response } from 'express';
 import type { LogRequestOptions } from './router.js';
 import { HOP_BY_HOP_HEADERS, MESSAGES_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from './types.js';
-import { getDefaultProvider, getEnableOpenpowersProxy, type Provider } from '../providers-store.js';
+import { getDefaultProvider, getEnableFurinaProxy, type Provider } from '../providers-store.js';
 import { proxyLogger, createSessionLogger } from './logger.js';
 import { getProviderBySessionId, writeSessionBodyJson } from '../../utils/session.js';
 
@@ -190,8 +190,8 @@ export async function proxyRequestHandler(
   onResponse?: (options: LogRequestOptions) => void,
 ): Promise<void> {
   // Check if proxy is enabled
-  if (!getEnableOpenpowersProxy()) {
-    res.status(503).json({ error: 'OpenPowers proxy is disabled' });
+  if (!getEnableFurinaProxy()) {
+    res.status(503).json({ error: 'Furina proxy is disabled' });
     return;
   }
 
