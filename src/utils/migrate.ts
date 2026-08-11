@@ -165,8 +165,11 @@ function hasMemoryUserData(memoryDir: string): boolean {
 
 /**
  * Copies a single file or directory from source to target.
- * Skips (returns 'skipped') when the target already exists and 'missing' when
- * the source does not exist. Never overwrites existing targets.
+ * Files skip (return 'skipped') when the target already exists and 'missing'
+ * when the source does not exist. Directories are merged into an existing
+ * target (children that do not exist yet are copied) so a pre-existing
+ * auto-created directory never blocks migration of real user data. Never
+ * overwrites existing targets.
  * @param source - Source path
  * @param target - Target path
  * @param kind - Whether the entry is a file or a directory
@@ -175,6 +178,9 @@ function hasMemoryUserData(memoryDir: string): boolean {
 function copyItem(source: string, target: string, kind: Entry['kind']): MigrationStatus {
   if (!fs.existsSync(source)) {
     return 'missing';
+  }
+  if (kind === 'dir') {
+    return copyDirectory(source, target);
   }
   if (fs.existsSync(target)) {
     logger.warn(`Migration target already exists, skipping: ${target}`);
@@ -185,13 +191,63 @@ function copyItem(source: string, target: string, kind: Entry['kind']): Migratio
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
-    if (kind === 'dir') {
-      fs.cpSync(source, target, { recursive: true });
-    } else {
-      fs.copyFileSync(source, target);
-    }
+    fs.copyFileSync(source, target);
     logger.info(`Migrated: ${source} -> ${target}`);
     return 'copied';
+  } catch (err) {
+    // Copy failed (e.g. target parent is not a directory). Record and continue
+    // so other items can still migrate; old data is never modified.
+    logger.error(`Migration copy failed: ${source} -> ${target}: ${err instanceof Error ? err.message : String(err)}`);
+    return 'failed';
+  }
+}
+
+/**
+ * Copies a directory from source to target. When the target does not exist it
+ * is created and the source contents are copied wholesale. When the target
+ * already exists (e.g. ~/.furina/memory auto-created by the scheduler before
+ * migration runs), the source children are merged in: every child that does
+ * not already exist in the target is copied recursively, and existing children
+ * are left untouched. Returns 'copied' when at least one child was migrated,
+ * 'skipped' when the target already held every source child, and 'failed' on
+ * any error. Old data is never modified.
+ * @param source - Source directory path
+ * @param target - Target directory path
+ * @returns the migration status for the item
+ */
+function copyDirectory(source: string, target: string): MigrationStatus {
+  try {
+    if (!fs.existsSync(target)) {
+      const targetDir = path.dirname(target);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      fs.cpSync(source, target, { recursive: true });
+      logger.info(`Migrated: ${source} -> ${target}`);
+      return 'copied';
+    }
+    // Target directory already exists: merge missing children, never overwrite.
+    let copiedAny = false;
+    let failedAny = false;
+    for (const child of fs.readdirSync(source)) {
+      const childSource = path.join(source, child);
+      const childTarget = path.join(target, child);
+      const childKind: Entry['kind'] = fs.statSync(childSource).isDirectory() ? 'dir' : 'file';
+      const status = copyItem(childSource, childTarget, childKind);
+      if (status === 'copied') {
+        copiedAny = true;
+      } else if (status === 'failed') {
+        failedAny = true;
+      }
+    }
+    if (failedAny) {
+      return 'failed';
+    }
+    if (copiedAny) {
+      return 'copied';
+    }
+    logger.warn(`Migration target directory already exists, skipping: ${target}`);
+    return 'skipped';
   } catch (err) {
     // Copy failed (e.g. target parent is not a directory). Record and continue
     // so other items can still migrate; old data is never modified.

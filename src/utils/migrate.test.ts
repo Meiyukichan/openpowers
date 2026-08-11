@@ -136,6 +136,25 @@ describe('src/utils/migrate.ts', () => {
       expect(userStatuses).toContain('copied');
     });
 
+    it('should merge memory user data when new memory dir already exists with only auto-created files', () => {
+      createSourceLayout(mockHomeDirRef.value, projectDir());
+      // Simulate the memory scheduler having already created ~/.furina/memory
+      // with an auto-created log before the migration runs.
+      fs.mkdirSync(path.join(mockHomeDirRef.value, '.furina', 'memory'), { recursive: true });
+      fs.writeFileSync(path.join(mockHomeDirRef.value, '.furina', 'memory', 'dreamwork.log'), 'new-log', 'utf-8');
+
+      const summary = migrate.runMigration(projectDir());
+
+      const newMemory = path.join(mockHomeDirRef.value, '.furina', 'memory');
+      // User-data directories must still be migrated into the existing dir
+      expect(fs.existsSync(path.join(newMemory, 'Memory_D__mock', 'changes.json'))).toBe(true);
+      expect(fs.readFileSync(path.join(newMemory, 'Memory_D__mock', 'changes.json'), 'utf-8')).toBe('{"changes":[]}');
+      // The pre-existing auto-created log is preserved, not overwritten
+      expect(fs.readFileSync(path.join(newMemory, 'dreamwork.log'), 'utf-8')).toBe('new-log');
+      const memoryItem = summary.user.find((item) => item.source.includes('memory'));
+      expect(memoryItem?.status).toBe('copied');
+    });
+
     it('should copy providers.json, settings.bak.json and .pid (renamed to .furina.pid)', () => {
       createSourceLayout(mockHomeDirRef.value, projectDir());
 
